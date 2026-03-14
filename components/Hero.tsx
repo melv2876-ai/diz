@@ -25,6 +25,179 @@ interface ServerData {
 }
 
 
+// --- Mockup Components ---
+
+const MockupPrice = () => (
+  <div className="relative w-full h-full p-6 flex flex-col justify-center gap-4">
+    <motion.div 
+      initial={{ y: -20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5 }}
+      className="text-center mb-2 text-white/40 text-sm font-medium uppercase tracking-widest line-through decoration-rose-500/50"
+    >
+      Обычный VPN: 299 ₽ / мес
+    </motion.div>
+
+    <motion.div 
+      initial={{ scale: 0.9, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: "spring", stiffness: 200, damping: 20, delay: 0.3 }}
+      className="w-full bg-emerald-500/10 border border-emerald-500/40 rounded-3xl p-6 relative overflow-hidden shadow-[0_0_50px_rgba(16,185,129,0.2)]"
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-emerald-400/10 to-transparent pointer-events-none" />
+      <motion.div 
+        animate={{ x: ["-100%", "200%"] }}
+        transition={{ repeat: Infinity, duration: 3, ease: "linear" }}
+        className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-400/30 to-transparent skew-x-12 w-1/2"
+      />
+      
+      <div className="text-center relative z-10 space-y-2">
+        <span className="text-[10px] text-emerald-400 uppercase tracking-[0.3em] font-black">WW.pro Premium</span>
+        <div className="flex items-baseline justify-center gap-2">
+          <span className="text-5xl md:text-6xl font-black italic tracking-tighter text-white">99 ₽</span>
+          <span className="text-white/50 font-bold uppercase tracking-widest text-xs">/ мес</span>
+        </div>
+      </div>
+
+      <div className="mt-6 space-y-2 relative z-10 text-center">
+         <div className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+            <InfinityIcon className="w-3 h-3 text-emerald-400" />
+            <span className="text-[9px] font-bold text-white/80 uppercase tracking-wider">Безлимитный Трафик</span>
+         </div>
+         <div className="flex justify-center gap-2 flex-wrap">
+           <div className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+              <Zap className="w-3 h-3 text-blue-400" />
+              <span className="text-[9px] font-bold text-white/80 uppercase tracking-wider">Скорость 10 Гбит/с</span>
+           </div>
+           <div className="inline-flex items-center gap-1.5 bg-white/5 border border-white/10 px-3 py-1 rounded-full">
+              <GlobeIcon className="w-3 h-3 text-purple-400" />
+              <span className="text-[9px] font-bold text-white/80 uppercase tracking-wider">4 Топовые Локации</span>
+           </div>
+         </div>
+      </div>
+    </motion.div>
+  </div>
+);
+
+const MockupSpeed = () => (
+  <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden bg-black flex items-center justify-center">
+    <video 
+      className="absolute inset-0 w-full h-full object-cover opacity-80 mix-blend-screen scale-[1.05]"
+      autoPlay 
+      muted 
+      loop 
+      playsInline
+      poster="https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop"
+    >
+      {/* High tech abstract speed/data matrix loop */}
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-digital-animation-of-a-holographic-globe-48995-large.mp4" type="video/mp4" />
+    </video>
+    
+    <div className="absolute inset-0 bg-gradient-to-t from-[#020617] via-transparent to-transparent opacity-80 pointer-events-none" />
+    
+    <motion.div 
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ delay: 1 }}
+      className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-md border border-blue-500/30 text-blue-400 text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-[0.2em] shadow-[0_0_20px_rgba(59,130,246,0.3)] flex items-center gap-2 z-10 whitespace-nowrap"
+    >
+      <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+      10 Gbps 4K UHD Flow
+    </motion.div>
+  </div>
+);
+
+const MockupYouTube = () => (
+   <div className="relative w-full h-full flex items-center justify-center pt-2">
+     <div className="w-32 md:w-40 h-[14rem] md:h-[18rem] bg-black border-4 md:border-8 border-zinc-900 rounded-[2.5rem] overflow-hidden relative shadow-2xl flex flex-col items-center">
+       {/* Fake Phone Notch */}
+       <div className="absolute top-0 w-1/2 h-4 bg-zinc-900 rounded-b-xl z-20 flex justify-center items-center">
+          <div className="w-8 h-1 bg-zinc-800 rounded-full" />
+       </div>
+       
+       {/* Reel/Phone Screen Content */}
+       <div className="w-full h-full relative object-cover">
+          <video 
+            className="absolute inset-0 w-full h-full object-cover scale-105"
+            autoPlay 
+            muted 
+            loop 
+            playsInline
+            poster="https://images.unsplash.com/photo-1611162617474-5b21e879e113?q=80&w=1974&auto=format&fit=crop"
+          >
+            {/* Action sequence of user scrolling/tapping smartphone */}
+            <source src="https://assets.mixkit.co/videos/preview/mixkit-woman-using-a-cell-phone-on-the-street-4595-large.mp4" type="video/mp4" />
+          </video>
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none" />
+          
+          <div className="absolute bottom-6 left-0 right-0 px-4 flex justify-between items-center z-10">
+             <div className="flex flex-col">
+               <span className="text-white font-bold text-xs shadow-md">@premium_vlog</span>
+               <span className="text-white/60 text-[8px]">4K Cinematic Walk...</span>
+             </div>
+          </div>
+       </div>
+
+       {/* Ad block badge floating */}
+       <motion.div 
+         initial={{ scale: 0, opacity: 0 }}
+         animate={{ scale: 1, opacity: 1 }}
+         transition={{ type: "spring", delay: 1 }}
+         className="absolute -right-6 bottom-4 md:-right-8 bg-[#0a0a0a]/90 backdrop-blur-md border border-rose-500/50 text-rose-400 p-2 md:p-3 rounded-2xl shadow-[0_10px_30px_rgba(244,63,94,0.4)] flex items-center gap-2 transform -rotate-6 z-30"
+       >
+         <div className="w-6 h-6 bg-rose-500/20 rounded-full flex items-center justify-center border border-rose-500/30">
+           <ScanEye className="w-3 h-3 text-rose-400" />
+         </div>
+         <span className="text-[10px] md:text-xs font-black uppercase tracking-widest whitespace-nowrap">0 Рекомендуемой<br/>Рекламы</span>
+       </motion.div>
+     </div>
+   </div>
+);
+
+const MockupStealth = () => (
+  <div className="relative w-full h-full rounded-[2.5rem] overflow-hidden flex items-center justify-center bg-[#0a0a0a]">
+    <video 
+      className="absolute inset-0 w-full h-full object-cover opacity-60 mix-blend-screen scale-[1.05]"
+      autoPlay 
+      muted 
+      loop 
+      playsInline
+    >
+      {/* Abstract digital network grid loop */}
+      <source src="https://assets.mixkit.co/videos/preview/mixkit-data-animation-with-a-network-of-connections-48991-large.mp4" type="video/mp4" />
+    </video>
+
+    {/* Center Overlay to blend the video */}
+    <div className="absolute inset-0 bg-purple-950/20 mix-blend-multiply" />
+    <div className="absolute inset-0 bg-gradient-to-b from-[#0a0a0a] via-transparent to-[#0a0a0a] opacity-80" />
+
+    {/* Ghosting Shield */}
+    <div className="w-16 h-16 bg-black/40 backdrop-blur-md rounded-2xl border border-purple-500/50 flex items-center justify-center relative z-10 shadow-[0_0_50px_rgba(168,85,247,0.4)]">
+      <Shield className="w-8 h-8 text-purple-400" />
+      <motion.div 
+        animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+        transition={{ repeat: Infinity, duration: 2 }}
+        className="absolute inset-0 rounded-2xl border border-purple-500/50"
+      />
+    </div>
+
+    {/* Floating tag */}
+    <motion.div 
+      initial={{ y: 20, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ delay: 0.8 }}
+      className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-[#020617] backdrop-blur-md border border-purple-500/40 text-purple-300 px-4 py-2 rounded-xl flex items-center gap-3 shadow-2xl z-20"
+    >
+      <div className="relative flex items-center justify-center">
+        <div className="w-2 h-2 bg-emerald-500 rounded-full" />
+        <div className="absolute w-4 h-4 bg-emerald-500/30 rounded-full animate-ping" />
+      </div>
+      <span className="text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Stealth Mode Active</span>
+    </motion.div>
+  </div>
+);
+
 const SERVERS: ServerData[] = [
   { 
     id: 'de', 
@@ -63,6 +236,41 @@ const SERVERS: ServerData[] = [
 const getPingVariation = () => Math.floor(Math.random() * 10) - 5;
 const getPingProbeDelay = () => 800 + Math.random() * 1000;
 
+const ADVANTAGES_SLIDES = [
+  {
+    id: 'price',
+    title: "Премиум доступ за копейки",
+    description: "Самая низкая цена в индустрии за полноценный безлимит. 4 мощные локации включены в базовый тариф навсегда.",
+    component: MockupPrice,
+    accent: "emerald",
+    stat: "4 Сервера"
+  },
+  {
+    id: 'speed',
+    title: "Квантовая скорость в 4K UHD",
+    description: "Забудьте о буферизации. Смотрите фильмы и стримы в максимальном качестве благодаря портам 10 Гбит/с.",
+    component: MockupSpeed,
+    accent: "blue",
+    stat: "10 Гбит/с"
+  },
+  {
+    id: 'youtube',
+    title: "YouTube уровня God Mode",
+    description: "Смотрите YouTube без единой рекламной вставки. Полное отсутствие цензуры и задержек на любых устройствах.",
+    component: MockupYouTube,
+    accent: "rose",
+    stat: "0 Рекламы"
+  },
+  {
+    id: 'stealth',
+    title: "Обход любых «Белых списков»",
+    description: "Технология VLESS + Reality маскирует трафик под обычный веб-серфинг. Для провайдера вас просто не существует.",
+    component: MockupStealth,
+    accent: "purple",
+    stat: "Stealth"
+  }
+];
+
 export default function Hero() {
   const router = useRouter();
   const pingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -76,6 +284,17 @@ export default function Hero() {
   const [loading, setLoading] = useState(false);
   const [globeTheme, setGlobeTheme] = useState<'dark' | 'light'>('dark');
   const [globeFocusToken, setGlobeFocusToken] = useState(0);
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    let timer: ReturnType<typeof setInterval>;
+    if (showAdvantages) {
+      timer = setInterval(() => {
+        setCurrentSlide((prev) => (prev + 1) % ADVANTAGES_SLIDES.length);
+      }, 6000);
+    }
+    return () => clearInterval(timer);
+  }, [showAdvantages]);
 
   const selectedServerInfo = useMemo(
     () => ({
@@ -365,52 +584,46 @@ export default function Hero() {
           </motion.div>
 
 
-          {/* Interactive Advantages CTA */}
-          <div className="mt-auto w-full max-w-md pointer-events-auto">
-            <motion.p 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-sm font-semibold tracking-tight text-white/60 mb-3"
-            >
-              Почему выбирают именно нас?
-            </motion.p>
-
-            <motion.div
+          {/* Interactive Advantages CTA - Compact & Minimalist */}
+          <div className="mt-auto pt-6 pb-2 pointer-events-auto">
+            <div 
               onClick={() => {
                 if (isTelling) return;
                 setIsTelling(true);
                 setTimeout(() => {
                   setShowAdvantages(true);
                   setIsTelling(false);
-                }, 800);
+                }, 1000);
               }}
-              className="relative cursor-pointer group/action inline-block"
+              className="group cursor-pointer inline-flex flex-col items-start"
             >
-              <div className="relative h-10 rounded-full border border-white/10 px-6 flex items-center overflow-hidden transition-all duration-500 group-hover/action:border-white/20 group-hover/action:bg-white/[0.03]">
-                
-                {/* Bottom layer: Replacement text (always present, revealed by wipe) */}
-                <span className="absolute inset-0 flex items-center px-6 text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-400 z-10 whitespace-nowrap">
-                  Сейчас расскажем →
+              {/* Micro-label */}
+              <div className="flex items-center gap-2 mb-1 text-center">
+                <div className={`w-1 h-1 rounded-full ${isTelling ? 'bg-emerald-500 animate-pulse' : 'bg-white/20 group-hover:bg-emerald-500/50'} transition-colors`} />
+                <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20 group-hover:text-emerald-500/60 transition-colors duration-500">
+                  {isTelling ? 'Подготовка...' : 'О ПРЕИМУЩЕСТВАХ'}
                 </span>
-
-                {/* Top layer: Original text with wipe-away mask */}
-                <span 
-                  className="absolute inset-0 flex items-center px-6 text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 z-20 whitespace-nowrap bg-[#0a0a0a] transition-[clip-path] duration-700 ease-in-out group-hover/action:[clip-path:inset(0_100%_0_0)] [clip-path:inset(0_0_0_0)]"
-                >
-                  Оценить преимущества
-                </span>
-
-                {/* Loading bar on click */}
-                {isTelling && (
-                  <motion.div 
-                    initial={{ scaleX: 0 }}
-                    animate={{ scaleX: 1 }}
-                    transition={{ duration: 0.8 }}
-                    className="absolute bottom-0 left-0 w-full h-px bg-emerald-500 origin-left z-30"
-                  />
-                )}
+                <div className="w-4 h-px bg-white/5 group-hover:w-8 group-hover:bg-emerald-500/30 transition-all duration-500" />
               </div>
-            </motion.div>
+              
+              <div className="flex items-center gap-3">
+                <h3 className="text-lg md:text-xl font-black italic tracking-tighter text-white/50 group-hover:text-white transition-all duration-500">
+                  <span className="mr-2">{isTelling ? 'Сейчас все' : 'Почему выбирают'}</span>
+                  <span className="text-emerald-500/60 group-hover:text-emerald-400 transition-colors duration-500">{isTelling ? 'расскажем' : 'нас?'}</span>
+                </h3>
+              </div>
+
+              {/* Sophisticated Underline Progress */}
+              <div className="mt-2 relative w-full h-[1px] bg-white/[0.03] overflow-hidden">
+                <motion.div 
+                  initial={false}
+                  animate={isTelling ? { x: ['-100%', '0%'] } : { x: '-100%' }}
+                  transition={{ duration: 1, ease: "easeInOut" }}
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"
+                />
+                <div className="absolute inset-0 w-0 group-hover:w-full bg-white/10 transition-all duration-700 ease-out" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -724,33 +937,156 @@ export default function Hero() {
               initial={{ opacity: 0, scale: 0.9, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-5xl h-[80vh] bg-white/[0.02] border border-white/10 rounded-[3rem] overflow-hidden flex flex-col shadow-[0_32px_128px_rgba(0,0,0,0.8)]"
+              className="relative w-full max-w-5xl h-[70vh] md:h-[60vh] bg-black/40 backdrop-blur-3xl border border-white/10 rounded-[3rem] overflow-hidden flex flex-col shadow-[0_32px_128px_rgba(0,0,0,0.8)]"
             >
-              {/* Top Bar */}
-              <div className="flex items-center justify-between p-8 border-b border-white/5">
-                <div className="flex flex-col">
-                  <span className="text-[10px] uppercase font-black tracking-[0.4em] text-white/30 mb-1">Оцени преимущества</span>
-                  <h3 className="text-3xl font-bold tracking-tighter text-white uppercase italic">Почему выбирают нас</h3>
-                </div>
+              {/* Animated Accent Background */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={ADVANTAGES_SLIDES[currentSlide].id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 1 }}
+                  className={`absolute inset-0 bg-gradient-to-br transition-colors duration-1000 opacity-20 pointer-events-none ${
+                    ADVANTAGES_SLIDES[currentSlide].accent === 'emerald' ? 'from-emerald-600/40' :
+                    ADVANTAGES_SLIDES[currentSlide].accent === 'blue' ? 'from-blue-600/40' :
+                    ADVANTAGES_SLIDES[currentSlide].accent === 'rose' ? 'from-rose-600/40' : 'from-purple-600/40'
+                  } to-transparent`}
+                />
+              </AnimatePresence>
+
+              {/* Progress Bars (Top) */}
+              <div className="absolute top-0 left-0 right-0 p-8 z-20 flex gap-2">
+                {ADVANTAGES_SLIDES.map((_, i) => (
+                  <div key={i} className="h-1 flex-1 bg-white/10 rounded-full overflow-hidden">
+                    {i === currentSlide ? (
+                      <motion.div 
+                        initial={{ scaleX: 0 }}
+                        animate={{ scaleX: 1 }}
+                        transition={{ duration: 6, ease: "linear" }}
+                        className={`h-full origin-left ${
+                          ADVANTAGES_SLIDES[i].accent === 'emerald' ? 'bg-emerald-500' :
+                          ADVANTAGES_SLIDES[i].accent === 'blue' ? 'bg-blue-500' :
+                          ADVANTAGES_SLIDES[i].accent === 'rose' ? 'bg-rose-500' : 'bg-purple-500'
+                        }`}
+                      />
+                    ) : i < currentSlide ? (
+                      <div className={`h-full rounded-full opacity-50 ${
+                        ADVANTAGES_SLIDES[i].accent === 'emerald' ? 'bg-emerald-500' :
+                        ADVANTAGES_SLIDES[i].accent === 'blue' ? 'bg-blue-500' :
+                        ADVANTAGES_SLIDES[i].accent === 'rose' ? 'bg-rose-500' : 'bg-purple-500'
+                      }`} />
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+
+              {/* Close Button */}
+              <div className="absolute top-12 right-8 z-30">
                 <button 
                   onClick={() => setShowAdvantages(false)}
-                  className="w-12 h-12 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-90"
+                  className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-white/40 hover:text-white transition-all active:scale-90"
                 >
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
-              {/* Body (Empty for now as requested) */}
-              <div className="flex-1 overflow-y-auto p-8 flex items-center justify-center">
-                <div className="text-center space-y-4">
-                  <div className="w-24 h-24 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
-                    <Shield className="w-10 h-10 text-emerald-500" />
-                  </div>
-                  <h4 className="text-xl font-bold text-white/80">Готовим контент...</h4>
-                  <p className="text-white/30 max-w-xs mx-auto">Скоро здесь появится детальное описание наших технологий защиты и скорости.</p>
-                </div>
+              {/* Slide Content */}
+              <div className="flex-1 relative flex items-center px-8 md:px-20 overflow-hidden">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={ADVANTAGES_SLIDES[currentSlide].id}
+                    initial={{ x: 50, opacity: 0, filter: 'blur(10px)' }}
+                    animate={{ x: 0, opacity: 1, filter: 'blur(0px)' }}
+                    exit={{ x: -50, opacity: 0, filter: 'blur(10px)' }}
+                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    className="grid md:grid-cols-[1fr_auto] gap-12 items-center w-full"
+                  >
+                    {/* Text Side */}
+                    <div className="space-y-6">
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="flex items-center gap-3"
+                      >
+                        <div className={`px-4 py-1 rounded-full border text-[10px] font-black uppercase tracking-[0.2em] ${
+                          ADVANTAGES_SLIDES[currentSlide].accent === 'emerald' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' :
+                          ADVANTAGES_SLIDES[currentSlide].accent === 'blue' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' :
+                          ADVANTAGES_SLIDES[currentSlide].accent === 'rose' ? 'bg-rose-500/10 border-rose-500/20 text-rose-400' : 'bg-purple-500/10 border-purple-500/20 text-purple-400'
+                        }`}>
+                          {ADVANTAGES_SLIDES[currentSlide].stat}
+                        </div>
+                        <span className="text-[10px] font-bold text-white/30 tracking-[0.4em] uppercase">Tech Showcase</span>
+                      </motion.div>
+
+                      <motion.h3 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="text-4xl md:text-6xl font-black italic tracking-tighter text-white leading-[0.9] uppercase"
+                      >
+                        {ADVANTAGES_SLIDES[currentSlide].title}
+                      </motion.h3>
+
+                      <motion.p 
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="text-white/40 text-sm md:text-lg max-w-xl font-medium leading-relaxed"
+                      >
+                        {ADVANTAGES_SLIDES[currentSlide].description}
+                      </motion.p>
+                    </div>
+
+                    {/* Visual/Icon Side */}
+                    <motion.div
+                      initial={{ scale: 0.8, opacity: 0, rotate: 10 }}
+                      animate={{ scale: 1, opacity: 1, rotate: 0 }}
+                      transition={{ delay: 0.3, type: 'spring', stiffness: 100 }}
+                      className="hidden md:flex items-center justify-center p-12 relative"
+                    >
+                      {/* Floating Decorative Rings */}
+                      <div className={`absolute inset-0 rounded-full border border-dashed transition-colors duration-1000 animate-[spin_20s_linear_infinite] ${
+                        ADVANTAGES_SLIDES[currentSlide].accent === 'emerald' ? 'border-emerald-500/20' :
+                        ADVANTAGES_SLIDES[currentSlide].accent === 'blue' ? 'border-blue-500/20' :
+                        ADVANTAGES_SLIDES[currentSlide].accent === 'rose' ? 'border-rose-500/20' : 'border-purple-500/20'
+                      }`} />
+                      
+                      <div className={`w-48 h-48 md:w-64 md:h-64 rounded-[2.5rem] bg-gradient-to-br flex items-center justify-center shadow-2xl relative z-10 ${
+                         ADVANTAGES_SLIDES[currentSlide].accent === 'emerald' ? 'from-emerald-500/10 to-emerald-950/30 border border-emerald-500/30' :
+                         ADVANTAGES_SLIDES[currentSlide].accent === 'blue' ? 'from-blue-500/10 to-blue-950/30 border border-blue-500/30' :
+                         ADVANTAGES_SLIDES[currentSlide].accent === 'rose' ? 'from-rose-500/10 to-rose-950/30 border border-rose-500/30' : 'from-purple-500/10 to-purple-950/30 border border-purple-500/30'
+                      }`}>
+                         {/* Dynamic Render Component */}
+                         {(() => {
+                            const ActiveComponent = ADVANTAGES_SLIDES[currentSlide].component;
+                            return <ActiveComponent />;
+                         })()}
+                         
+                         {/* Inner Glow */}
+                         <div className={`absolute inset-0 blur-[60px] opacity-20 pointer-events-none rounded-[2.5rem] ${
+                            ADVANTAGES_SLIDES[currentSlide].accent === 'emerald' ? 'bg-emerald-500' :
+                            ADVANTAGES_SLIDES[currentSlide].accent === 'blue' ? 'bg-blue-500' :
+                            ADVANTAGES_SLIDES[currentSlide].accent === 'rose' ? 'bg-rose-500' : 'bg-purple-500'
+                         }`} />
+                      </div>
+                    </motion.div>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+
+              {/* Manual Control Dots */}
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-4 z-30">
+                {ADVANTAGES_SLIDES.map((_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setCurrentSlide(i)}
+                    className={`h-1.5 transition-all duration-500 rounded-full ${i === currentSlide ? 'w-8 bg-white' : 'w-2 bg-white/20 hover:bg-white/40'}`}
+                  />
+                ))}
               </div>
             </motion.div>
           </motion.div>
