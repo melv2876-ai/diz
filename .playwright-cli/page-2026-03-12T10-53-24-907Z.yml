@@ -1,0 +1,109 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e5]: Инициализация глобальной сети...
+      - generic:
+        - generic [ref=e6]:
+          - generic [ref=e7]:
+            - generic [ref=e8]:
+              - img [ref=e10]
+              - generic [ref=e12]: WW.pro
+            - button "Switch to light mode" [ref=e13]:
+              - img [ref=e14]
+          - generic [ref=e20]:
+            - heading "Лучший VPN сервис" [level=1] [ref=e21]
+            - paragraph [ref=e22]: Максимальная скорость и безопасность в один клик. Выбирайте лучшие локации по всему миру.
+          - generic [ref=e23]:
+            - generic [ref=e24]:
+              - heading "Список серверов" [level=4] [ref=e25]:
+                - img [ref=e26]
+                - text: Список серверов
+              - button "Обновить" [ref=e27]:
+                - img [ref=e29]
+                - text: Обновить
+            - generic [ref=e38]:
+              - button "🇩🇪 Германия Франкфурт ... latency" [ref=e39]:
+                - generic [ref=e40]: 🇩🇪
+                - generic [ref=e41]:
+                  - generic [ref=e43]: Германия
+                  - generic [ref=e45]: Франкфурт
+                - generic [ref=e46]:
+                  - generic [ref=e47]:
+                    - generic [ref=e48]: ...
+                    - generic [ref=e49]: latency
+                  - button "Проверить пинг Германия" [ref=e50]:
+                    - img [ref=e52]
+              - button "🇦🇲 Армения Ереван ... latency" [ref=e61]:
+                - generic [ref=e62]: 🇦🇲
+                - generic [ref=e63]:
+                  - generic [ref=e65]: Армения
+                  - generic [ref=e66]: Ереван
+                - generic [ref=e67]:
+                  - generic [ref=e68]:
+                    - generic [ref=e69]: ...
+                    - generic [ref=e70]: latency
+                  - button "Проверить пинг Армения" [ref=e71]:
+                    - img [ref=e73]
+              - button "🇫🇮 Финляндия Хельсинки ... latency" [ref=e82]:
+                - generic [ref=e83]: 🇫🇮
+                - generic [ref=e84]:
+                  - generic [ref=e86]: Финляндия
+                  - generic [ref=e87]: Хельсинки
+                - generic [ref=e88]:
+                  - generic [ref=e89]:
+                    - generic [ref=e90]: ...
+                    - generic [ref=e91]: latency
+                  - button "Проверить пинг Финляндия" [ref=e92]:
+                    - img [ref=e94]
+              - button "🇺🇸 США Нью-Йорк ... latency" [ref=e103]:
+                - generic [ref=e104]: 🇺🇸
+                - generic [ref=e105]:
+                  - generic [ref=e107]: США
+                  - generic [ref=e108]: Нью-Йорк
+                - generic [ref=e109]:
+                  - generic [ref=e110]:
+                    - generic [ref=e111]: ...
+                    - generic [ref=e112]: latency
+                  - button "Проверить пинг США" [ref=e113]:
+                    - img [ref=e115]
+          - button "Премиум доступ Посмотреть тарифы" [ref=e124]:
+            - generic [ref=e126]:
+              - generic [ref=e127]: Премиум доступ
+              - generic [ref=e128]: Посмотреть тарифы
+            - img [ref=e129]
+        - generic [ref=e131]:
+          - generic [ref=e132]:
+            - button "Вход" [ref=e133]
+            - button "Регистрация" [ref=e134]
+          - generic [ref=e135]:
+            - heading "Регистрация" [level=2] [ref=e136]
+            - paragraph [ref=e137]: Начните безопасный серфинг прямо сейчас.
+          - generic [ref=e138]:
+            - generic [ref=e139]:
+              - text: Email
+              - textbox "vlad@example.com" [ref=e140]
+            - generic [ref=e141]:
+              - text: Пароль
+              - textbox "••••••••" [ref=e142]
+            - button "Создать аккаунт" [ref=e143]:
+              - text: Создать аккаунт
+              - img [ref=e144]
+          - generic [ref=e150]: Или через
+          - generic [ref=e151]:
+            - button "Google" [ref=e152]:
+              - img [ref=e153]
+              - generic [ref=e158]: Google
+            - button "Telegram" [ref=e159]:
+              - img [ref=e160]
+              - generic [ref=e162]: Telegram
+          - generic [ref=e163]:
+            - generic [ref=e164]:
+              - img [ref=e166]
+              - text: Безлимитный трафик
+            - generic [ref=e168]:
+              - img [ref=e170]
+              - text: Шифрование военного уровня
+            - generic [ref=e172]:
+              - img [ref=e174]
+              - text: Более 50 стран
+  - alert [ref=e177]

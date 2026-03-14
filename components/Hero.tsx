@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { Shield, Globe as GlobeIcon, Zap, Server, ArrowRight, CheckCircle2, Signal, Activity, MapPin } from 'lucide-react';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { motion } from 'motion/react';
+import { Shield, Globe as GlobeIcon, Zap, ArrowRight, Sun, Moon, RefreshCw } from 'lucide-react';
 import Image from 'next/image';
 import Globe from './Globe';
 import { useRouter } from 'next/navigation';
@@ -21,22 +21,78 @@ interface ServerData {
   coords: [number, number];
   basePing: number;
   flag: string;
+  description: string;
 }
 
+
 const SERVERS: ServerData[] = [
-  { id: 'de', country: 'Германия', city: 'Франкфурт', coords: [50.1109, 8.6821], basePing: 35, flag: '🇩🇪' },
-  { id: 'am', country: 'Армения', city: 'Ереван', coords: [40.1772, 44.5035], basePing: 55, flag: '🇦🇲' },
-  { id: 'fi', country: 'Финляндия', city: 'Хельсинки', coords: [60.1699, 24.9384], basePing: 42, flag: '🇫🇮' },
-  { id: 'us', country: 'США', city: 'Нью-Йорк', coords: [40.7128, -74.0060], basePing: 110, flag: '🇺🇸' },
+  { 
+    id: 'de', 
+    country: 'Германия', 
+    city: 'Франкфурт', 
+    coords: [50.1109, 8.6821], 
+    basePing: 35, flag: '🇩🇪',
+    description: 'Лучший сервер по скорости и стабильности'
+  },
+  { 
+    id: 'am', 
+    country: 'Армения', 
+    city: 'Ереван', 
+    coords: [40.1772, 44.5035], 
+    basePing: 55, flag: '🇦🇲',
+    description: 'Полное отсутствие рекламы в YouTube'
+  },
+  { 
+    id: 'fi', 
+    country: 'Финляндия', 
+    city: 'Хельсинки', 
+    coords: [60.1699, 24.9384], 
+    basePing: 42, flag: '🇫🇮',
+    description: 'Быстрый и без рекламы в YouTube'
+  },
+  { 
+    id: 'us', 
+    country: 'США', 
+    city: 'Нью-Йорк', 
+    coords: [40.7128, -74.0060], 
+    basePing: 110, flag: '🇺🇸',
+    description: 'Отлично подходит для ИИ и регистраций'
+  },
 ];
+
+const getPingVariation = () => Math.floor(Math.random() * 10) - 5;
+const getPingProbeDelay = () => 800 + Math.random() * 1000;
 
 export default function Hero() {
   const router = useRouter();
+  const pingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const [selectedServer, setSelectedServer] = useState<ServerData>(SERVERS[0]);
   const [pings, setPings] = useState<Record<string, number | 'testing'>>({});
   const [authMode, setAuthMode] = useState<'login' | 'register'>('register');
   const [user, setUser] = useState<MockUser | null>(null);
   const [loading, setLoading] = useState(false);
+  const [globeTheme, setGlobeTheme] = useState<'dark' | 'light'>('dark');
+  const [globeFocusToken, setGlobeFocusToken] = useState(0);
+
+  const selectedServerInfo = useMemo(
+    () => ({
+      city: selectedServer.city,
+      country: selectedServer.country,
+      flag: selectedServer.flag,
+    }),
+    [selectedServer.city, selectedServer.country, selectedServer.flag]
+  );
+
+  const focusServer = (server: ServerData) => {
+    setSelectedServer(server);
+    setGlobeFocusToken((current) => current + 1);
+  };
+
+  const handleServerProbe = (server: ServerData) => {
+    focusServer(server);
+    simulatePing(server.id);
+  };
+
 
   const handleGoogleLogin = async () => {
     setLoading(true);
@@ -70,20 +126,32 @@ export default function Hero() {
   };
 
   const simulatePing = (serverId: string) => {
-// ...
+    const existingTimeout = pingTimeoutsRef.current[serverId];
+    if (existingTimeout) {
+      clearTimeout(existingTimeout);
+    }
+
     setPings(prev => ({ ...prev, [serverId]: 'testing' }));
     
-    setTimeout(() => {
+    pingTimeoutsRef.current[serverId] = setTimeout(() => {
       const base = SERVERS.find(s => s.id === serverId)?.basePing || 50;
-      const variation = Math.floor(Math.random() * 10) - 5;
+      const variation = getPingVariation();
       setPings(prev => ({ ...prev, [serverId]: base + variation }));
-    }, 800 + Math.random() * 1000);
+      delete pingTimeoutsRef.current[serverId];
+    }, getPingProbeDelay());
   };
 
   useEffect(() => {
     // Initial ping simulation for all
     SERVERS.forEach(s => simulatePing(s.id));
+
+    return () => {
+      Object.values(pingTimeoutsRef.current).forEach(clearTimeout);
+      pingTimeoutsRef.current = {};
+    };
   }, []);
+
+  const isAnyPingTesting = Object.values(pings).some((ping) => ping === 'testing');
 
   return (
     <div className="relative h-screen bg-[#050505] overflow-hidden">
@@ -91,7 +159,9 @@ export default function Hero() {
       <Globe 
         selectedCountryId={selectedServer.id}
         selectedLocation={selectedServer.coords} 
-        serverInfo={{ city: selectedServer.city, country: selectedServer.country, flag: selectedServer.flag }}
+        serverInfo={selectedServerInfo}
+        theme={globeTheme}
+        focusToken={globeFocusToken}
       />
 
       {/* UI Overlay */}
@@ -99,11 +169,24 @@ export default function Hero() {
         {/* Left Side: Info & Server List */}
         <div className="flex-1 flex flex-col gap-4 pointer-events-auto">
           {/* Header/Logo */}
-          <header className="flex items-center gap-2">
-            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <Shield className="text-zinc-950 w-6 h-6" />
+          <header className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                <Shield className="text-zinc-950 w-6 h-6" />
+              </div>
+              <span className="text-2xl font-bold tracking-tighter font-mono">WW.pro</span>
             </div>
-            <span className="text-2xl font-bold tracking-tighter font-mono">WW.pro</span>
+            <button
+              onClick={() => setGlobeTheme(globeTheme === 'dark' ? 'light' : 'dark')}
+              className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+              title={globeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {globeTheme === 'dark' ? (
+                <Sun className="w-5 h-5 text-white/70" />
+              ) : (
+                <Moon className="w-5 h-5 text-white/70" />
+              )}
+            </button>
           </header>
 
           {/* Main Headline */}
@@ -126,74 +209,158 @@ export default function Hero() {
             </motion.p>
           </div>
 
-          {/* Server List */}
-          <div className="flex flex-col gap-2 max-w-md">
-            <div className="flex items-center justify-between px-1">
-              <h4 className="text-xs uppercase tracking-[0.2em] text-zinc-400 font-bold flex items-center gap-2">
-                <Signal className="w-3 h-3" /> Список серверов
-              </h4>
-              <button 
-                onClick={() => SERVERS.forEach(s => simulatePing(s.id))}
-                className="text-[10px] uppercase tracking-widest text-emerald-500 hover:text-emerald-400 font-bold transition-colors"
-              >
-                Обновить пинг
-              </button>
-            </div>
-            
-            <div className="grid gap-2">
-              {SERVERS.map((server) => (
-                <motion.div
-                  key={server.id}
-                  onClick={() => setSelectedServer(server)}
-                  whileHover={{ x: 4 }}
-                  className={`
-                    relative cursor-pointer p-2 md:p-3 rounded-xl border transition-all duration-300 flex items-center justify-between backdrop-blur-xl
-                    ${selectedServer.id === server.id 
-                      ? 'bg-white/10 border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.3)]' 
-                      : 'bg-white/5 border-white/10 hover:bg-white/10'}
-                  `}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl drop-shadow-lg">
-                      {server.flag}
-                    </div>
-                    <div>
-                      <div className="font-bold text-xs text-white/90">{server.country}</div>
-                      <div className="text-[8px] text-white/50">{server.city}</div>
-                    </div>
-                  </div>
+          {/* Server List — Liquid Glass */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="relative max-w-[28rem]"
+          >
+            {/* Glass container */}
+            <div className="relative overflow-hidden rounded-3xl"
+              style={{
+                background: 'linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 50%, rgba(255,255,255,0.06) 100%)',
+                boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12), inset 0 -1px 0 rgba(255,255,255,0.04)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                backdropFilter: 'blur(40px) saturate(1.6)',
+                WebkitBackdropFilter: 'blur(40px) saturate(1.6)',
+              }}
+            >
+              {/* Top highlight */}
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <div className={`text-sm font-mono font-bold ${
-                        typeof pings[server.id] === 'number' 
-                          ? (pings[server.id] as number) < 50 ? 'text-emerald-400' : (pings[server.id] as number) < 100 ? 'text-yellow-400' : 'text-red-400'
-                          : 'text-white/30'
-                      }`}>
-                        {pings[server.id] === 'testing' ? (
-                          <motion.span
-                            animate={{ opacity: [1, 0.5, 1] }}
-                            transition={{ repeat: Infinity, duration: 1 }}
-                          >
-                            ...
-                          </motion.span>
-                        ) : (
-                          `${pings[server.id] || '--'} ms`
+              {/* Header */}
+              <div className="relative flex items-center justify-between px-5 py-4">
+                <span className="text-[13px] font-semibold tracking-[-0.01em] text-white/70">
+                  Серверы
+                </span>
+                <button
+                  onClick={() => SERVERS.forEach((server) => simulatePing(server.id))}
+                  className="flex items-center justify-center w-7 h-7 rounded-full transition-all duration-200 hover:bg-white/10 active:scale-90"
+                  title="Проверить пинг"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-white/40 hover:text-white/70 transition-colors ${isAnyPingTesting ? 'refresh-spin' : ''}`} />
+                </button>
+              </div>
+
+              {/* Server rows */}
+              <div className="relative">
+                {SERVERS.map((server, index) => {
+                  const currentPing = pings[server.id];
+                  const isSelected = selectedServer.id === server.id;
+                  const isTesting = currentPing === 'testing';
+
+                  const pingColor = () => {
+                    if (typeof currentPing !== 'number') return 'text-white/25';
+                    if (currentPing < 50) return 'text-emerald-400';
+                    if (currentPing < 100) return 'text-yellow-400';
+                    return 'text-rose-400';
+                  };
+
+                  const dotColor = () => {
+                    if (typeof currentPing !== 'number') return 'bg-white/20';
+                    if (currentPing < 50) return 'bg-emerald-400';
+                    if (currentPing < 100) return 'bg-yellow-400';
+                    return 'bg-rose-400';
+                  };
+
+                  return (
+                    <div key={server.id}>
+                      {/* Divider */}
+                      {index > 0 && (
+                        <div className="mx-5 h-px bg-white/[0.06]" />
+                      )}
+
+                      <motion.div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleServerProbe(server)}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleServerProbe(server);
+                          }
+                        }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`relative flex items-center gap-3 px-5 py-3.5 cursor-pointer transition-colors duration-150 ${
+                          isSelected
+                            ? 'bg-white/[0.07]'
+                            : 'hover:bg-white/[0.04] active:bg-white/[0.06]'
+                        }`}
+                      >
+                        {/* Selected indicator */}
+                        {isSelected && (
+                          <motion.div
+                            layoutId="server-indicator"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-emerald-400"
+                            style={{ boxShadow: '0 0 8px rgba(52,211,153,0.5)' }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                          />
                         )}
-                      </div>
-                      <div className="text-[10px] uppercase tracking-tighter text-white/30 font-bold">Latency</div>
+
+                        {/* Flag — bare, no container */}
+                        <span className="text-[1.5rem] leading-none shrink-0">{server.flag}</span>
+
+                        {/* Info */}
+                        <div className="min-w-0 flex-1">
+                          <span className={`block text-[0.9rem] tracking-[-0.02em] leading-tight ${
+                            isSelected ? 'font-semibold text-white' : 'font-medium text-white/80'
+                          }`}>
+                            {server.country}
+                          </span>
+                          <span className="block mt-0.5 text-[0.72rem] text-white/30 tracking-wide">
+                            {server.city}
+                          </span>
+                        </div>
+
+                        {/* Ping */}
+                        <div className="flex items-center gap-2.5 shrink-0">
+                          <span className={`text-[0.82rem] font-medium tabular-nums tracking-tight ${pingColor()} transition-colors duration-300`}>
+                            {isTesting ? (
+                              <motion.span
+                                animate={{ opacity: [0.3, 0.8, 0.3] }}
+                                transition={{ repeat: Infinity, duration: 1 }}
+                                className="text-white/30"
+                              >
+                                —
+                              </motion.span>
+                            ) : (
+                              typeof currentPing === 'number' ? `${currentPing} ms` : '—'
+                            )}
+                          </span>
+
+                          {/* Status dot */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleServerProbe(server);
+                            }}
+                            className="relative flex items-center justify-center w-5 h-5"
+                            title={`Проверить ${server.country}`}
+                          >
+                            {isTesting && (
+                              <span className={`absolute inset-0 rounded-full ${dotColor()} opacity-30 ping-btn-ripple`} />
+                            )}
+                            <motion.span
+                              animate={isTesting ? { scale: [1, 1.4, 1], opacity: [0.6, 1, 0.6] } : { scale: 1, opacity: 1 }}
+                              transition={isTesting ? { repeat: Infinity, duration: 1.2, ease: 'easeInOut' } : { duration: 0.2 }}
+                              className={`block w-[6px] h-[6px] rounded-full ${dotColor()} transition-colors duration-300`}
+                              style={typeof currentPing === 'number' ? { boxShadow: `0 0 6px currentColor` } : {}}
+                            />
+                          </button>
+                        </div>
+                      </motion.div>
                     </div>
-                    {selectedServer.id === server.id && (
-                      <motion.div 
-                        layoutId="active-indicator"
-                        className="w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-[0_0_12px_#10b981]"
-                      />
-                    )}
-                  </div>
-                </motion.div>
-              ))}
+                  );
+                })}
+              </div>
+
+              {/* Bottom padding */}
+              <div className="h-1.5" />
             </div>
-          </div>
+          </motion.div>
+
 
           {/* Pricing Button */}
           <motion.button 
@@ -210,37 +377,10 @@ export default function Hero() {
           </motion.button>
         </div>
 
-        {/* Center: Active Info Overlay */}
-        <div className="flex-[1.5] relative flex items-end justify-center pb-4 pointer-events-none">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={selectedServer.id}
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.9 }}
-              className="bg-white/10 backdrop-blur-2xl border border-white/20 p-4 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] flex items-center gap-4 min-w-[260px] pointer-events-auto"
-            >
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 text-2xl drop-shadow-lg">
-                {selectedServer.flag}
-              </div>
-              <div>
-                <div className="text-[8px] uppercase tracking-[0.2em] text-emerald-400 font-bold mb-0.5">Активный узел</div>
-                <div className="text-xl font-bold leading-none mb-0.5 text-white">{selectedServer.city}</div>
-                <div className="text-white/60 text-xs font-medium">{selectedServer.country}</div>
-              </div>
-              <div className="ml-auto pl-3 border-l border-white/10">
-                <div className="text-xl font-mono font-bold text-emerald-400">
-                  {typeof pings[selectedServer.id] === 'number' ? pings[selectedServer.id] : '--'}
-                  <span className="text-[10px] ml-0.5 opacity-50">ms</span>
-                </div>
-                <div className="text-[8px] uppercase tracking-widest text-white/40 font-bold">Стабильно</div>
-              </div>
-            </motion.div>
-          </AnimatePresence>
-        </div>
+        <div className="hidden lg:block flex-[1.35] pointer-events-none" aria-hidden="true" />
 
         {/* Right Side: Auth Section */}
-        <div className="w-full lg:w-[340px] xl:w-[380px] bg-white/5 backdrop-blur-3xl rounded-2xl border border-white/10 p-4 md:p-6 flex flex-col shadow-[0_20px_50px_rgba(0,0,0,0.5)] pointer-events-auto">
+        <div className="w-full lg:w-[340px] xl:w-[380px] bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-4 md:p-6 flex flex-col shadow-[0_12px_28px_rgba(0,0,0,0.32)] pointer-events-auto">
           {user ? (
             <div className="flex flex-col h-full">
               <div className="mb-8">
@@ -382,8 +522,47 @@ export default function Hero() {
             ))}
           </div>
         </div>
+
+        {/* Minimalist Typewriter Description */}
+        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none hidden lg:block w-full max-w-2xl px-8">
+          <div className="flex flex-col items-center gap-2">
+            {/* Status Line */}
+            <motion.div 
+              initial={{ opacity: 0, y: 5 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex items-center gap-2 opacity-50"
+            >
+              <div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              <span className="text-[9px] uppercase font-black tracking-[0.3em] text-white">
+                Активен: {selectedServer.country}
+              </span>
+            </motion.div>
+
+            {/* Typewriter Text */}
+            <div className="h-8 flex items-center justify-center">
+              <motion.p 
+                key={selectedServer.id}
+                className="text-lg md:text-xl font-bold text-white tracking-tight text-center drop-shadow-lg"
+              >
+                {selectedServer.description.split('').map((char, index) => (
+                  <motion.span
+                    key={`${selectedServer.id}-${index}`}
+                    initial={{ opacity: 0, filter: 'blur(4px)' }}
+                    animate={{ opacity: 1, filter: 'blur(0px)' }}
+                    transition={{
+                      duration: 0.2,
+                      delay: index * 0.03,
+                      ease: "easeOut"
+                    }}
+                  >
+                    {char}
+                  </motion.span>
+                ))}
+              </motion.p>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-

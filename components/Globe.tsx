@@ -1,106 +1,153 @@
 'use client';
 
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 
-// Dynamic import to avoid SSR issues with Three.js
-const ReactGlobe = dynamic(() => import('react-globe.gl'), { 
+const ReactGlobe = dynamic(() => import('react-globe.gl'), {
   ssr: false,
   loading: () => (
-    <div className="fixed inset-0 bg-[#050505] flex flex-col items-center justify-center text-emerald-500/50 font-mono text-xs gap-4">
-      <div className="w-12 h-12 border-2 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+    <div className="fixed inset-0 flex items-center justify-center bg-[#050505] text-xs font-mono text-emerald-500/50">
       Инициализация глобальной сети...
     </div>
-  )
+  ),
 });
 
 interface GlobeProps {
   selectedCountryId?: string | null;
   selectedLocation?: [number, number] | null;
   serverInfo?: { city: string; country: string; flag: string } | null;
+  theme?: 'dark' | 'light';
+  focusToken?: number;
 }
 
-export default function Globe({ selectedCountryId, selectedLocation, serverInfo }: GlobeProps) {
+interface HoveredCountry {
+  code: string;
+  name: string;
+  flag: string;
+}
+
+type GlobeCountryFeature = {
+  properties?: Record<string, any> & {
+    __countryCode?: string;
+    __isSelected?: boolean;
+  };
+};
+
+const getCountryCode = (properties: Record<string, any>) =>
+  properties.ISO_A2 || properties['ISO3166-1-Alpha-2'] || properties.POSTAL || '';
+
+const getCountryName = (properties: Record<string, any>) =>
+  properties.NAME || properties.ADMIN || properties.name || 'Country';
+
+const countryCodeToFlag = (code?: string) => {
+  if (!code || code.length !== 2) return '';
+
+  return String.fromCodePoint(
+    ...code
+      .toUpperCase()
+      .split('')
+      .map((char) => 127397 + char.charCodeAt(0))
+  );
+};
+
+function Globe({
+  selectedCountryId,
+  selectedLocation,
+  serverInfo,
+  theme = 'dark',
+  focusToken = 0,
+}: GlobeProps) {
   const globeRef = useRef<any>(null);
+  const hoverLabelRef = useRef<HTMLDivElement>(null);
+  const pointerPositionRef = useRef({ x: -9999, y: -9999 });
+  const hoverClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cameraTransitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const controlsCleanupRef = useRef<(() => void) | null>(null);
+  const isCameraTransitioningRef = useRef(false);
+  const isDraggingRef = useRef(false);
   const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
-  const [countries, setCountries] = useState({ features: [] });
-  const [globeImageUrl, setGlobeImageUrl] = useState('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg');
-  const [bumpImageUrl, setBumpImageUrl] = useState('https://cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png');
+  const [countries, setCountries] = useState<GlobeCountryFeature[]>([]);
+  const [hoveredCountry, setHoveredCountry] = useState<HoveredCountry | null>(null);
 
-  useEffect(() => {
-    const checkImage = (url: string) => {
-      return new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(true);
-        img.onerror = () => resolve(false);
-        img.src = url;
-      });
-    };
+  const clearHoveredCountry = useCallback(() => {
+    if (hoverClearTimeoutRef.current) {
+      clearTimeout(hoverClearTimeoutRef.current);
+      hoverClearTimeoutRef.current = null;
+    }
 
-    const validateTextures = async () => {
-      const isPrimaryOk = await checkImage(globeImageUrl);
-      if (!isPrimaryOk) {
-        setGlobeImageUrl('https://unpkg.com/three-globe/example/img/earth-night.jpg');
-        setBumpImageUrl('https://unpkg.com/three-globe/example/img/earth-topology.png');
-      }
-    };
-
-    validateTextures();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    setHoveredCountry(null);
   }, []);
 
-  useEffect(() => {
-    const geoUrls = [
-      'https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson',
-      'https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson',
-      'https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json' // This is TopoJSON, but we'll try it as a last resort if we add TopoJSON support, or just stick to GeoJSON for now
-    ];
+  const scheduleHoveredCountryClear = useCallback(() => {
+    if (hoverClearTimeoutRef.current) {
+      return;
+    }
 
-    const loadGeoData = async (index = 0) => {
-      if (index >= geoUrls.length) {
-        console.error('🌐 Globe Debug: All GeoJSON sources failed. The globe will render without country outlines.');
-        // Fallback to empty features so the app doesn't crash
-        setCountries({ features: [] });
+    hoverClearTimeoutRef.current = setTimeout(() => {
+      setHoveredCountry(null);
+      hoverClearTimeoutRef.current = null;
+    }, 24);
+  }, []);
+
+  const scheduleCameraTransitionEnd = useCallback((duration: number) => {
+    if (cameraTransitionTimeoutRef.current) {
+      clearTimeout(cameraTransitionTimeoutRef.current);
+    }
+
+    isCameraTransitioningRef.current = true;
+    cameraTransitionTimeoutRef.current = setTimeout(() => {
+      isCameraTransitioningRef.current = false;
+      cameraTransitionTimeoutRef.current = null;
+    }, duration + 80);
+  }, []);
+
+  const moveCamera = useCallback(
+    (location: [number, number] | null) => {
+      if (!globeRef.current) {
         return;
       }
 
-      const currentUrl = geoUrls[index];
-      console.log(`🌐 Globe Debug: Attempting to load countries from source ${index + 1}/${geoUrls.length}: ${currentUrl}`);
+      const duration = location ? 1400 : 1800;
 
+      clearHoveredCountry();
+      scheduleCameraTransitionEnd(duration);
+
+      if (location) {
+        globeRef.current.pointOfView(
+          {
+            lat: location[0],
+            lng: location[1],
+            altitude: 0.72,
+          },
+          duration
+        );
+        return;
+      }
+
+      globeRef.current.pointOfView({ altitude: 2.2 }, duration);
+    },
+    [clearHoveredCountry, scheduleCameraTransitionEnd]
+  );
+
+  useEffect(() => {
+    let isCancelled = false;
+
+    const loadCountries = async () => {
       try {
-        const res = await fetch(currentUrl, {
-          mode: 'cors',
-          credentials: 'omit'
-        });
-
-        if (!res.ok) {
-          throw new Error(`HTTP Error: ${res.status} ${res.statusText}`);
-        }
-
+        const res = await fetch('/globe/countries.geojson', { cache: 'force-cache' });
         const data = await res.json();
-        
-        // Handle TopoJSON if it's the world-atlas source
-        let geoData = data;
-        if (data.type === 'Topology') {
-          // If we ever use TopoJSON, we'd need topojson-client here.
-          // For now, we'll just throw an error if it's not GeoJSON.
-          throw new Error('Received TopoJSON instead of GeoJSON');
-        }
 
-        if (!geoData || !geoData.features) {
-          throw new Error('Invalid GeoJSON format received (missing features array)');
+        if (!isCancelled) {
+          setCountries(data?.features || []);
         }
-
-        setCountries(geoData);
-        console.log(`✅ Globe Debug: Successfully loaded countries from source ${index + 1}`);
-      } catch (err) {
-        console.warn(`⚠️ Globe Debug: Source ${index + 1} failed. Error:`, err);
-        // Small delay before trying next source to avoid rapid-fire failures
-        setTimeout(() => loadGeoData(index + 1), 200);
+      } catch {
+        if (!isCancelled) {
+          setCountries([]);
+        }
       }
     };
 
-    loadGeoData();
+    loadCountries();
 
     const handleResize = () => {
       setDimensions({ width: window.innerWidth, height: window.innerHeight });
@@ -108,168 +155,274 @@ export default function Globe({ selectedCountryId, selectedLocation, serverInfo 
 
     handleResize();
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+
+    return () => {
+      isCancelled = true;
+      clearHoveredCountry();
+      if (cameraTransitionTimeoutRef.current) {
+        clearTimeout(cameraTransitionTimeoutRef.current);
+        cameraTransitionTimeoutRef.current = null;
+      }
+      controlsCleanupRef.current?.();
+      controlsCleanupRef.current = null;
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [clearHoveredCountry]);
 
   useEffect(() => {
-    if (globeRef.current && selectedLocation) {
-      // Professional cinematic zoom-in to the country
-      globeRef.current.pointOfView({
-        lat: selectedLocation[0],
-        lng: selectedLocation[1],
-        altitude: 0.7 // Slightly closer to see city marker clearly
-      }, 1500);
-    } else if (globeRef.current && !selectedLocation) {
-      globeRef.current.pointOfView({ altitude: 2.5 }, 2000);
-    }
-  }, [selectedLocation]);
+    const frameId = window.requestAnimationFrame(() => {
+      moveCamera(selectedLocation ?? null);
+    });
 
-  // Data for the city marker
-  const markerData = selectedLocation ? [{
-    lat: selectedLocation[0],
-    lng: selectedLocation[1],
-    label: serverInfo?.city || ''
-  }] : [];
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [focusToken, moveCamera, selectedLocation]);
+
+  useEffect(() => {
+    const frameId = window.requestAnimationFrame(() => {
+      clearHoveredCountry();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [clearHoveredCountry, selectedCountryId]);
+
+  useEffect(() => {
+    if (!hoveredCountry || !hoverLabelRef.current) {
+      return;
+    }
+
+    hoverLabelRef.current.style.transform = `translate3d(${pointerPositionRef.current.x}px, ${pointerPositionRef.current.y}px, 0)`;
+  }, [hoveredCountry]);
+
+  const selectedCountryCode = selectedCountryId?.toLowerCase() ?? null;
+  const hoveredCountryCode = hoveredCountry?.code.toLowerCase() ?? null;
+
+  const countryPolygons = useMemo(
+    () =>
+      countries.map((feature: GlobeCountryFeature) => {
+        const countryCode = getCountryCode(feature.properties || {}).toLowerCase();
+        const isSelected = countryCode === selectedCountryCode;
+
+        return {
+          ...feature,
+          properties: {
+            ...(feature.properties || {}),
+            __countryCode: countryCode,
+            __isSelected: isSelected,
+          },
+        };
+      }),
+    [countries, selectedCountryCode]
+  );
+
+  const markerData = useMemo(
+    () =>
+      selectedLocation
+        ? [
+            {
+              lat: selectedLocation[0],
+              lng: selectedLocation[1],
+              city: serverInfo?.city || '',
+              country: serverInfo?.country || '',
+              flag: serverInfo?.flag || '',
+            },
+          ]
+        : [],
+    [selectedLocation, serverInfo]
+  );
+
+  const moveHoverLabel = (event: React.MouseEvent<HTMLDivElement>) => {
+    pointerPositionRef.current = {
+      x: event.clientX + 18,
+      y: event.clientY - 22,
+    };
+
+    if (!hoverLabelRef.current) {
+      return;
+    }
+
+    hoverLabelRef.current.style.transform = `translate3d(${pointerPositionRef.current.x}px, ${pointerPositionRef.current.y}px, 0)`;
+  };
+
+  const handlePolygonHover = useCallback(
+    (polygon: any, prevPolygon: any) => {
+      if (polygon === prevPolygon) {
+        return;
+      }
+
+      if (isCameraTransitioningRef.current || isDraggingRef.current) {
+        clearHoveredCountry();
+        return;
+      }
+
+      if (!polygon?.properties) {
+        scheduleHoveredCountryClear();
+        return;
+      }
+
+      if (hoverClearTimeoutRef.current) {
+        clearTimeout(hoverClearTimeoutRef.current);
+        hoverClearTimeoutRef.current = null;
+      }
+
+      const code = getCountryCode(polygon.properties);
+      setHoveredCountry((current) => {
+        if (current?.code === code) {
+          return current;
+        }
+
+        return {
+          code,
+          name: getCountryName(polygon.properties),
+          flag: countryCodeToFlag(code),
+        };
+      });
+    },
+    [clearHoveredCountry, scheduleHoveredCountryClear]
+  );
+
+  const polygonCapColor = useCallback(
+    (polygon: GlobeCountryFeature) => {
+      const isSelected = polygon.properties?.__isSelected;
+
+      if (!isSelected) {
+        return 'rgba(0,0,0,0)';
+      }
+
+      return theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(190, 242, 230, 0.075)';
+    },
+    [theme]
+  );
+
+  const polygonStrokeColor = useCallback(
+    (polygon: GlobeCountryFeature) => {
+      const countryCode = polygon.properties?.__countryCode ?? '';
+
+      if (polygon.properties?.__isSelected) {
+        return theme === 'light' ? '#059669' : '#c8fff0';
+      }
+
+      if (countryCode === hoveredCountryCode) {
+        return theme === 'light' ? '#10b981' : '#e9fff8';
+      }
+
+      return theme === 'light' ? 'rgba(71,85,105,0.28)' : 'rgba(214,228,245,0.14)';
+    },
+    [hoveredCountryCode, theme]
+  );
+
+  const polygonAltitude = useCallback(
+    (polygon: GlobeCountryFeature) =>
+      polygon.properties?.__isSelected ? 0.008 : 0.001,
+    []
+  );
+
+  const handleGlobeReady = useCallback(() => {
+    if (!globeRef.current) {
+      return;
+    }
+
+    const controls = globeRef.current.controls();
+    controls.autoRotate = false;
+    controls.enableZoom = true;
+    controls.enablePan = false;
+    controls.enableDamping = true;
+    controls.dampingFactor = 0.06;
+    controls.minDistance = 180;
+    controls.maxDistance = 560;
+
+    const handleStart = () => {
+      isDraggingRef.current = true;
+      clearHoveredCountry();
+    };
+
+    const handleEnd = () => {
+      requestAnimationFrame(() => {
+        isDraggingRef.current = false;
+      });
+    };
+
+    controlsCleanupRef.current?.();
+    controls.addEventListener('start', handleStart);
+    controls.addEventListener('end', handleEnd);
+    controlsCleanupRef.current = () => {
+      controls.removeEventListener('start', handleStart);
+      controls.removeEventListener('end', handleEnd);
+    };
+
+    moveCamera(selectedLocation ?? null);
+  }, [clearHoveredCountry, moveCamera, selectedLocation]);
 
   return (
-    <div className="fixed inset-0 z-0 pointer-events-auto">
+    <div
+      className="fixed inset-0 z-0 pointer-events-auto"
+      onMouseMove={moveHoverLabel}
+      onMouseLeave={() => {
+        clearHoveredCountry();
+      }}
+    >
       <ReactGlobe
         ref={globeRef}
         width={dimensions.width}
         height={dimensions.height}
         backgroundColor="rgba(0,0,0,0)"
-        
-        // Realistic Planet Textures
-        globeImageUrl={globeImageUrl}
-        bumpImageUrl={bumpImageUrl}
-        
-        // Atmosphere styling
-        showAtmosphere={true}
-        atmosphereColor="#10b981"
-        atmosphereAltitude={0.15}
-
-        // Country Polygons (Outlines)
-        polygonsData={countries.features}
-        polygonCapColor={(d: any) => 
-          d.properties.ISO_A2.toLowerCase() === selectedCountryId?.toLowerCase() 
-            ? 'rgba(16, 185, 129, 0.12)' 
-            : 'rgba(0, 0, 0, 0)'
-        }
-        polygonSideColor={() => 'rgba(0, 0, 0, 0)'}
-        polygonStrokeColor={(d: any) => 
-          d.properties.ISO_A2.toLowerCase() === selectedCountryId?.toLowerCase() 
-            ? '#10b981' 
-            : 'rgba(255, 255, 255, 0.05)'
-        }
-        
-        // City Markers
+        animateIn={false}
+        globeImageUrl="/globe/earth-night.jpg"
+        bumpImageUrl="/globe/earth-topology.png"
+        showAtmosphere
+        atmosphereColor={theme === 'light' ? '#9db9ff' : '#84a9ff'}
+        atmosphereAltitude={0.11}
+        polygonsData={countryPolygons}
+        polygonCapColor={polygonCapColor}
+        polygonSideColor={() => 'rgba(0,0,0,0)'}
+        polygonStrokeColor={polygonStrokeColor}
+        polygonAltitude={polygonAltitude}
+        polygonCapCurvatureResolution={8}
+        polygonsTransitionDuration={0}
         htmlElementsData={markerData}
         htmlElement={(d: any) => {
           const el = document.createElement('div');
+          el.className = 'signal-node';
           el.innerHTML = `
-            <div class="city-marker-container">
-              <div class="marker-pulse"></div>
-              <div class="marker-core"></div>
-              <div class="marker-label">
-                <div class="label-content">
-                  <span class="flag-icon">${serverInfo?.flag || ''}</span>
-                  <div class="label-text">
-                    <span class="status-text">Active Node</span>
-                    <span class="city-text">${d.label}</span>
-                  </div>
-                </div>
+            <div class="signal-node__pulse"></div>
+            <div class="signal-node__core"></div>
+            <div class="signal-node__label ${theme === 'light' ? 'is-light' : 'is-dark'}">
+              ${d.flag ? `<span class="signal-node__flag">${d.flag}</span>` : ''}
+              <div class="signal-node__copy">
+                <span class="signal-node__eyebrow">Active Node</span>
+                <span class="signal-node__city">${d.city}</span>
+                <span class="signal-node__country">${d.country}</span>
               </div>
             </div>
           `;
-          
-          const style = document.createElement('style');
-          style.innerHTML = `
-            .city-marker-container {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              position: relative;
-            }
-            .marker-core {
-              width: 10px;
-              height: 10px;
-              background: #10b981;
-              border-radius: 50%;
-              border: 2px solid white;
-              box-shadow: 0 0 20px #10b981;
-              z-index: 2;
-            }
-            .marker-pulse {
-              position: absolute;
-              width: 24px;
-              height: 24px;
-              background: rgba(16, 185, 129, 0.3);
-              border-radius: 50%;
-              animation: pulse 2s ease-out infinite;
-              z-index: 1;
-            }
-            .marker-label {
-              position: absolute;
-              left: 20px;
-              top: -10px;
-              background: rgba(255, 255, 255, 0.05);
-              backdrop-filter: blur(20px);
-              border: 1px solid rgba(255, 255, 255, 0.1);
-              padding: 6px 12px;
-              border-radius: 14px;
-              box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-              pointer-events: none;
-            }
-            .label-content {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-            }
-            .flag-icon {
-              font-size: 18px;
-            }
-            .label-text {
-              display: flex;
-              flex-direction: column;
-            }
-            .status-text {
-              color: #10b981;
-              font-size: 8px;
-              font-weight: 800;
-              text-transform: uppercase;
-              letter-spacing: 0.1em;
-              line-height: 1;
-              margin-bottom: 2px;
-            }
-            .city-text {
-              color: white;
-              font-size: 12px;
-              font-weight: bold;
-              white-space: nowrap;
-              line-height: 1;
-            }
-            @keyframes pulse {
-              0% { transform: scale(0.5); opacity: 1; }
-              100% { transform: scale(3); opacity: 0; }
-            }
-          `;
-          el.appendChild(style);
           return el;
         }}
-        
-        onGlobeReady={() => {
-          if (globeRef.current) {
-            globeRef.current.controls().autoRotate = false;
-            globeRef.current.controls().enableZoom = true;
-            globeRef.current.controls().enablePan = false;
-            globeRef.current.controls().minDistance = 150;
-            globeRef.current.controls().maxDistance = 600;
-          }
-        }}
+        onPolygonHover={handlePolygonHover}
+        onGlobeReady={handleGlobeReady}
       />
-      
-      {/* Vignette for better UI contrast */}
-      <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_0%,rgba(5,5,5,0.4)_100%)]" />
+
+      {hoveredCountry ? (
+        <div
+          ref={hoverLabelRef}
+          className="pointer-events-none fixed left-0 top-0 z-[60]"
+          style={{ transform: 'translate3d(-9999px,-9999px,0)' }}
+        >
+          <div className={`country-hover-pill ${theme === 'light' ? 'is-light' : 'is-dark'}`}>
+            {hoveredCountry.flag ? (
+              <span className="country-hover-pill__flag">{hoveredCountry.flag}</span>
+            ) : null}
+            <span className="country-hover-pill__name">{hoveredCountry.name}</span>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_52%_46%,rgba(136,174,255,0.11)_0%,rgba(7,10,18,0)_26%,rgba(2,6,23,0.28)_54%,rgba(1,3,8,0.62)_100%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(3,7,18,0.04)_0%,rgba(3,7,18,0.0)_32%,rgba(2,6,12,0.42)_100%)]" />
     </div>
   );
 }
+
+export default memo(Globe);

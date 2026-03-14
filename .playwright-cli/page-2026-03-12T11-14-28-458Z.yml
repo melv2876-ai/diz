@@ -1,0 +1,91 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e5]: Инициализация глобальной сети...
+    - generic:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]:
+            - img [ref=e10]
+            - generic [ref=e12]: WW.pro
+          - button "Switch to light mode" [ref=e13]:
+            - img [ref=e14]
+        - generic [ref=e20]:
+          - heading "Лучший VPN сервис" [level=1] [ref=e21]
+          - paragraph [ref=e22]: Максимальная скорость и безопасность в один клик. Выбирайте лучшие локации по всему миру.
+        - generic [ref=e23]:
+          - generic [ref=e24]:
+            - heading "Список серверов" [level=4] [ref=e25]
+            - button "Проверить пинг" [ref=e26]
+          - generic [ref=e27]:
+            - button "🇩🇪 Германия Франкфурт -- ms" [ref=e28]:
+              - generic [ref=e29]: 🇩🇪
+              - generic [ref=e30]:
+                - generic [ref=e32]: Германия
+                - generic [ref=e33]: Франкфурт
+              - generic [ref=e34]:
+                - generic [ref=e36]: "-- ms"
+                - button "Проверить пинг Германия" [ref=e37]
+            - button "🇦🇲 Армения Ереван -- ms" [ref=e41]:
+              - generic [ref=e42]: 🇦🇲
+              - generic [ref=e43]:
+                - generic [ref=e45]: Армения
+                - generic [ref=e46]: Ереван
+              - generic [ref=e47]:
+                - generic [ref=e49]: "-- ms"
+                - button "Проверить пинг Армения" [ref=e50]
+            - button "🇫🇮 Финляндия Хельсинки -- ms" [ref=e54]:
+              - generic [ref=e55]: 🇫🇮
+              - generic [ref=e56]:
+                - generic [ref=e58]: Финляндия
+                - generic [ref=e59]: Хельсинки
+              - generic [ref=e60]:
+                - generic [ref=e62]: "-- ms"
+                - button "Проверить пинг Финляндия" [ref=e63]
+            - button "🇺🇸 США Нью-Йорк -- ms" [ref=e67]:
+              - generic [ref=e68]: 🇺🇸
+              - generic [ref=e69]:
+                - generic [ref=e71]: США
+                - generic [ref=e72]: Нью-Йорк
+              - generic [ref=e73]:
+                - generic [ref=e75]: "-- ms"
+                - button "Проверить пинг США" [ref=e76]
+        - button "Премиум доступ Посмотреть тарифы" [ref=e80]:
+          - generic [ref=e82]:
+            - generic [ref=e83]: Премиум доступ
+            - generic [ref=e84]: Посмотреть тарифы
+          - img [ref=e85]
+      - generic [ref=e87]:
+        - generic [ref=e88]:
+          - button "Вход" [ref=e89]
+          - button "Регистрация" [ref=e90]
+        - generic [ref=e91]:
+          - heading "Регистрация" [level=2] [ref=e92]
+          - paragraph [ref=e93]: Начните безопасный серфинг прямо сейчас.
+        - generic [ref=e94]:
+          - generic [ref=e95]:
+            - text: Email
+            - textbox "vlad@example.com" [ref=e96]
+          - generic [ref=e97]:
+            - text: Пароль
+            - textbox "••••••••" [ref=e98]
+          - button "Создать аккаунт" [ref=e99]:
+            - text: Создать аккаунт
+            - img [ref=e100]
+        - generic [ref=e106]: Или через
+        - generic [ref=e107]:
+          - button "Google" [ref=e108]:
+            - img [ref=e109]
+            - generic [ref=e114]: Google
+          - button "Telegram" [ref=e115]:
+            - img [ref=e116]
+            - generic [ref=e118]: Telegram
+        - generic [ref=e119]:
+          - generic [ref=e120]:
+            - img [ref=e122]
+            - text: Безлимитный трафик
+          - generic [ref=e124]:
+            - img [ref=e126]
+            - text: Шифрование военного уровня
+          - generic [ref=e128]:
+            - img [ref=e130]
+            - text: Более 50 стран

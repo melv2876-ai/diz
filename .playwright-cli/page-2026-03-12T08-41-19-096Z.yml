@@ -1,0 +1,129 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e5]: Инициализация глобальной сети...
+    - generic:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - generic [ref=e8]:
+            - img [ref=e10]
+            - generic [ref=e12]: WW.pro
+          - button "Switch to light mode" [ref=e13]:
+            - img [ref=e14]
+        - generic [ref=e20]:
+          - heading "Лучший VPN сервис" [level=1] [ref=e21]
+          - paragraph [ref=e22]: Максимальная скорость и безопасность в один клик. Выбирайте лучшие локации по всему миру.
+        - generic [ref=e23]:
+          - generic [ref=e24]:
+            - heading "Список серверов" [level=4] [ref=e25]:
+              - img [ref=e26]
+              - text: Список серверов
+            - button "Обновить" [ref=e27]:
+              - img [ref=e29]
+              - text: Обновить
+          - generic [ref=e36]:
+            - button "🇩🇪 Германия Выбран Франкфурт • Сервер Нажмите для замера -- ms Задержка" [ref=e37]:
+              - generic [ref=e38]:
+                - generic [ref=e41]: 🇩🇪
+                - generic [ref=e42]:
+                  - generic [ref=e43]:
+                    - generic: Германия
+                    - generic [ref=e44]: Выбран
+                  - generic [ref=e45]:
+                    - generic [ref=e46]: Франкфурт
+                    - generic [ref=e47]: •
+                    - generic [ref=e48]: Сервер
+                  - generic [ref=e50]: Нажмите для замера
+              - generic [ref=e51]:
+                - generic [ref=e52]:
+                  - generic [ref=e53]: "-- ms"
+                  - generic [ref=e54]: Задержка
+                - button "Проверить пинг Германия" [ref=e55]:
+                  - img [ref=e58]
+            - button "🇦🇲 Армения Ереван • Сервер Нажмите для замера -- ms Задержка" [ref=e65]:
+              - generic [ref=e66]:
+                - generic [ref=e69]: 🇦🇲
+                - generic [ref=e70]:
+                  - generic [ref=e72]: Армения
+                  - generic [ref=e73]:
+                    - generic [ref=e74]: Ереван
+                    - generic [ref=e75]: •
+                    - generic [ref=e76]: Сервер
+                  - generic [ref=e78]: Нажмите для замера
+              - generic [ref=e79]:
+                - generic [ref=e80]:
+                  - generic [ref=e81]: "-- ms"
+                  - generic [ref=e82]: Задержка
+                - button "Проверить пинг Армения" [ref=e83]:
+                  - img [ref=e86]
+            - button "🇫🇮 Финляндия Хельсинки • Сервер Нажмите для замера -- ms Задержка" [ref=e93]:
+              - generic [ref=e94]:
+                - generic [ref=e97]: 🇫🇮
+                - generic [ref=e98]:
+                  - generic [ref=e100]: Финляндия
+                  - generic [ref=e101]:
+                    - generic [ref=e102]: Хельсинки
+                    - generic [ref=e103]: •
+                    - generic [ref=e104]: Сервер
+                  - generic [ref=e106]: Нажмите для замера
+              - generic [ref=e107]:
+                - generic [ref=e108]:
+                  - generic [ref=e109]: "-- ms"
+                  - generic [ref=e110]: Задержка
+                - button "Проверить пинг Финляндия" [ref=e111]:
+                  - img [ref=e114]
+            - button "🇺🇸 США Нью-Йорк • Сервер Нажмите для замера -- ms Задержка" [ref=e121]:
+              - generic [ref=e122]:
+                - generic [ref=e125]: 🇺🇸
+                - generic [ref=e126]:
+                  - generic [ref=e128]: США
+                  - generic [ref=e129]:
+                    - generic [ref=e130]: Нью-Йорк
+                    - generic [ref=e131]: •
+                    - generic [ref=e132]: Сервер
+                  - generic [ref=e134]: Нажмите для замера
+              - generic [ref=e135]:
+                - generic [ref=e136]:
+                  - generic [ref=e137]: "-- ms"
+                  - generic [ref=e138]: Задержка
+                - button "Проверить пинг США" [ref=e139]:
+                  - img [ref=e142]
+        - button "Премиум доступ Посмотреть тарифы" [ref=e149]:
+          - generic [ref=e151]:
+            - generic [ref=e152]: Премиум доступ
+            - generic [ref=e153]: Посмотреть тарифы
+          - img [ref=e154]
+      - generic [ref=e156]:
+        - generic [ref=e157]:
+          - button "Вход" [ref=e158]
+          - button "Регистрация" [ref=e159]
+        - generic [ref=e160]:
+          - heading "Регистрация" [level=2] [ref=e161]
+          - paragraph [ref=e162]: Начните безопасный серфинг прямо сейчас.
+        - generic [ref=e163]:
+          - generic [ref=e164]:
+            - text: Email
+            - textbox "vlad@example.com" [ref=e165]
+          - generic [ref=e166]:
+            - text: Пароль
+            - textbox "••••••••" [ref=e167]
+          - button "Создать аккаунт" [ref=e168]:
+            - text: Создать аккаунт
+            - img [ref=e169]
+        - generic [ref=e175]: Или через
+        - generic [ref=e176]:
+          - button "Google" [ref=e177]:
+            - img [ref=e178]
+            - generic [ref=e183]: Google
+          - button "Telegram" [ref=e184]:
+            - img [ref=e185]
+            - generic [ref=e187]: Telegram
+        - generic [ref=e188]:
+          - generic [ref=e189]:
+            - img [ref=e191]
+            - text: Безлимитный трафик
+          - generic [ref=e193]:
+            - img [ref=e195]
+            - text: Шифрование военного уровня
+          - generic [ref=e197]:
+            - img [ref=e199]
+            - text: Более 50 стран
