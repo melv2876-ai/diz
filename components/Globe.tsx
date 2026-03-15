@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 const ReactGlobe = dynamic(() => import('react-globe.gl'), {
   ssr: false,
   loading: () => (
-    <div className="fixed inset-0 flex items-center justify-center bg-[#050505] text-xs font-mono text-emerald-500/50">
+    <div className="fixed inset-0 flex items-center justify-center bg-[var(--page-bg)] text-xs font-mono text-emerald-500/50">
       Инициализация глобальной сети...
     </div>
   ),
@@ -327,6 +327,8 @@ function Globe({
 
     const controls = globeRef.current.controls();
     controls.autoRotate = false;
+    controls.enableRotate = true;
+    controls.rotateSpeed = 0.8;
     controls.enableZoom = true;
     controls.enablePan = false;
     controls.enableDamping = true;
@@ -370,11 +372,11 @@ function Globe({
         height={dimensions.height}
         backgroundColor="rgba(0,0,0,0)"
         animateIn={false}
-        globeImageUrl="/globe/earth-night.jpg"
+        globeImageUrl={theme === 'light' ? '/globe/earth-blue-marble.jpg' : '/globe/earth-night.jpg'}
         bumpImageUrl="/globe/earth-topology.png"
         showAtmosphere
-        atmosphereColor={theme === 'light' ? '#9db9ff' : '#84a9ff'}
-        atmosphereAltitude={0.11}
+        atmosphereColor={theme === 'light' ? '#7dbfd0' : '#84a9ff'}
+        atmosphereAltitude={theme === 'light' ? 0.14 : 0.11}
         polygonsData={countryPolygons}
         polygonCapColor={polygonCapColor}
         polygonSideColor={() => 'rgba(0,0,0,0)'}
@@ -419,8 +421,17 @@ function Globe({
         </div>
       ) : null}
 
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_52%_46%,rgba(136,174,255,0.11)_0%,rgba(7,10,18,0)_26%,rgba(2,6,23,0.28)_54%,rgba(1,3,8,0.62)_100%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(3,7,18,0.04)_0%,rgba(3,7,18,0.0)_32%,rgba(2,6,12,0.42)_100%)]" />
+      {theme === 'light' ? (
+        <>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(247,250,253,0.08)_0%,rgba(247,250,253,0)_27%,rgba(193,210,221,0.16)_56%,rgba(217,227,235,0.56)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(245,249,252,0.04)_0%,rgba(241,247,251,0)_32%,rgba(207,220,229,0.28)_100%)]" />
+        </>
+      ) : (
+        <>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_52%_46%,rgba(136,174,255,0.11)_0%,rgba(7,10,18,0)_26%,rgba(2,6,23,0.28)_54%,rgba(1,3,8,0.62)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(3,7,18,0.04)_0%,rgba(3,7,18,0.0)_32%,rgba(2,6,12,0.42)_100%)]" />
+        </>
+      )}
     </div>
   );
 }

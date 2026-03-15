@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import Image from 'next/image';
 import Globe from './Globe';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 interface MockUser {
   uid: string;
@@ -277,6 +278,8 @@ const FEATURE_INFO = [
   'Белые списки — когда всё заблокировано. Наш VPN обходит эти жесткие фильтры, открывая доступ к любому контенту по всему миру.'
 ];
 
+const STORAGE_THEME_KEY = 'wwpro-theme';
+
 export default function Hero() {
   const router = useRouter();
   const pingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -289,8 +292,11 @@ export default function Hero() {
   const [user, setUser] = useState<MockUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [globeTheme, setGlobeTheme] = useState<'dark' | 'light'>('dark');
+  const [isThemeReady, setIsThemeReady] = useState(false);
   const [globeFocusToken, setGlobeFocusToken] = useState(0);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const effectiveTheme = isThemeReady ? globeTheme : 'dark';
+  const isLight = effectiveTheme === 'light';
 
   useEffect(() => {
     let timer: ReturnType<typeof setInterval>;
@@ -379,45 +385,104 @@ export default function Hero() {
     };
   }, []);
 
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      const savedTheme = window.localStorage.getItem(STORAGE_THEME_KEY);
+      if (savedTheme === 'light' || savedTheme === 'dark') {
+        setGlobeTheme(savedTheme);
+      }
+      setIsThemeReady(true);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = effectiveTheme;
+    if (isThemeReady) {
+      window.localStorage.setItem(STORAGE_THEME_KEY, globeTheme);
+    }
+  }, [effectiveTheme, globeTheme, isThemeReady]);
+
   const isAnyPingTesting = Object.values(pings).some((ping) => ping === 'testing');
 
   return (
-    <div className="relative min-h-[100svh] bg-[#050505] overflow-x-hidden lg:h-[100svh] [@media(max-height:860px)]:lg:h-auto">
+    <div className={cn(
+      "relative min-h-[100svh] overflow-x-hidden transition-colors duration-300 lg:h-[100svh] [@media(max-height:860px)]:lg:h-auto",
+      isLight ? "bg-[#aebdc8]" : "bg-[#050505]"
+    )}>
       {/* Full Screen Globe Background */}
       <Globe 
         selectedCountryId={selectedServer.id}
         selectedLocation={selectedServer.coords} 
         serverInfo={selectedServerInfo}
-        theme={globeTheme}
+        theme={effectiveTheme}
         focusToken={globeFocusToken}
       />
+
+      {isLight ? (
+        <>
+          <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[46%] bg-[linear-gradient(90deg,rgba(183,197,209,0.98)_0%,rgba(183,197,209,0.94)_26%,rgba(183,197,209,0.68)_52%,rgba(183,197,209,0.18)_74%,rgba(183,197,209,0)_100%)]" />
+          <div className="pointer-events-none absolute left-0 top-0 z-[1] h-[54%] w-[40%] bg-[radial-gradient(circle_at_22%_18%,rgba(234,242,247,0.20)_0%,rgba(203,216,225,0.14)_34%,rgba(163,179,191,0)_74%)]" />
+        </>
+      ) : null}
 
       {/* UI Overlay */}
       <div className="relative z-10 mx-auto grid min-h-[100svh] w-full max-w-[1600px] grid-rows-[minmax(0,1fr)_auto] px-3 pb-3 pt-3 md:px-4 md:pb-4 md:pt-4 lg:h-full lg:min-h-0 lg:grid-rows-[minmax(0,1fr)_minmax(2.8rem,auto)] lg:px-6 lg:pb-3 lg:pt-4 xl:px-8 xl:pb-4 xl:pt-5 [@media(max-height:940px)]:lg:grid-rows-[minmax(0,1fr)_minmax(2.45rem,auto)] [@media(max-height:940px)]:lg:pt-3 [@media(max-height:860px)]:lg:h-auto [@media(max-height:860px)]:lg:min-h-[100svh] [@media(max-height:860px)]:lg:grid-rows-[auto_auto] pointer-events-none">
         <div className="grid min-h-0 gap-4 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1.08fr)_minmax(22.75rem,25.5rem)] lg:items-stretch lg:gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(23rem,26rem)] xl:gap-8 [@media(max-height:940px)]:lg:gap-5 [@media(max-height:860px)]:lg:h-auto">
         {/* Left Side: Info & Server List */}
-        <div className="pointer-events-auto flex min-h-0 flex-col gap-4 lg:h-full lg:max-w-[44rem] lg:justify-between xl:max-w-[46rem]">
-          <div className="flex flex-col gap-4 lg:gap-5 [@media(max-height:940px)]:lg:gap-4 [@media(max-height:860px)]:lg:gap-3">
+        <div className="pointer-events-none flex min-h-0 flex-col gap-4 lg:h-full lg:max-w-[44rem] lg:justify-between xl:max-w-[46rem]">
+          <div className="pointer-events-none flex flex-col gap-4 lg:gap-5 [@media(max-height:940px)]:lg:gap-4 [@media(max-height:860px)]:lg:gap-3">
             <div className="w-full">
               {/* Header/Logo */}
-              <header className="flex max-w-[28rem] items-center justify-between [@media(max-height:940px)]:lg:max-w-[27rem] [@media(max-height:860px)]:lg:max-w-[25.5rem]">
+              <header className="pointer-events-none flex max-w-[28rem] items-center justify-between [@media(max-height:940px)]:lg:max-w-[27rem] [@media(max-height:860px)]:lg:max-w-[25.5rem]">
                 <div className="flex items-center gap-2">
                   <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
                     <Shield className="text-zinc-950 w-6 h-6" />
                   </div>
-                  <span className="text-2xl font-bold tracking-tighter font-mono">WW.pro</span>
+                  <span className={cn(
+                    "text-2xl font-bold tracking-tighter font-mono transition-colors",
+                    isLight ? "text-slate-950" : "text-white"
+                  )}>WW.pro</span>
                 </div>
-                <button
-                  onClick={() => setGlobeTheme(globeTheme === 'dark' ? 'light' : 'dark')}
-                  className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
-                  title={globeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-                >
-                  {globeTheme === 'dark' ? (
-                    <Sun className="w-5 h-5 text-white/70" />
-                  ) : (
-                    <Moon className="w-5 h-5 text-white/70" />
+                <div
+                  className={cn(
+                    "pointer-events-auto inline-flex items-center gap-1 rounded-full border p-1 backdrop-blur-xl shadow-[0_16px_44px_rgba(15,23,42,0.12)] transition-all",
+                    isLight
+                      ? "border-[#536577]/34 bg-[#c2ced7]/74 shadow-[0_18px_44px_rgba(47,65,83,0.16)]"
+                      : "border-white/10 bg-black/30"
                   )}
-                </button>
+                >
+                  {[
+                    { id: 'dark', icon: Moon, label: 'Тёмная тема' },
+                    { id: 'light', icon: Sun, label: 'Светлая тема' },
+                  ].map((option) => {
+                    const active = effectiveTheme === option.id;
+                    const Icon = option.icon;
+
+                    return (
+                      <button
+                        key={option.id}
+                        onClick={() => setGlobeTheme(option.id as 'dark' | 'light')}
+                        aria-label={option.label}
+                        className={cn(
+                          "relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-all",
+                          active
+                            ? isLight
+                              ? "bg-[#102132] text-[#f6fbff] shadow-[0_10px_24px_rgba(17,32,51,0.22)]"
+                              : "bg-white text-zinc-950 shadow-[0_10px_24px_rgba(255,255,255,0.18)]"
+                            : isLight
+                              ? "text-[#3e5467] hover:bg-[#102132]/8 hover:text-[#102132]"
+                              : "text-white/45 hover:bg-white/8 hover:text-white/80"
+                        )}
+                        title={option.label}
+                        type="button"
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                      </button>
+                    );
+                  })}
+                </div>
               </header>
 
               {/* Main Headline */}
@@ -425,7 +490,10 @@ export default function Hero() {
                 <motion.h1 
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
-                  className="max-w-[8.1ch] text-[clamp(3rem,10vw,5rem)] font-bold tracking-tight leading-[0.84] drop-shadow-2xl md:text-[clamp(4rem,9vw,6.2rem)] lg:text-[clamp(4.15rem,6vw,6.75rem)] [@media(max-height:940px)]:lg:text-[clamp(3rem,4.65vw,5rem)] [@media(max-height:860px)]:lg:text-[clamp(2.55rem,4vw,4.25rem)]"
+                  className={cn(
+                    "max-w-[8.1ch] text-[clamp(3rem,10vw,5rem)] font-bold tracking-tight leading-[0.84] md:text-[clamp(4rem,9vw,6.2rem)] lg:text-[clamp(4.15rem,6vw,6.75rem)] [@media(max-height:940px)]:lg:text-[clamp(3rem,4.65vw,5rem)] [@media(max-height:860px)]:lg:text-[clamp(2.55rem,4vw,4.25rem)] transition-colors",
+                    isLight ? "text-[#102132] drop-shadow-[0_8px_14px_rgba(235,243,248,0.10)]" : "text-white drop-shadow-2xl"
+                  )}
                 >
                   Лучший <span className="text-emerald-500 italic">VPN</span> сервис
                 </motion.h1>
@@ -434,7 +502,10 @@ export default function Hero() {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="max-w-[32rem] text-sm leading-relaxed text-zinc-300 drop-shadow-md md:text-base lg:text-[clamp(0.95rem,1vw,1.12rem)] [@media(max-height:940px)]:lg:max-w-[27.5rem] [@media(max-height:940px)]:lg:text-[0.98rem] [@media(max-height:860px)]:lg:max-w-[25.5rem] [@media(max-height:860px)]:lg:text-[0.9rem]"
+                  className={cn(
+                    "max-w-[32rem] text-sm leading-relaxed md:text-base lg:text-[clamp(0.95rem,1vw,1.12rem)] [@media(max-height:940px)]:lg:max-w-[27.5rem] [@media(max-height:940px)]:lg:text-[0.98rem] [@media(max-height:860px)]:lg:max-w-[25.5rem] [@media(max-height:860px)]:lg:text-[0.9rem] transition-colors",
+                    isLight ? "text-[#24384d] drop-shadow-none" : "text-zinc-300 drop-shadow-md"
+                  )}
                 >
                   Максимальная скорость и безопасность в один клик. Выбирайте лучшие локации по всему миру.
                 </motion.p>
@@ -446,13 +517,16 @@ export default function Hero() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className="relative w-full max-w-[28rem] xl:max-w-[30rem] [@media(max-height:940px)]:lg:max-w-[26.5rem] [@media(max-height:860px)]:lg:max-w-[25rem]"
+              className="pointer-events-auto relative w-full max-w-[28rem] xl:max-w-[30rem] [@media(max-height:940px)]:lg:max-w-[26.5rem] [@media(max-height:860px)]:lg:max-w-[25rem]"
             >
             {/* Glass container */}
-            <div className="relative overflow-hidden rounded-[2.5rem] group transition-all duration-1000"
+            <div
+              className="relative overflow-hidden rounded-[2.5rem] group transition-all duration-1000"
               style={{
-                background: 'rgba(5, 5, 5, 0.4)',
-                boxShadow: '0 20px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05)',
+                background: isLight ? 'rgba(184, 198, 210, 0.88)' : 'rgba(5, 5, 5, 0.4)',
+                boxShadow: isLight
+                  ? '0 24px 64px rgba(47,65,83,0.18), inset 0 0 0 1px rgba(255,255,255,0.08)'
+                  : '0 20px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05)',
                 backdropFilter: 'blur(50px) saturate(1.8)',
                 WebkitBackdropFilter: 'blur(50px) saturate(1.8)',
               }}
@@ -480,12 +554,25 @@ export default function Hero() {
               </div>
               
               {/* Soft Volume Glow & Refined Border */}
-              <div className="absolute inset-0 border border-white/[0.04] rounded-[2.5rem] pointer-events-none group-hover:border-emerald-500/10 transition-all duration-1000 shadow-[inset_0_0_100px_rgba(16,185,129,0.03)]" />
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-[1500ms] pointer-events-none bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,250,0.05)_0%,transparent_60%)]" />
+              <div className={cn(
+                "absolute inset-0 rounded-[2.5rem] pointer-events-none transition-all duration-1000",
+                isLight
+                  ? "border border-[#4d6276]/18 group-hover:border-[#0f766e]/24 shadow-[inset_0_0_60px_rgba(226,236,244,0.05)]"
+                  : "border border-white/[0.04] group-hover:border-emerald-500/10 shadow-[inset_0_0_100px_rgba(16,185,129,0.03)]"
+              )} />
+              <div className={cn(
+                "absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-[1500ms] pointer-events-none",
+                isLight
+                  ? "bg-[radial-gradient(circle_at_50%_0%,rgba(165,243,252,0.14)_0%,transparent_60%)]"
+                  : "bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,250,0.05)_0%,transparent_60%)]"
+              )} />
 
               {/* Header */}
               <div className="relative flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 [@media(max-height:940px)]:lg:px-4 [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5">
-                <span className="text-[10px] uppercase font-black tracking-[0.3em] text-white/40">
+                <span className={cn(
+                  "text-[10px] uppercase font-black tracking-[0.3em] transition-colors",
+                  isLight ? "text-[#465d73]" : "text-white/40"
+                )}>
                   Доступные локации
                 </span>
                 <button
@@ -493,7 +580,11 @@ export default function Hero() {
                   className="flex items-center justify-center w-7 h-7 rounded-full transition-all duration-200 hover:bg-white/10 active:scale-90"
                   title="Проверить пинг"
                 >
-                  <RefreshCw className={`w-3.5 h-3.5 text-white/40 hover:text-white/70 transition-colors ${isAnyPingTesting ? 'refresh-spin' : ''}`} />
+                  <RefreshCw className={cn(
+                    "w-3.5 h-3.5 transition-colors",
+                    isLight ? "text-[#4b6277] hover:text-[#102132]" : "text-white/40 hover:text-white/70",
+                    isAnyPingTesting && 'refresh-spin'
+                  )} />
                 </button>
               </div>
 
@@ -505,14 +596,14 @@ export default function Hero() {
                   const isTesting = currentPing === 'testing';
 
                   const pingColor = () => {
-                    if (typeof currentPing !== 'number') return 'text-white/25';
+                    if (typeof currentPing !== 'number') return isLight ? 'text-[#5b7185]' : 'text-white/25';
                     if (currentPing < 50) return 'text-emerald-400';
                     if (currentPing < 100) return 'text-yellow-400';
                     return 'text-rose-400';
                   };
 
                   const dotColor = () => {
-                    if (typeof currentPing !== 'number') return 'bg-white/20';
+                    if (typeof currentPing !== 'number') return isLight ? 'bg-[#6b8297]' : 'bg-white/20';
                     if (currentPing < 50) return 'bg-emerald-400';
                     if (currentPing < 100) return 'bg-yellow-400';
                     return 'bg-rose-400';
@@ -522,7 +613,10 @@ export default function Hero() {
                     <div key={server.id}>
                       {/* Divider */}
                       {index > 0 && !isSelected && SERVERS[index - 1].id !== selectedServer.id && (
-                        <div className="mx-4 sm:mx-5 h-px bg-white/[0.045] [@media(max-height:860px)]:lg:mx-4" />
+                        <div className={cn(
+                          "mx-4 sm:mx-5 h-px [@media(max-height:860px)]:lg:mx-4",
+                          isLight ? "bg-[#50667a]/14" : "bg-white/[0.045]"
+                        )} />
                       )}
 
                       <motion.div
@@ -535,11 +629,16 @@ export default function Hero() {
                             handleServerProbe(server);
                           }
                         }}
-                        className={`relative flex items-center gap-3 sm:gap-4 rounded-[1.55rem] sm:rounded-[1.9rem] px-4 py-4 sm:px-6 sm:py-5 [@media(max-height:940px)]:lg:gap-3 [@media(max-height:940px)]:lg:px-4 [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:px-3.5 [@media(max-height:860px)]:lg:py-2.5 cursor-pointer select-none bg-transparent outline-none transition-all duration-300 focus:outline-none focus-visible:outline-none ${
+                        className={cn(
+                          "relative flex items-center gap-3 sm:gap-4 rounded-[1.55rem] sm:rounded-[1.9rem] px-4 py-4 sm:px-6 sm:py-5 [@media(max-height:940px)]:lg:gap-3 [@media(max-height:940px)]:lg:px-4 [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:px-3.5 [@media(max-height:860px)]:lg:py-2.5 cursor-pointer select-none bg-transparent outline-none transition-all duration-300 focus:outline-none focus-visible:outline-none",
                           isSelected
-                            ? 'bg-white/[0.07] shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),0_16px_40px_rgba(4,10,24,0.18)]'
-                            : 'hover:bg-white/[0.025] active:scale-[0.995]'
-                        }`}
+                            ? isLight
+                              ? 'bg-[rgba(232,239,244,0.82)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.14),0_14px_28px_rgba(47,65,83,0.14)]'
+                              : 'bg-white/[0.07] shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),0_16px_40px_rgba(4,10,24,0.18)]'
+                            : isLight
+                              ? 'hover:bg-[rgba(224,233,239,0.72)] active:scale-[0.995]'
+                              : 'hover:bg-white/[0.025] active:scale-[0.995]'
+                        )}
                       >
                         {/* Selected outline */}
                         {isSelected && (
@@ -547,9 +646,10 @@ export default function Hero() {
                             layoutId="server-outline"
                             className="pointer-events-none absolute inset-0 rounded-[1.55rem] sm:rounded-[1.9rem] border"
                             style={{
-                              borderColor: 'rgba(110, 231, 183, 0.34)',
-                              boxShadow:
-                                'inset 0 0 0 1px rgba(255,255,255,0.03), 0 0 0 1px rgba(110,231,183,0.14), 0 12px 30px rgba(16,185,129,0.10), 0 0 22px rgba(129,140,248,0.08)',
+                              borderColor: isLight ? 'rgba(5, 150, 105, 0.28)' : 'rgba(110, 231, 183, 0.34)',
+                              boxShadow: isLight
+                                ? 'inset 0 0 0 1px rgba(240,246,250,0.14), 0 0 0 1px rgba(13,148,136,0.14), 0 14px 28px rgba(13,148,136,0.08), 0 0 18px rgba(125,211,252,0.05)'
+                                : 'inset 0 0 0 1px rgba(255,255,255,0.03), 0 0 0 1px rgba(110,231,183,0.14), 0 12px 30px rgba(16,185,129,0.10), 0 0 22px rgba(129,140,248,0.08)',
                             }}
                             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
                           />
@@ -560,12 +660,18 @@ export default function Hero() {
 
                         {/* Info */}
                         <div className="min-w-0 flex-1">
-                          <span className={`block text-[14px] sm:text-[15px] [@media(max-height:940px)]:lg:text-[14px] [@media(max-height:860px)]:lg:text-[13px] tracking-tight leading-tight ${
-                            isSelected ? 'font-bold text-white' : 'font-medium text-white/60'
-                          }`}>
+                          <span className={cn(
+                            "block text-[14px] sm:text-[15px] [@media(max-height:940px)]:lg:text-[14px] [@media(max-height:860px)]:lg:text-[13px] tracking-tight leading-tight transition-colors",
+                            isSelected
+                              ? isLight ? 'font-bold text-slate-950' : 'font-bold text-white'
+                              : isLight ? 'font-medium text-[#31475c]' : 'font-medium text-white/60'
+                          )}>
                             {server.country}
                           </span>
-                          <span className="block mt-0.5 text-[10px] sm:text-[11px] [@media(max-height:940px)]:lg:text-[10px] [@media(max-height:860px)]:lg:text-[9px] text-white/20 font-medium tracking-wide">
+                          <span className={cn(
+                            "block mt-0.5 text-[10px] sm:text-[11px] [@media(max-height:940px)]:lg:text-[10px] [@media(max-height:860px)]:lg:text-[9px] font-medium tracking-wide transition-colors",
+                            isLight ? "text-[#61778b]" : "text-white/20"
+                          )}>
                             {server.city.toUpperCase()}
                           </span>
                         </div>
@@ -577,7 +683,9 @@ export default function Hero() {
                               <motion.span
                                 animate={{ opacity: [0.3, 0.8, 0.3] }}
                                 transition={{ repeat: Infinity, duration: 1 }}
-                                className="text-white/30"
+                                className={cn(
+                                  isLight ? "text-[#5d7387]" : "text-white/30"
+                                )}
                               >
                                 —
                               </motion.span>
@@ -633,21 +741,33 @@ export default function Hero() {
               {/* Micro-label */}
               <div className="flex items-center gap-2 mb-1 text-center">
                 <div className={`w-1 h-1 rounded-full ${isTelling ? 'bg-emerald-500 animate-pulse' : 'bg-white/20 group-hover:bg-emerald-500/50'} transition-colors`} />
-                <span className="text-[8px] font-black uppercase tracking-[0.4em] text-white/20 group-hover:text-emerald-500/60 transition-colors duration-500">
+                <span className={cn(
+                  "text-[8px] font-black uppercase tracking-[0.4em] transition-colors duration-500",
+                  isLight ? "text-[#52687d] group-hover:text-[#0f766e]" : "text-white/20 group-hover:text-emerald-500/60"
+                )}>
                   {isTelling ? 'Подготовка...' : 'О ПРЕИМУЩЕСТВАХ'}
                 </span>
-                <div className="w-4 h-px bg-white/5 group-hover:w-8 group-hover:bg-emerald-500/30 transition-all duration-500" />
+                <div className={cn(
+                  "w-4 h-px group-hover:w-8 transition-all duration-500",
+                  isLight ? "bg-[#50667a]/16 group-hover:bg-[#0f766e]/26" : "bg-white/5 group-hover:bg-emerald-500/30"
+                )} />
               </div>
               
               <div className="flex items-center gap-3">
-                <h3 className="text-lg md:text-xl font-black italic tracking-tighter text-white/50 group-hover:text-white transition-all duration-500 [@media(max-height:940px)]:lg:text-[1.05rem] [@media(max-height:860px)]:lg:text-[0.95rem]">
+                <h3 className={cn(
+                  "text-lg md:text-xl font-black italic tracking-tighter transition-all duration-500 [@media(max-height:940px)]:lg:text-[1.05rem] [@media(max-height:860px)]:lg:text-[0.95rem]",
+                  isLight ? "text-[#40586d] group-hover:text-[#102132]" : "text-white/50 group-hover:text-white"
+                )}>
                   <span className="mr-2">{isTelling ? 'Сейчас все' : 'Почему выбирают'}</span>
                   <span className="text-emerald-500/60 group-hover:text-emerald-400 transition-colors duration-500">{isTelling ? 'расскажем' : 'нас?'}</span>
                 </h3>
               </div>
 
               {/* Sophisticated Underline Progress */}
-              <div className="mt-2 relative w-full h-[1px] bg-white/[0.03] overflow-hidden">
+              <div className={cn(
+                "mt-2 relative w-full h-[1px] overflow-hidden",
+                isLight ? "bg-[#50667a]/12" : "bg-white/[0.03]"
+              )}>
                 <motion.div 
                   initial={false}
                   animate={isTelling ? { x: ['-100%', '0%'] } : { x: '-100%' }}
@@ -661,11 +781,16 @@ export default function Hero() {
         </div>
 
           {/* Right Side: Auth Section with Interactive Glow */}
-          <div className="group relative flex w-full self-stretch pointer-events-auto lg:h-full lg:max-w-[25rem] lg:min-h-0 lg:justify-self-end xl:max-w-[26rem] [@media(max-height:940px)]:lg:max-w-[24rem] [@media(max-height:860px)]:lg:max-w-[22.75rem]">
+          <div className="group relative flex w-full self-stretch pointer-events-none lg:h-full lg:max-w-[25rem] lg:min-h-0 lg:justify-self-end xl:max-w-[26rem] [@media(max-height:940px)]:lg:max-w-[24rem] [@media(max-height:860px)]:lg:max-w-[22.75rem]">
             {/* Background Kinetic Glow */}
             <div className="absolute -inset-4 bg-emerald-500/10 blur-[100px] rounded-[3rem] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
             
-            <div className="relative flex min-h-[36rem] w-full flex-col overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[0.03] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-3xl md:p-8 lg:h-full lg:min-h-[calc(100svh-7.6rem)] lg:flex-1 xl:min-h-[calc(100svh-8rem)] [@media(max-height:940px)]:lg:min-h-[calc(100svh-6.7rem)] [@media(max-height:940px)]:lg:p-6 [@media(max-height:860px)]:lg:h-auto [@media(max-height:860px)]:lg:min-h-[31rem] [@media(max-height:860px)]:lg:p-5">
+            <div className={cn(
+              "pointer-events-auto relative flex min-h-[36rem] w-full flex-col overflow-hidden rounded-[2.5rem] p-5 backdrop-blur-3xl md:p-8 lg:h-full lg:min-h-[calc(100svh-7.6rem)] lg:flex-1 xl:min-h-[calc(100svh-8rem)] [@media(max-height:940px)]:lg:min-h-[calc(100svh-6.7rem)] [@media(max-height:940px)]:lg:p-6 [@media(max-height:860px)]:lg:h-auto [@media(max-height:860px)]:lg:min-h-[31rem] [@media(max-height:860px)]:lg:p-5 transition-colors",
+              isLight
+                ? "border border-[#50667a]/16 bg-[rgba(195,209,220,0.88)] shadow-[0_28px_72px_rgba(47,65,83,0.16)]"
+                : "border border-white/10 bg-white/[0.03] shadow-[0_24px_80px_rgba(0,0,0,0.4)]"
+            )}>
               {/* Inner Glass Glow */}
               <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 blur-[60px] rounded-full" />
               
@@ -693,15 +818,26 @@ export default function Hero() {
                           </div>
                         )}
                         <div className="space-y-0.5">
-                          <h2 className="text-2xl font-bold tracking-tight text-white leading-tight">Привет, {user.displayName?.split(' ')[0] || 'Пользователь'}</h2>
+                          <h2 className={cn(
+                            "text-2xl font-bold tracking-tight leading-tight",
+                            isLight ? "text-[#102132]" : "text-white"
+                          )}>Привет, {user.displayName?.split(' ')[0] || 'Пользователь'}</h2>
                           <div className="flex items-center gap-2">
                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                             <p className="text-white/40 text-xs font-medium tracking-wide">{user.email}</p>
+                             <p className={cn(
+                               "text-xs font-medium tracking-wide",
+                               isLight ? "text-[#546b80]" : "text-white/40"
+                             )}>{user.email}</p>
                           </div>
                         </div>
                       </div>
                       
-                      <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/[0.08] to-transparent border border-emerald-500/20 rounded-2xl p-4">
+                      <div className={cn(
+                        "relative overflow-hidden bg-gradient-to-br border rounded-2xl p-4",
+                        isLight
+                          ? "from-emerald-500/[0.08] to-white/0 border-emerald-500/18 bg-[rgba(210,221,229,0.74)]"
+                          : "from-emerald-500/[0.08] to-transparent border-emerald-500/20"
+                      )}>
                         <div className="absolute top-0 right-0 p-3">
                           <Zap className="w-8 h-8 text-emerald-500/10 -rotate-12" />
                         </div>
@@ -709,20 +845,36 @@ export default function Hero() {
                           <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-[0.2em]">Статус</span>
                           <span className="bg-emerald-500/20 text-emerald-400 text-[8px] font-black px-2 py-0.5 rounded-full border border-emerald-500/30">БЕЗЛИМИТ</span>
                         </div>
-                        <p className="text-white/70 text-xs leading-relaxed relative z-10 font-medium tracking-tight">
+                        <p className={cn(
+                          "text-xs leading-relaxed relative z-10 font-medium tracking-tight",
+                          isLight ? "text-[#31475c]" : "text-white/70"
+                        )}>
                           Раскройте потенциал сети с вашим Platinum тарифом.
                         </p>
                       </div>
                     </div>
 
                     <div className="space-y-2 mt-auto relative z-10">
-                      <button className="w-full bg-white/[0.05] hover:bg-white/[0.08] text-white font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 border border-white/10 group">
+                      <button className={cn(
+                        "w-full font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 border group",
+                        isLight
+                          ? "bg-[#102132]/6 hover:bg-[#102132]/10 text-[#102132] border-[#50667a]/18"
+                          : "bg-white/[0.05] hover:bg-white/[0.08] text-white border-white/10"
+                      )}>
                         <span className="text-sm">Настройки</span>
-                        <ArrowRight className="w-4 h-4 text-white/40 group-hover:translate-x-1 group-hover:text-white transition-all" />
+                        <ArrowRight className={cn(
+                          "w-4 h-4 group-hover:translate-x-1 transition-all",
+                          isLight ? "text-[#50677c] group-hover:text-[#102132]" : "text-white/40 group-hover:text-white"
+                        )} />
                       </button>
                       <button 
                         onClick={handleLogout}
-                        className="w-full bg-rose-500/5 hover:bg-rose-500/10 text-rose-400 font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 border border-rose-500/10"
+                        className={cn(
+                          "w-full font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 border",
+                          isLight
+                            ? "bg-rose-500/8 hover:bg-rose-500/14 text-rose-700 border-rose-500/18"
+                            : "bg-rose-500/5 hover:bg-rose-500/10 text-rose-400 border-rose-500/10"
+                        )}
                       >
                         <span className="text-sm">Выйти</span>
                       </button>
@@ -736,65 +888,115 @@ export default function Hero() {
                     exit={{ opacity: 0, x: 20 }}
                     className="flex flex-col h-full relative z-10"
                   >
-                    <div className="flex p-1 bg-white/[0.03] rounded-xl mb-6 border border-white/5 relative [@media(max-height:940px)]:lg:mb-5 [@media(max-height:860px)]:lg:mb-4">
+                    <div className={cn(
+                      "flex p-1 rounded-xl mb-6 border relative [@media(max-height:940px)]:lg:mb-5 [@media(max-height:860px)]:lg:mb-4",
+                      isLight ? "bg-[#afbcc7]/46 border-[#50667a]/14" : "bg-white/[0.03] border-white/5"
+                    )}>
                       <button 
                         onClick={() => setAuthMode('login')}
-                        className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative z-10 ${authMode === 'login' ? 'text-zinc-950' : 'text-white/40 hover:text-white/60'}`}
+                        className={cn(
+                          "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative z-10",
+                          authMode === 'login'
+                            ? isLight ? 'text-white' : 'text-zinc-950'
+                            : isLight ? 'text-[#465d73] hover:text-[#102132]' : 'text-white/40 hover:text-white/60'
+                        )}
                       >
                         Вход
                         {authMode === 'login' && (
                           <motion.div 
                             layoutId="auth-switch-bg"
-                            className="absolute inset-0 bg-white rounded-lg -z-10 shadow-[0_10px_20px_rgba(255,255,255,0.2)]"
+                            className={cn(
+                              "absolute inset-0 rounded-lg -z-10",
+                              isLight
+                                ? "bg-[#102132] shadow-[0_10px_20px_rgba(17,32,51,0.18)]"
+                                : "bg-white shadow-[0_10px_20px_rgba(255,255,255,0.2)]"
+                            )}
                           />
                         )}
                       </button>
                       <button 
                         onClick={() => setAuthMode('register')}
-                        className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative z-10 ${authMode === 'register' ? 'text-zinc-950' : 'text-white/40 hover:text-white/60'}`}
+                        className={cn(
+                          "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative z-10",
+                          authMode === 'register'
+                            ? isLight ? 'text-white' : 'text-zinc-950'
+                            : isLight ? 'text-[#465d73] hover:text-[#102132]' : 'text-white/40 hover:text-white/60'
+                        )}
                       >
                         Регистрация
                         {authMode === 'register' && (
                           <motion.div 
                             layoutId="auth-switch-bg"
-                            className="absolute inset-0 bg-white rounded-lg -z-10 shadow-[0_10px_20_rgba(255,255,255,0.2)]"
+                            className={cn(
+                              "absolute inset-0 rounded-lg -z-10",
+                              isLight
+                                ? "bg-[#102132] shadow-[0_10px_20px_rgba(17,32,51,0.18)]"
+                                : "bg-white shadow-[0_10px_20px_rgba(255,255,255,0.2)]"
+                            )}
                           />
                         )}
                       </button>
                     </div>
 
                     <div className="mb-6">
-                      <h2 className="text-3xl font-bold tracking-tighter mb-1 text-white italic leading-none [@media(max-height:940px)]:lg:text-[2.35rem] [@media(max-height:860px)]:lg:text-[2rem]">
+                      <h2 className={cn(
+                        "text-3xl font-bold tracking-tighter mb-1 italic leading-none [@media(max-height:940px)]:lg:text-[2.35rem] [@media(max-height:860px)]:lg:text-[2rem]",
+                        isLight ? "text-[#102132]" : "text-white"
+                      )}>
                         {authMode === 'login' ? 'С возвращением' : 'Присоединяйтесь'}
                       </h2>
-                      <p className="text-white/30 text-xs font-medium leading-relaxed max-w-[220px] [@media(max-height:940px)]:lg:text-[11px] [@media(max-height:860px)]:lg:max-w-[12rem] [@media(max-height:860px)]:lg:text-[10px]">
+                      <p className={cn(
+                        "text-xs font-medium leading-relaxed max-w-[220px] [@media(max-height:940px)]:lg:text-[11px] [@media(max-height:860px)]:lg:max-w-[12rem] [@media(max-height:860px)]:lg:text-[10px]",
+                        isLight ? "text-[#31475c]" : "text-white/30"
+                      )}>
                         {authMode === 'login' ? 'Ваш зашифрованный доступ к свободному интернету.' : 'Безопасный и анонимный серфинг в один клик.'}
                       </p>
                     </div>
 
                     <form className="space-y-4 [@media(max-height:940px)]:lg:space-y-3.5 [@media(max-height:860px)]:lg:space-y-3" onSubmit={(e) => e.preventDefault()}>
                       <div className="space-y-1.5 group/input">
-                        <label className="text-[8px] uppercase tracking-[0.3em] font-black text-white/20 ml-2 group-focus-within/input:text-emerald-500/50 transition-colors">Электронная почта</label>
+                        <label className={cn(
+                          "ml-2 text-[8px] uppercase tracking-[0.3em] font-black group-focus-within/input:text-emerald-500/50 transition-colors",
+                          isLight ? "text-[#546b80]" : "text-white/20"
+                        )}>Электронная почта</label>
                         <div className="relative">
                           <input 
                             type="email" 
                             placeholder="vlad@example.com"
-                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-emerald-500/[0.02] transition-all placeholder:text-white/10 text-xs font-medium [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5"
+                            className={cn(
+                              "w-full rounded-xl border px-4 py-3.5 text-xs font-medium transition-all focus:outline-none focus:border-emerald-500/50 focus:bg-emerald-500/[0.02] [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5",
+                              isLight
+                                ? "border-[#50667a]/14 bg-[rgba(229,236,241,0.72)] text-[#102132] placeholder:text-[#62788c]"
+                                : "border-white/10 bg-white/[0.03] text-white placeholder:text-white/10"
+                            )}
                           />
                         </div>
                       </div>
                       <div className="space-y-1.5 group/input">
-                        <label className="text-[8px] uppercase tracking-[0.3em] font-black text-white/20 ml-2 group-focus-within/input:text-emerald-500/50 transition-colors">Пароль доступа</label>
+                        <label className={cn(
+                          "ml-2 text-[8px] uppercase tracking-[0.3em] font-black group-focus-within/input:text-emerald-500/50 transition-colors",
+                          isLight ? "text-[#546b80]" : "text-white/20"
+                        )}>Пароль доступа</label>
                         <div className="relative">
                           <input 
                             type="password" 
                             placeholder="••••••••"
-                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-emerald-500/[0.02] transition-all placeholder:text-white/10 text-xs font-medium [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5"
+                            className={cn(
+                              "w-full rounded-xl border px-4 py-3.5 text-xs font-medium transition-all focus:outline-none focus:border-emerald-500/50 focus:bg-emerald-500/[0.02] [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5",
+                              isLight
+                                ? "border-[#50667a]/14 bg-[rgba(229,236,241,0.72)] text-[#102132] placeholder:text-[#62788c]"
+                                : "border-white/10 bg-white/[0.03] text-white placeholder:text-white/10"
+                            )}
                           />
                         </div>
                       </div>
                       
-                      <button className="w-full bg-white text-zinc-950 font-black text-[11px] uppercase tracking-widest py-4 rounded-xl transition-all flex items-center justify-center gap-3 group mt-4 shadow-[0_20px_40px_rgba(255,255,255,0.1)] relative overflow-hidden active:scale-95 [@media(max-height:940px)]:lg:py-3.5 [@media(max-height:860px)]:lg:mt-3 [@media(max-height:860px)]:lg:py-3">
+                      <button className={cn(
+                        "w-full font-black text-[11px] uppercase tracking-widest py-4 rounded-xl transition-all flex items-center justify-center gap-3 group mt-4 relative overflow-hidden active:scale-95 [@media(max-height:940px)]:lg:py-3.5 [@media(max-height:860px)]:lg:mt-3 [@media(max-height:860px)]:lg:py-3",
+                        isLight
+                          ? "bg-[#102132] text-[#f6fbff] shadow-[0_20px_40px_rgba(17,32,51,0.18)]"
+                          : "bg-white text-zinc-950 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
+                      )}>
                         {/* Shimmer Effect */}
                         <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-zinc-950/5 to-transparent skew-x-12" />
                         
@@ -805,10 +1007,16 @@ export default function Hero() {
 
                     <div className="relative my-6 px-4 [@media(max-height:940px)]:lg:my-5 [@media(max-height:860px)]:lg:my-4">
                       <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-white/[0.06]"></div>
+                        <div className={cn(
+                          "w-full border-t",
+                          isLight ? "border-[#50667a]/14" : "border-white/[0.06]"
+                        )}></div>
                       </div>
                       <div className="relative flex justify-center text-[8px] uppercase tracking-[0.4em] font-bold">
-                        <span className="bg-[#0b0b0b]/0 px-4 text-white/20">Или через</span>
+                        <span className={cn(
+                          "px-4",
+                          isLight ? "bg-transparent text-[#5a7186]" : "bg-[#0b0b0b]/0 text-white/20"
+                        )}>Или через</span>
                       </div>
                     </div>
 
@@ -820,9 +1028,15 @@ export default function Hero() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="absolute inset-0 w-full bg-white/[0.03] border border-white/10 rounded-xl p-3 sm:p-4 flex items-center justify-center text-center"
+                            className={cn(
+                              "absolute inset-0 w-full rounded-xl p-3 sm:p-4 flex items-center justify-center text-center border",
+                              isLight ? "bg-[rgba(226,234,239,0.82)] border-[#50667a]/14" : "bg-white/[0.03] border-white/10"
+                            )}
                           >
-                            <p className="text-[9px] sm:text-[10px] leading-relaxed text-white/50 font-medium tracking-tight">
+                            <p className={cn(
+                              "text-[9px] sm:text-[10px] leading-relaxed font-medium tracking-tight",
+                              isLight ? "text-[#31475c]" : "text-white/50"
+                            )}>
                               {FEATURE_INFO[hoveredFeature]}
                             </p>
                           </motion.div>
@@ -837,24 +1051,46 @@ export default function Hero() {
                             <button 
                               onClick={handleGoogleLogin}
                               disabled={loading}
-                              className="flex items-center justify-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 h-full rounded-xl transition-all group disabled:opacity-50"
+                              className={cn(
+                                "flex items-center justify-center gap-2 h-full rounded-xl transition-all group disabled:opacity-50 border",
+                                isLight
+                                  ? "bg-[rgba(226,234,239,0.72)] hover:bg-[rgba(234,240,244,0.82)] border-[#50667a]/14"
+                                  : "bg-white/[0.03] hover:bg-white/[0.06] border-white/10"
+                              )}
                             >
-                              <svg className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" viewBox="0 0 24 24">
+                              <svg className={cn(
+                                "w-4 h-4 transition-colors",
+                                isLight ? "text-[#4c6378] group-hover:text-[#102132]" : "text-white/60 group-hover:text-white"
+                              )} viewBox="0 0 24 24">
                                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                                 <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
                                 <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
                                 <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
                               </svg>
-                              <span className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/80 transition-colors">{loading ? '...' : 'Google'}</span>
+                              <span className={cn(
+                                "text-[10px] font-black uppercase tracking-widest transition-colors",
+                                isLight ? "text-[#40576c] group-hover:text-[#102132]" : "text-white/40 group-hover:text-white/80"
+                              )}>{loading ? '...' : 'Google'}</span>
                             </button>
                             <button 
                               onClick={handleTelegramLogin}
-                              className="flex items-center justify-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 h-full rounded-xl transition-all group"
+                              className={cn(
+                                "flex items-center justify-center gap-2 h-full rounded-xl transition-all group border",
+                                isLight
+                                  ? "bg-[rgba(226,234,239,0.72)] hover:bg-[rgba(234,240,244,0.82)] border-[#50667a]/14"
+                                  : "bg-white/[0.03] hover:bg-white/[0.06] border-white/10"
+                              )}
                             >
-                              <svg className="w-4 h-4 text-white/60 group-hover:text-[#24A1DE] transition-colors" viewBox="0 0 24 24">
+                              <svg className={cn(
+                                "w-4 h-4 transition-colors",
+                                isLight ? "text-[#4c6378] group-hover:text-[#24A1DE]" : "text-white/60 group-hover:text-[#24A1DE]"
+                              )} viewBox="0 0 24 24">
                                 <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.52-1.4.51-.46-.01-1.35-.26-2.01-.48-.81-.27-1.45-.42-1.39-.89.03-.24.37-.49 1.02-.73 4-1.74 6.67-2.88 8-3.43 3.8-1.57 4.59-1.84 5.1-.14.11.27.1.55.07.82z" />
                               </svg>
-                              <span className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/80 transition-colors">Telegram</span>
+                              <span className={cn(
+                                "text-[10px] font-black uppercase tracking-widest transition-colors",
+                                isLight ? "text-[#40576c] group-hover:text-[#102132]" : "text-white/40 group-hover:text-white/80"
+                              )}>Telegram</span>
                             </button>
                           </motion.div>
                         )}
@@ -879,13 +1115,21 @@ export default function Hero() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.5 + (i * 0.1) }}
-                      className="flex items-center gap-4 text-xs text-white/30 font-semibold group/feat cursor-help [@media(max-height:860px)]:lg:gap-3"
+                      className={cn(
+                        "flex items-center gap-4 text-xs font-semibold group/feat cursor-help [@media(max-height:860px)]:lg:gap-3",
+                        isLight ? "text-[#50677c]" : "text-white/30"
+                      )}
                     >
                       <item.icon 
                         className={`w-4 h-4 [@media(max-height:860px)]:lg:w-3.5 [@media(max-height:860px)]:lg:h-3.5 ${item.color} group-hover/feat:opacity-100 transition-all group-hover/feat:scale-110 ${hoveredFeature === i ? item.glow : ''}`} 
                         strokeWidth={1.2} 
                       />
-                      <span className={`transition-all uppercase tracking-[0.2em] text-[8px] font-bold [@media(max-height:860px)]:lg:text-[7px] ${hoveredFeature === i ? 'text-white/80 translate-x-1' : 'group-hover/feat:text-white/60'}`}>
+                      <span className={cn(
+                        "transition-all uppercase tracking-[0.2em] text-[8px] font-bold [@media(max-height:860px)]:lg:text-[7px]",
+                        hoveredFeature === i
+                          ? isLight ? "text-[#102132] translate-x-1" : "text-white/80 translate-x-1"
+                          : isLight ? "group-hover/feat:text-[#102132]" : "group-hover/feat:text-white/60"
+                      )}>
                         {item.text}
                       </span>
                     </motion.div>
@@ -902,10 +1146,16 @@ export default function Hero() {
             <motion.div 
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 opacity-55"
+              className={cn(
+                "flex items-center gap-2 opacity-55",
+                isLight && "opacity-75"
+              )}
             >
               <div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-              <span className="text-[8px] uppercase font-black tracking-[0.28em] text-white [@media(max-height:940px)]:lg:text-[7px]">
+              <span className={cn(
+                "text-[8px] uppercase font-black tracking-[0.28em] [@media(max-height:940px)]:lg:text-[7px]",
+                isLight ? "text-[#31475c]" : "text-white"
+              )}>
                 Активен: {selectedServer.country}
               </span>
             </motion.div>
@@ -914,7 +1164,10 @@ export default function Hero() {
             <div className="flex min-h-[20px] items-center justify-center [@media(max-height:940px)]:min-h-[18px]">
               <motion.p 
                 key={selectedServer.id}
-                className="text-[0.95rem] font-bold leading-tight text-white tracking-tight text-center drop-shadow-lg md:text-[1.05rem] [@media(max-height:940px)]:lg:text-[0.88rem]"
+                className={cn(
+                  "text-[0.95rem] font-bold leading-tight tracking-tight text-center md:text-[1.05rem] [@media(max-height:940px)]:lg:text-[0.88rem]",
+                  isLight ? "text-[#102132] drop-shadow-none" : "text-white drop-shadow-lg"
+                )}
               >
                 {selectedServer.description.split('').map((char, index) => (
                   <motion.span

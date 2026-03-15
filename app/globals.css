@@ -5,9 +5,33 @@
   --font-mono: var(--font-mono);
 }
 
+:root {
+  color-scheme: dark;
+  --page-bg: #050505;
+  --page-fg: #f4f4f5;
+  --scroll-thumb: #27272a;
+  --scroll-thumb-hover: #3f3f46;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --page-bg: #aebdc8;
+  --page-fg: #112033;
+  --scroll-thumb: #5f7287;
+  --scroll-thumb-hover: #43566b;
+}
+
 @layer base {
+  html {
+    background: var(--page-bg);
+  }
+
   body {
-    @apply bg-zinc-950 text-zinc-100;
+    background: var(--page-bg);
+    color: var(--page-fg);
+    transition:
+      background-color 300ms ease,
+      color 300ms ease;
   }
 }
 
@@ -21,7 +45,13 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-zinc-800 rounded-full hover:bg-zinc-700 transition-colors;
+  background: var(--scroll-thumb);
+  border-radius: 999px;
+  transition: background-color 200ms ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
 }
 
 @keyframes markerPulse {
