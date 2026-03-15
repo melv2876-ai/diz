@@ -271,6 +271,12 @@ const ADVANTAGES_SLIDES = [
   }
 ];
 
+const FEATURE_INFO = [
+  'Полный безлимит без ограничений. Порты 10 Гбит/с обеспечивают высокую скорость и моментальный доступ к контенту в UHD качестве.',
+  'Технология Xray (VLESS + Reality) маскирует ваш трафик под обычный веб-серфинг. Провайдер не увидит VPN — для него это обычный визит на сайт.',
+  'Белые списки — когда всё заблокировано. Наш VPN обходит эти жесткие фильтры, открывая доступ к любому контенту по всему миру.'
+];
+
 export default function Hero() {
   const router = useRouter();
   const pingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -439,23 +445,42 @@ export default function Hero() {
             className="relative max-w-[28rem]"
           >
             {/* Glass container */}
-            <div className="relative overflow-hidden rounded-[2rem] group transition-all duration-700"
+            <div className="relative overflow-hidden rounded-[2.5rem] group transition-all duration-1000"
               style={{
-                background: 'rgba(255, 255, 255, 0.01)',
-                boxShadow: '0 8px 64px rgba(0,0,0,0.4)',
-                border: '1px solid rgba(255, 255, 255, 0.05)',
-                backdropFilter: 'blur(40px) saturate(1.4)',
-                WebkitBackdropFilter: 'blur(40px) saturate(1.4)',
+                background: 'rgba(5, 5, 5, 0.4)',
+                boxShadow: '0 20px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05)',
+                backdropFilter: 'blur(50px) saturate(1.8)',
+                WebkitBackdropFilter: 'blur(50px) saturate(1.8)',
               }}
             >
-              {/* Rich Liquid Color Fill on Hover */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-1000 pointer-events-none bg-gradient-to-br from-indigo-600/20 via-blue-500/10 to-indigo-800/20 backdrop-blur-3xl" />
+              {/* Premium Quantum Liquid Fill — "Aurora Silk" Edition */}
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-[1500ms] pointer-events-none">
+                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/[0.03] via-transparent to-blue-500/[0.03]" />
+                <motion.div 
+                  animate={{ 
+                    rotate: [0, 360],
+                    scale: [1, 1.1, 1],
+                  }}
+                  transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
+                  className="absolute -top-full -left-full w-[300%] h-[300%] bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.04)_0%,transparent_50%)] blur-[150px]"
+                />
+                <motion.div 
+                  animate={{ 
+                    rotate: [360, 0],
+                    scale: [1.1, 1, 1.1],
+                  }}
+                  transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
+                  className="absolute -bottom-full -right-full w-[300%] h-[300%] bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.04)_0%,transparent_50%)] blur-[150px]"
+                />
+                <div className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,transparent,white/[0.01],transparent)] group-hover:animate-[spin_10s_linear_infinite]" />
+              </div>
               
-              {/* Subtle Inner Glow to define the volume */}
-              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-1000 pointer-events-none border border-white/5 rounded-[2rem] shadow-[inset_0_0_40px_rgba(99,102,241,0.1)]" />
+              {/* Soft Volume Glow & Refined Border */}
+              <div className="absolute inset-0 border border-white/[0.04] rounded-[2.5rem] pointer-events-none group-hover:border-emerald-500/10 transition-all duration-1000 shadow-[inset_0_0_100px_rgba(16,185,129,0.03)]" />
+              <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-[1500ms] pointer-events-none bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,250,0.05)_0%,transparent_60%)]" />
 
               {/* Header */}
-              <div className="relative flex items-center justify-between px-5 py-4">
+              <div className="relative flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4">
                 <span className="text-[10px] uppercase font-black tracking-[0.3em] text-white/40">
                   Доступные локации
                 </span>
@@ -469,7 +494,7 @@ export default function Hero() {
               </div>
 
               {/* Server rows */}
-              <div className="relative">
+              <div className="relative px-2.5 pb-2.5 pt-1.5 sm:px-3 sm:pb-3 sm:pt-2">
                 {SERVERS.map((server, index) => {
                   const currentPing = pings[server.id];
                   const isSelected = selectedServer.id === server.id;
@@ -492,8 +517,8 @@ export default function Hero() {
                   return (
                     <div key={server.id}>
                       {/* Divider */}
-                      {index > 0 && !isSelected && !SERVERS[index-1].id.includes(selectedServer.id) && (
-                        <div className="mx-6 h-px bg-white/[0.04]" />
+                      {index > 0 && !isSelected && SERVERS[index - 1].id !== selectedServer.id && (
+                        <div className="mx-4 sm:mx-5 h-px bg-white/[0.045]" />
                       )}
 
                       <motion.div
@@ -506,41 +531,44 @@ export default function Hero() {
                             handleServerProbe(server);
                           }
                         }}
-                        whileHover={{ backgroundColor: isSelected ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.03)' }}
-                        className={`relative flex items-center gap-4 px-6 py-4.5 cursor-pointer transition-all duration-300 ${
+                        className={`relative flex items-center gap-3 sm:gap-4 rounded-[1.55rem] sm:rounded-[1.9rem] px-4 py-4 sm:px-6 sm:py-5 cursor-pointer select-none bg-transparent outline-none transition-all duration-300 focus:outline-none focus-visible:outline-none ${
                           isSelected
-                            ? 'bg-white/[0.08] shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)]'
-                            : 'hover:bg-white/[0.02] active:scale-[0.995]'
+                            ? 'bg-white/[0.07] shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),0_16px_40px_rgba(4,10,24,0.18)]'
+                            : 'hover:bg-white/[0.025] active:scale-[0.995]'
                         }`}
                       >
-                        {/* Selected indicator - Dynamic pill */}
+                        {/* Selected outline */}
                         {isSelected && (
                           <motion.div
-                            layoutId="server-indicator"
-                            className="absolute left-2 w-1 h-6 rounded-full bg-emerald-400"
-                            style={{ boxShadow: '0 0 12px rgba(52,211,153,0.6)' }}
+                            layoutId="server-outline"
+                            className="pointer-events-none absolute inset-0 rounded-[1.55rem] sm:rounded-[1.9rem] border"
+                            style={{
+                              borderColor: 'rgba(110, 231, 183, 0.34)',
+                              boxShadow:
+                                'inset 0 0 0 1px rgba(255,255,255,0.03), 0 0 0 1px rgba(110,231,183,0.14), 0 12px 30px rgba(16,185,129,0.10), 0 0 22px rgba(129,140,248,0.08)',
+                            }}
                             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
                           />
                         )}
 
                         {/* Flag — bare, no container */}
-                        <span className="text-[1.5rem] leading-none shrink-0">{server.flag}</span>
+                        <span className="text-[1.35rem] sm:text-[1.5rem] leading-none shrink-0">{server.flag}</span>
 
                         {/* Info */}
                         <div className="min-w-0 flex-1">
-                          <span className={`block text-[15px] tracking-tight leading-tight ${
+                          <span className={`block text-[14px] sm:text-[15px] tracking-tight leading-tight ${
                             isSelected ? 'font-bold text-white' : 'font-medium text-white/60'
                           }`}>
                             {server.country}
                           </span>
-                          <span className="block mt-0.5 text-[11px] text-white/20 font-medium tracking-wide">
+                          <span className="block mt-0.5 text-[10px] sm:text-[11px] text-white/20 font-medium tracking-wide">
                             {server.city.toUpperCase()}
                           </span>
                         </div>
 
                         {/* Ping */}
                         <div className="flex items-center gap-2.5 shrink-0">
-                          <span className={`text-[0.82rem] font-medium tabular-nums tracking-tight ${pingColor()} transition-colors duration-300`}>
+                          <span className={`text-[0.8rem] sm:text-[0.82rem] font-medium tabular-nums tracking-tight ${pingColor()} transition-colors duration-300`}>
                             {isTesting ? (
                               <motion.span
                                 animate={{ opacity: [0.3, 0.8, 0.3] }}
@@ -781,29 +809,53 @@ export default function Hero() {
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <button 
-                        onClick={handleGoogleLogin}
-                        disabled={loading}
-                        className="flex items-center justify-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 py-3 rounded-xl transition-all group disabled:opacity-50"
-                      >
-                        <svg className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" viewBox="0 0 24 24">
-                          <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                          <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                          <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                          <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                        </svg>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/80 transition-colors">{loading ? '...' : 'Google'}</span>
-                      </button>
-                      <button 
-                        onClick={handleTelegramLogin}
-                        className="flex items-center justify-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 py-3 rounded-xl transition-all group"
-                      >
-                        <svg className="w-4 h-4 text-white/60 group-hover:text-[#24A1DE] transition-colors" viewBox="0 0 24 24">
-                          <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.52-1.4.51-.46-.01-1.35-.26-2.01-.48-.81-.27-1.45-.42-1.39-.89.03-.24.37-.49 1.02-.73 4-1.74 6.67-2.88 8-3.43 3.8-1.57 4.59-1.84 5.1-.14.11.27.1.55.07.82z" />
-                        </svg>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/80 transition-colors">Telegram</span>
-                      </button>
+                    <div className="relative h-12 sm:h-[56px]">
+                      <AnimatePresence mode="wait">
+                        {hoveredFeature !== null ? (
+                          <motion.div
+                            key="tooltip"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="absolute inset-0 w-full bg-white/[0.03] border border-white/10 rounded-xl p-3 sm:p-4 flex items-center justify-center text-center"
+                          >
+                            <p className="text-[9px] sm:text-[10px] leading-relaxed text-white/50 font-medium tracking-tight">
+                              {FEATURE_INFO[hoveredFeature]}
+                            </p>
+                          </motion.div>
+                        ) : (
+                          <motion.div 
+                            key="buttons"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="grid grid-cols-2 gap-3 h-full"
+                          >
+                            <button 
+                              onClick={handleGoogleLogin}
+                              disabled={loading}
+                              className="flex items-center justify-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 h-full rounded-xl transition-all group disabled:opacity-50"
+                            >
+                              <svg className="w-4 h-4 text-white/60 group-hover:text-white transition-colors" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                                <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                                <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+                                <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.66l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                              </svg>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/80 transition-colors">{loading ? '...' : 'Google'}</span>
+                            </button>
+                            <button 
+                              onClick={handleTelegramLogin}
+                              className="flex items-center justify-center gap-2 bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 h-full rounded-xl transition-all group"
+                            >
+                              <svg className="w-4 h-4 text-white/60 group-hover:text-[#24A1DE] transition-colors" viewBox="0 0 24 24">
+                                <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.52-1.4.51-.46-.01-1.35-.26-2.01-.48-.81-.27-1.45-.42-1.39-.89.03-.24.37-.49 1.02-.73 4-1.74 6.67-2.88 8-3.43 3.8-1.57 4.59-1.84 5.1-.14.11.27.1.55.07.82z" />
+                              </svg>
+                              <span className="text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/80 transition-colors">Telegram</span>
+                            </button>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   </motion.div>
                 )}
@@ -811,39 +863,6 @@ export default function Hero() {
 
               {/* Unique Features List - Bottom Fixed */}
               <div className="mt-auto pt-4 relative">
-                {/* Floating Info Panel */}
-                <AnimatePresence>
-                  {hoveredFeature !== null && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      transition={{ duration: 0.2, ease: "easeOut" }}
-                      className="absolute bottom-full left-0 right-0 mb-4 z-30"
-                    >
-                      <div className="bg-white/[0.03] backdrop-blur-2xl border border-white/10 rounded-2xl p-4 shadow-2xl relative overflow-hidden">
-                        {/* Accent line based on feature color */}
-                        <div className={`absolute top-0 left-0 w-1 h-full opacity-50 ${
-                          hoveredFeature === 0 ? 'bg-emerald-500' : 
-                          hoveredFeature === 1 ? 'bg-blue-500' : 'bg-purple-500'
-                        }`} />
-                        
-                        <p className="text-[10px] leading-relaxed text-white/60 font-medium tracking-tight">
-                          {hoveredFeature === 0 && (
-                            <>Полный безлимит без ограничений. Порты <span className="text-emerald-400">10 Гбит/с</span> обеспечивают высокую скорость и моментальный доступ к контенту в UHD качестве.</>
-                          )}
-                          {hoveredFeature === 1 && (
-                            <>Технология <span className="text-blue-400">Xray (VLESS + Reality)</span> маскирует ваш трафик под обычный веб-серфинг. Провайдер не увидит VPN — для него это обычный визит на сайт.</>
-                          )}
-                          {hoveredFeature === 2 && (
-                            <>Белые списки — это когда весь интернет заблокирован и доступно только ограниченное количество сайтов. Наш VPN позволяет обходить эти ограничения с помощью новейших технологий и протоколов.</>
-                          )}
-                        </p>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-
                 <div className="space-y-3">
                   {[
                     { icon: InfinityIcon, text: 'Безлимитный квантовый трафик', color: 'text-emerald-400/80', glow: 'shadow-[0_0_15px_rgba(52,211,153,0.1)]' },
