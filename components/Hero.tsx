@@ -382,7 +382,7 @@ export default function Hero() {
   const isAnyPingTesting = Object.values(pings).some((ping) => ping === 'testing');
 
   return (
-    <div className="relative h-screen bg-[#050505] overflow-hidden">
+    <div className="relative min-h-[100svh] bg-[#050505] overflow-x-hidden lg:h-[100svh] [@media(max-height:860px)]:lg:h-auto">
       {/* Full Screen Globe Background */}
       <Globe 
         selectedCountryId={selectedServer.id}
@@ -393,57 +393,61 @@ export default function Hero() {
       />
 
       {/* UI Overlay */}
-      <div className="relative z-10 h-full flex flex-col lg:flex-row p-3 md:p-4 gap-4 max-w-[1600px] mx-auto pointer-events-none">
+      <div className="relative z-10 mx-auto grid min-h-[100svh] w-full max-w-[1600px] grid-rows-[minmax(0,1fr)_auto] px-3 pb-3 pt-3 md:px-4 md:pb-4 md:pt-4 lg:h-full lg:min-h-0 lg:grid-rows-[minmax(0,1fr)_minmax(2.8rem,auto)] lg:px-6 lg:pb-3 lg:pt-4 xl:px-8 xl:pb-4 xl:pt-5 [@media(max-height:940px)]:lg:grid-rows-[minmax(0,1fr)_minmax(2.45rem,auto)] [@media(max-height:940px)]:lg:pt-3 [@media(max-height:860px)]:lg:h-auto [@media(max-height:860px)]:lg:min-h-[100svh] [@media(max-height:860px)]:lg:grid-rows-[auto_auto] pointer-events-none">
+        <div className="grid min-h-0 gap-4 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1.08fr)_minmax(22.75rem,25.5rem)] lg:items-stretch lg:gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(23rem,26rem)] xl:gap-8 [@media(max-height:940px)]:lg:gap-5 [@media(max-height:860px)]:lg:h-auto">
         {/* Left Side: Info & Server List */}
-        <div className="flex-1 flex flex-col gap-4 pointer-events-auto">
-          {/* Header/Logo */}
-          <header className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <Shield className="text-zinc-950 w-6 h-6" />
+        <div className="pointer-events-auto flex min-h-0 flex-col gap-4 lg:h-full lg:max-w-[44rem] lg:justify-between xl:max-w-[46rem]">
+          <div className="flex flex-col gap-4 lg:gap-5 [@media(max-height:940px)]:lg:gap-4 [@media(max-height:860px)]:lg:gap-3">
+            <div className="w-full">
+              {/* Header/Logo */}
+              <header className="flex max-w-[28rem] items-center justify-between [@media(max-height:940px)]:lg:max-w-[27rem] [@media(max-height:860px)]:lg:max-w-[25.5rem]">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                    <Shield className="text-zinc-950 w-6 h-6" />
+                  </div>
+                  <span className="text-2xl font-bold tracking-tighter font-mono">WW.pro</span>
+                </div>
+                <button
+                  onClick={() => setGlobeTheme(globeTheme === 'dark' ? 'light' : 'dark')}
+                  className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+                  title={globeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+                >
+                  {globeTheme === 'dark' ? (
+                    <Sun className="w-5 h-5 text-white/70" />
+                  ) : (
+                    <Moon className="w-5 h-5 text-white/70" />
+                  )}
+                </button>
+              </header>
+
+              {/* Main Headline */}
+              <div className="mt-4 max-w-[34rem] space-y-3 lg:mt-5 lg:space-y-4 xl:max-w-[36rem] [@media(max-height:940px)]:lg:mt-4 [@media(max-height:940px)]:lg:max-w-[31rem] [@media(max-height:940px)]:lg:space-y-3 [@media(max-height:860px)]:lg:mt-3 [@media(max-height:860px)]:lg:max-w-[29rem] [@media(max-height:860px)]:lg:space-y-2">
+                <motion.h1 
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="max-w-[8.1ch] text-[clamp(3rem,10vw,5rem)] font-bold tracking-tight leading-[0.84] drop-shadow-2xl md:text-[clamp(4rem,9vw,6.2rem)] lg:text-[clamp(4.15rem,6vw,6.75rem)] [@media(max-height:940px)]:lg:text-[clamp(3rem,4.65vw,5rem)] [@media(max-height:860px)]:lg:text-[clamp(2.55rem,4vw,4.25rem)]"
+                >
+                  Лучший <span className="text-emerald-500 italic">VPN</span> сервис
+                </motion.h1>
+                
+                <motion.p 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="max-w-[32rem] text-sm leading-relaxed text-zinc-300 drop-shadow-md md:text-base lg:text-[clamp(0.95rem,1vw,1.12rem)] [@media(max-height:940px)]:lg:max-w-[27.5rem] [@media(max-height:940px)]:lg:text-[0.98rem] [@media(max-height:860px)]:lg:max-w-[25.5rem] [@media(max-height:860px)]:lg:text-[0.9rem]"
+                >
+                  Максимальная скорость и безопасность в один клик. Выбирайте лучшие локации по всему миру.
+                </motion.p>
               </div>
-              <span className="text-2xl font-bold tracking-tighter font-mono">WW.pro</span>
             </div>
-            <button
-              onClick={() => setGlobeTheme(globeTheme === 'dark' ? 'light' : 'dark')}
-              className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
-              title={globeTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-            >
-              {globeTheme === 'dark' ? (
-                <Sun className="w-5 h-5 text-white/70" />
-              ) : (
-                <Moon className="w-5 h-5 text-white/70" />
-              )}
-            </button>
-          </header>
 
-          {/* Main Headline */}
-          <div className="space-y-4">
-            <motion.h1 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="text-3xl md:text-5xl lg:text-6xl font-bold tracking-tight leading-[0.9] drop-shadow-2xl"
+            {/* Server List — Liquid Glass */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+              className="relative w-full max-w-[28rem] xl:max-w-[30rem] [@media(max-height:940px)]:lg:max-w-[26.5rem] [@media(max-height:860px)]:lg:max-w-[25rem]"
             >
-              Лучший <span className="text-emerald-500 italic">VPN</span> сервис
-            </motion.h1>
-            
-            <motion.p 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2 }}
-              className="text-zinc-300 max-w-md text-sm drop-shadow-md"
-            >
-              Максимальная скорость и безопасность в один клик. Выбирайте лучшие локации по всему миру.
-            </motion.p>
-          </div>
-
-          {/* Server List — Liquid Glass */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="relative max-w-[28rem]"
-          >
             {/* Glass container */}
             <div className="relative overflow-hidden rounded-[2.5rem] group transition-all duration-1000"
               style={{
@@ -480,7 +484,7 @@ export default function Hero() {
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-[1500ms] pointer-events-none bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,250,0.05)_0%,transparent_60%)]" />
 
               {/* Header */}
-              <div className="relative flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4">
+              <div className="relative flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 [@media(max-height:940px)]:lg:px-4 [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5">
                 <span className="text-[10px] uppercase font-black tracking-[0.3em] text-white/40">
                   Доступные локации
                 </span>
@@ -494,7 +498,7 @@ export default function Hero() {
               </div>
 
               {/* Server rows */}
-              <div className="relative px-2.5 pb-2.5 pt-1.5 sm:px-3 sm:pb-3 sm:pt-2">
+              <div className="relative px-2.5 pb-2.5 pt-1.5 sm:px-3 sm:pb-3 sm:pt-2 [@media(max-height:940px)]:lg:px-2.5 [@media(max-height:940px)]:lg:pb-2.5 [@media(max-height:940px)]:lg:pt-1.5 [@media(max-height:860px)]:lg:pb-2 [@media(max-height:860px)]:lg:pt-1">
                 {SERVERS.map((server, index) => {
                   const currentPing = pings[server.id];
                   const isSelected = selectedServer.id === server.id;
@@ -518,7 +522,7 @@ export default function Hero() {
                     <div key={server.id}>
                       {/* Divider */}
                       {index > 0 && !isSelected && SERVERS[index - 1].id !== selectedServer.id && (
-                        <div className="mx-4 sm:mx-5 h-px bg-white/[0.045]" />
+                        <div className="mx-4 sm:mx-5 h-px bg-white/[0.045] [@media(max-height:860px)]:lg:mx-4" />
                       )}
 
                       <motion.div
@@ -531,7 +535,7 @@ export default function Hero() {
                             handleServerProbe(server);
                           }
                         }}
-                        className={`relative flex items-center gap-3 sm:gap-4 rounded-[1.55rem] sm:rounded-[1.9rem] px-4 py-4 sm:px-6 sm:py-5 cursor-pointer select-none bg-transparent outline-none transition-all duration-300 focus:outline-none focus-visible:outline-none ${
+                        className={`relative flex items-center gap-3 sm:gap-4 rounded-[1.55rem] sm:rounded-[1.9rem] px-4 py-4 sm:px-6 sm:py-5 [@media(max-height:940px)]:lg:gap-3 [@media(max-height:940px)]:lg:px-4 [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:px-3.5 [@media(max-height:860px)]:lg:py-2.5 cursor-pointer select-none bg-transparent outline-none transition-all duration-300 focus:outline-none focus-visible:outline-none ${
                           isSelected
                             ? 'bg-white/[0.07] shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),0_16px_40px_rgba(4,10,24,0.18)]'
                             : 'hover:bg-white/[0.025] active:scale-[0.995]'
@@ -552,23 +556,23 @@ export default function Hero() {
                         )}
 
                         {/* Flag — bare, no container */}
-                        <span className="text-[1.35rem] sm:text-[1.5rem] leading-none shrink-0">{server.flag}</span>
+                        <span className="text-[1.35rem] sm:text-[1.5rem] [@media(max-height:940px)]:lg:text-[1.3rem] [@media(max-height:860px)]:lg:text-[1.2rem] leading-none shrink-0">{server.flag}</span>
 
                         {/* Info */}
                         <div className="min-w-0 flex-1">
-                          <span className={`block text-[14px] sm:text-[15px] tracking-tight leading-tight ${
+                          <span className={`block text-[14px] sm:text-[15px] [@media(max-height:940px)]:lg:text-[14px] [@media(max-height:860px)]:lg:text-[13px] tracking-tight leading-tight ${
                             isSelected ? 'font-bold text-white' : 'font-medium text-white/60'
                           }`}>
                             {server.country}
                           </span>
-                          <span className="block mt-0.5 text-[10px] sm:text-[11px] text-white/20 font-medium tracking-wide">
+                          <span className="block mt-0.5 text-[10px] sm:text-[11px] [@media(max-height:940px)]:lg:text-[10px] [@media(max-height:860px)]:lg:text-[9px] text-white/20 font-medium tracking-wide">
                             {server.city.toUpperCase()}
                           </span>
                         </div>
 
                         {/* Ping */}
                         <div className="flex items-center gap-2.5 shrink-0">
-                          <span className={`text-[0.8rem] sm:text-[0.82rem] font-medium tabular-nums tracking-tight ${pingColor()} transition-colors duration-300`}>
+                          <span className={`text-[0.8rem] sm:text-[0.82rem] [@media(max-height:940px)]:lg:text-[0.78rem] [@media(max-height:860px)]:lg:text-[0.74rem] font-medium tabular-nums tracking-tight ${pingColor()} transition-colors duration-300`}>
                             {isTesting ? (
                               <motion.span
                                 animate={{ opacity: [0.3, 0.8, 0.3] }}
@@ -610,10 +614,11 @@ export default function Hero() {
               </div>
             </div>
           </motion.div>
+          </div>
 
 
           {/* Interactive Advantages CTA - Compact & Minimalist */}
-          <div className="mt-auto pt-6 pb-2 pointer-events-auto">
+          <div className="pointer-events-auto pt-3.5 lg:pb-1 [@media(max-height:940px)]:lg:pt-2 [@media(max-height:860px)]:lg:pt-1.5">
             <div 
               onClick={() => {
                 if (isTelling) return;
@@ -635,7 +640,7 @@ export default function Hero() {
               </div>
               
               <div className="flex items-center gap-3">
-                <h3 className="text-lg md:text-xl font-black italic tracking-tighter text-white/50 group-hover:text-white transition-all duration-500">
+                <h3 className="text-lg md:text-xl font-black italic tracking-tighter text-white/50 group-hover:text-white transition-all duration-500 [@media(max-height:940px)]:lg:text-[1.05rem] [@media(max-height:860px)]:lg:text-[0.95rem]">
                   <span className="mr-2">{isTelling ? 'Сейчас все' : 'Почему выбирают'}</span>
                   <span className="text-emerald-500/60 group-hover:text-emerald-400 transition-colors duration-500">{isTelling ? 'расскажем' : 'нас?'}</span>
                 </h3>
@@ -655,14 +660,12 @@ export default function Hero() {
           </div>
         </div>
 
-        <div className="hidden lg:block flex-[1.35] pointer-events-none" aria-hidden="true" />
-
           {/* Right Side: Auth Section with Interactive Glow */}
-          <div className="w-full lg:w-[360px] xl:w-[400px] relative group pointer-events-auto">
+          <div className="group relative flex w-full self-stretch pointer-events-auto lg:h-full lg:max-w-[25rem] lg:min-h-0 lg:justify-self-end xl:max-w-[26rem] [@media(max-height:940px)]:lg:max-w-[24rem] [@media(max-height:860px)]:lg:max-w-[22.75rem]">
             {/* Background Kinetic Glow */}
             <div className="absolute -inset-4 bg-emerald-500/10 blur-[100px] rounded-[3rem] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
             
-            <div className="relative h-full bg-white/[0.03] backdrop-blur-3xl rounded-[2.5rem] border border-white/10 p-5 md:p-8 flex flex-col shadow-[0_24px_80px_rgba(0,0,0,0.4)] overflow-hidden">
+            <div className="relative flex min-h-[36rem] w-full flex-col overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/[0.03] p-5 shadow-[0_24px_80px_rgba(0,0,0,0.4)] backdrop-blur-3xl md:p-8 lg:h-full lg:min-h-[calc(100svh-7.6rem)] lg:flex-1 xl:min-h-[calc(100svh-8rem)] [@media(max-height:940px)]:lg:min-h-[calc(100svh-6.7rem)] [@media(max-height:940px)]:lg:p-6 [@media(max-height:860px)]:lg:h-auto [@media(max-height:860px)]:lg:min-h-[31rem] [@media(max-height:860px)]:lg:p-5">
               {/* Inner Glass Glow */}
               <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 blur-[60px] rounded-full" />
               
@@ -733,7 +736,7 @@ export default function Hero() {
                     exit={{ opacity: 0, x: 20 }}
                     className="flex flex-col h-full relative z-10"
                   >
-                    <div className="flex p-1 bg-white/[0.03] rounded-xl mb-6 border border-white/5 relative">
+                    <div className="flex p-1 bg-white/[0.03] rounded-xl mb-6 border border-white/5 relative [@media(max-height:940px)]:lg:mb-5 [@media(max-height:860px)]:lg:mb-4">
                       <button 
                         onClick={() => setAuthMode('login')}
                         className={`flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative z-10 ${authMode === 'login' ? 'text-zinc-950' : 'text-white/40 hover:text-white/60'}`}
@@ -761,22 +764,22 @@ export default function Hero() {
                     </div>
 
                     <div className="mb-6">
-                      <h2 className="text-3xl font-bold tracking-tighter mb-1 text-white italic leading-none">
+                      <h2 className="text-3xl font-bold tracking-tighter mb-1 text-white italic leading-none [@media(max-height:940px)]:lg:text-[2.35rem] [@media(max-height:860px)]:lg:text-[2rem]">
                         {authMode === 'login' ? 'С возвращением' : 'Присоединяйтесь'}
                       </h2>
-                      <p className="text-white/30 text-xs font-medium leading-relaxed max-w-[220px]">
+                      <p className="text-white/30 text-xs font-medium leading-relaxed max-w-[220px] [@media(max-height:940px)]:lg:text-[11px] [@media(max-height:860px)]:lg:max-w-[12rem] [@media(max-height:860px)]:lg:text-[10px]">
                         {authMode === 'login' ? 'Ваш зашифрованный доступ к свободному интернету.' : 'Безопасный и анонимный серфинг в один клик.'}
                       </p>
                     </div>
 
-                    <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
+                    <form className="space-y-4 [@media(max-height:940px)]:lg:space-y-3.5 [@media(max-height:860px)]:lg:space-y-3" onSubmit={(e) => e.preventDefault()}>
                       <div className="space-y-1.5 group/input">
                         <label className="text-[8px] uppercase tracking-[0.3em] font-black text-white/20 ml-2 group-focus-within/input:text-emerald-500/50 transition-colors">Электронная почта</label>
                         <div className="relative">
                           <input 
                             type="email" 
                             placeholder="vlad@example.com"
-                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-emerald-500/[0.02] transition-all placeholder:text-white/10 text-xs font-medium"
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-emerald-500/[0.02] transition-all placeholder:text-white/10 text-xs font-medium [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5"
                           />
                         </div>
                       </div>
@@ -786,12 +789,12 @@ export default function Hero() {
                           <input 
                             type="password" 
                             placeholder="••••••••"
-                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-emerald-500/[0.02] transition-all placeholder:text-white/10 text-xs font-medium"
+                            className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-4 py-3.5 text-white focus:outline-none focus:border-emerald-500/50 focus:bg-emerald-500/[0.02] transition-all placeholder:text-white/10 text-xs font-medium [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5"
                           />
                         </div>
                       </div>
                       
-                      <button className="w-full bg-white text-zinc-950 font-black text-[11px] uppercase tracking-widest py-4 rounded-xl transition-all flex items-center justify-center gap-3 group mt-4 shadow-[0_20px_40px_rgba(255,255,255,0.1)] relative overflow-hidden active:scale-95">
+                      <button className="w-full bg-white text-zinc-950 font-black text-[11px] uppercase tracking-widest py-4 rounded-xl transition-all flex items-center justify-center gap-3 group mt-4 shadow-[0_20px_40px_rgba(255,255,255,0.1)] relative overflow-hidden active:scale-95 [@media(max-height:940px)]:lg:py-3.5 [@media(max-height:860px)]:lg:mt-3 [@media(max-height:860px)]:lg:py-3">
                         {/* Shimmer Effect */}
                         <div className="absolute inset-0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 bg-gradient-to-r from-transparent via-zinc-950/5 to-transparent skew-x-12" />
                         
@@ -800,7 +803,7 @@ export default function Hero() {
                       </button>
                     </form>
 
-                    <div className="relative my-6 px-4">
+                    <div className="relative my-6 px-4 [@media(max-height:940px)]:lg:my-5 [@media(max-height:860px)]:lg:my-4">
                       <div className="absolute inset-0 flex items-center">
                         <div className="w-full border-t border-white/[0.06]"></div>
                       </div>
@@ -809,7 +812,7 @@ export default function Hero() {
                       </div>
                     </div>
 
-                    <div className="relative h-12 sm:h-[56px]">
+                    <div className="relative h-12 sm:h-[56px] [@media(max-height:860px)]:lg:h-[50px]">
                       <AnimatePresence mode="wait">
                         {hoveredFeature !== null ? (
                           <motion.div
@@ -862,8 +865,8 @@ export default function Hero() {
               </AnimatePresence>
 
               {/* Unique Features List - Bottom Fixed */}
-              <div className="mt-auto pt-4 relative">
-                <div className="space-y-3">
+              <div className="mt-auto pt-4 relative [@media(max-height:940px)]:lg:pt-4 [@media(max-height:860px)]:lg:pt-3">
+                <div className="space-y-3 [@media(max-height:860px)]:lg:space-y-2.5">
                   {[
                     { icon: InfinityIcon, text: 'Безлимитный квантовый трафик', color: 'text-emerald-400/80', glow: 'shadow-[0_0_15px_rgba(52,211,153,0.1)]' },
                     { icon: Fingerprint, text: 'Шифрование военного уровня', color: 'text-blue-400/80', glow: 'shadow-[0_0_15px_rgba(96,165,250,0.1)]' },
@@ -876,13 +879,13 @@ export default function Hero() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 0.5 + (i * 0.1) }}
-                      className="flex items-center gap-4 text-xs text-white/30 font-semibold group/feat cursor-help"
+                      className="flex items-center gap-4 text-xs text-white/30 font-semibold group/feat cursor-help [@media(max-height:860px)]:lg:gap-3"
                     >
                       <item.icon 
-                        className={`w-4 h-4 ${item.color} group-hover/feat:opacity-100 transition-all group-hover/feat:scale-110 ${hoveredFeature === i ? item.glow : ''}`} 
+                        className={`w-4 h-4 [@media(max-height:860px)]:lg:w-3.5 [@media(max-height:860px)]:lg:h-3.5 ${item.color} group-hover/feat:opacity-100 transition-all group-hover/feat:scale-110 ${hoveredFeature === i ? item.glow : ''}`} 
                         strokeWidth={1.2} 
                       />
-                      <span className={`transition-all uppercase tracking-[0.2em] text-[8px] font-bold ${hoveredFeature === i ? 'text-white/80 translate-x-1' : 'group-hover/feat:text-white/60'}`}>
+                      <span className={`transition-all uppercase tracking-[0.2em] text-[8px] font-bold [@media(max-height:860px)]:lg:text-[7px] ${hoveredFeature === i ? 'text-white/80 translate-x-1' : 'group-hover/feat:text-white/60'}`}>
                         {item.text}
                       </span>
                     </motion.div>
@@ -891,27 +894,27 @@ export default function Hero() {
               </div>
             </div>
           </div>
+        </div>
 
-        {/* Minimalist Typewriter Description */}
-        <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none hidden lg:block w-full max-w-2xl px-8">
-          <div className="flex flex-col items-center gap-2">
+        <div className="pointer-events-none hidden w-full items-center justify-center lg:flex [@media(max-height:720px)]:hidden">
+          <div className="flex max-w-[34rem] flex-col items-center gap-1 px-6 [@media(max-height:940px)]:max-w-[30rem] [@media(max-height:940px)]:gap-0.5">
             {/* Status Line */}
             <motion.div 
               initial={{ opacity: 0, y: 5 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 opacity-50"
+              className="flex items-center gap-2 opacity-55"
             >
               <div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
-              <span className="text-[9px] uppercase font-black tracking-[0.3em] text-white">
+              <span className="text-[8px] uppercase font-black tracking-[0.28em] text-white [@media(max-height:940px)]:lg:text-[7px]">
                 Активен: {selectedServer.country}
               </span>
             </motion.div>
 
             {/* Typewriter Text */}
-            <div className="h-8 flex items-center justify-center">
+            <div className="flex min-h-[20px] items-center justify-center [@media(max-height:940px)]:min-h-[18px]">
               <motion.p 
                 key={selectedServer.id}
-                className="text-lg md:text-xl font-bold text-white tracking-tight text-center drop-shadow-lg"
+                className="text-[0.95rem] font-bold leading-tight text-white tracking-tight text-center drop-shadow-lg md:text-[1.05rem] [@media(max-height:940px)]:lg:text-[0.88rem]"
               >
                 {selectedServer.description.split('').map((char, index) => (
                   <motion.span
