@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 const ReactGlobe = dynamic(() => import('react-globe.gl'), {
   ssr: false,
   loading: () => (
-    <div className="fixed inset-0 flex items-center justify-center bg-[var(--page-bg)] text-xs font-mono text-emerald-500/50">
+    <div className="fixed inset-0 flex items-center justify-center bg-[var(--page-bg)] text-xs font-mono text-[var(--text-3)]">
       Инициализация глобальной сети...
     </div>
   ),
@@ -292,7 +292,7 @@ function Globe({
         return 'rgba(0,0,0,0)';
       }
 
-      return theme === 'light' ? 'rgba(16, 185, 129, 0.08)' : 'rgba(190, 242, 230, 0.075)';
+      return theme === 'light' ? 'rgba(95, 146, 180, 0.08)' : 'rgba(190, 242, 230, 0.075)';
     },
     [theme]
   );
@@ -302,14 +302,14 @@ function Globe({
       const countryCode = polygon.properties?.__countryCode ?? '';
 
       if (polygon.properties?.__isSelected) {
-        return theme === 'light' ? '#059669' : '#c8fff0';
+        return theme === 'light' ? '#0ea5e9' : '#c8fff0';
       }
 
       if (countryCode === hoveredCountryCode) {
-        return theme === 'light' ? '#10b981' : '#e9fff8';
+        return theme === 'light' ? '#38bdf8' : '#e9fff8';
       }
 
-      return theme === 'light' ? 'rgba(71,85,105,0.28)' : 'rgba(214,228,245,0.14)';
+      return theme === 'light' ? 'rgba(14,165,233,0.15)' : 'rgba(214,228,245,0.14)';
     },
     [hoveredCountryCode, theme]
   );
@@ -347,6 +347,22 @@ function Globe({
       });
     };
 
+    // Fine-tune lighting for depth
+    const scene = globeRef.current.scene();
+    if (scene) {
+      const ambientLight = scene.children.find((c: any) => c.type === 'AmbientLight');
+      const dirLight = scene.children.find((c: any) => c.type === 'DirectionalLight');
+      
+      if (ambientLight) {
+        ambientLight.intensity = theme === 'light' ? 0.6 : 0.4;
+      }
+      
+      if (dirLight) {
+        dirLight.intensity = theme === 'light' ? 1.8 : 2;
+        dirLight.position.set(-1.2, 1, 1.2);
+      }
+    }
+
     controlsCleanupRef.current?.();
     controls.addEventListener('start', handleStart);
     controls.addEventListener('end', handleEnd);
@@ -356,7 +372,7 @@ function Globe({
     };
 
     moveCamera(selectedLocation ?? null);
-  }, [clearHoveredCountry, moveCamera, selectedLocation]);
+  }, [clearHoveredCountry, moveCamera, selectedLocation, theme]);
 
   return (
     <div
@@ -366,6 +382,43 @@ function Globe({
         clearHoveredCountry();
       }}
     >
+      {/* Background Overlays - Centralized base layer */}
+      {theme === 'light' ? (
+        <>
+          {/* Main Atmospheric Depth */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,#f1f5f9_0%,#e2e8f0_45%,#cbd5e1_100%)]" />
+          
+          {/* Left-side content fade for readability - Moved from Hero */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-[55%] bg-[linear-gradient(90deg,rgba(255,255,255,0.92)_0%,rgba(255,255,255,0.4)_50%,transparent_100%)]" />
+
+          {/* Soft Atmospheric Haze */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_40%,rgba(148,163,184,0.08)_75%,rgba(71,85,105,0.15)_100%)]" />
+
+          {/* Vignette */}
+          <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_200px_rgba(15,23,42,0.12)]" />
+          
+          {/* Tactical grid overlay */}
+          <div className="pointer-events-none absolute inset-0 opacity-[0.22] overflow-hidden">
+            <div className="absolute inset-0 [background-image:radial-gradient(circle_at_center,rgba(56,189,248,0.5)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:radial-gradient(circle_at_50%_45%,transparent_25%,black_100%)]" />
+          </div>
+          
+          {/* Sub-pixel noise */}
+          <div className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-multiply" 
+               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
+          />
+          
+          {/* Subtle star-like motes */}
+          <div className="pointer-events-none absolute inset-0 opacity-[0.15] overflow-hidden">
+             <div className="absolute inset-0 [background-image:radial-gradient(circle_at_center,rgba(14,165,233,0.4)_0.6px,transparent_0.6px)] [background-size:120px_120px] [background-position:30px_30px]" />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_52%_46%,rgba(136,174,255,0.11)_0%,rgba(7,10,18,0)_26%,rgba(2,6,23,0.28)_54%,rgba(1,3,8,0.62)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(3,7,18,0.04)_0%,rgba(3,7,18,0.0)_32%,rgba(2,6,12,0.42)_100%)]" />
+        </>
+      )}
+
       <ReactGlobe
         ref={globeRef}
         width={dimensions.width}
@@ -375,8 +428,8 @@ function Globe({
         globeImageUrl={theme === 'light' ? '/globe/earth-blue-marble.jpg' : '/globe/earth-night.jpg'}
         bumpImageUrl="/globe/earth-topology.png"
         showAtmosphere
-        atmosphereColor={theme === 'light' ? '#7dbfd0' : '#84a9ff'}
-        atmosphereAltitude={theme === 'light' ? 0.14 : 0.11}
+        atmosphereColor={theme === 'light' ? 'rgba(56, 189, 248, 0.45)' : '#84a9ff'}
+        atmosphereAltitude={theme === 'light' ? 0.05 : 0.11}
         polygonsData={countryPolygons}
         polygonCapColor={polygonCapColor}
         polygonSideColor={() => 'rgba(0,0,0,0)'}
@@ -420,19 +473,8 @@ function Globe({
           </div>
         </div>
       ) : null}
-
-      {theme === 'light' ? (
-        <>
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgba(247,250,253,0.08)_0%,rgba(247,250,253,0)_27%,rgba(193,210,221,0.16)_56%,rgba(217,227,235,0.56)_100%)]" />
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(245,249,252,0.04)_0%,rgba(241,247,251,0)_32%,rgba(207,220,229,0.28)_100%)]" />
-        </>
-      ) : (
-        <>
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_52%_46%,rgba(136,174,255,0.11)_0%,rgba(7,10,18,0)_26%,rgba(2,6,23,0.28)_54%,rgba(1,3,8,0.62)_100%)]" />
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(3,7,18,0.04)_0%,rgba(3,7,18,0.0)_32%,rgba(2,6,12,0.42)_100%)]" />
-        </>
-      )}
     </div>
+
   );
 }
 

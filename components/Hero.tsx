@@ -408,8 +408,7 @@ export default function Hero() {
 
   return (
     <div className={cn(
-      "relative min-h-[100svh] overflow-x-hidden transition-colors duration-300 lg:h-[100svh] [@media(max-height:860px)]:lg:h-auto",
-      isLight ? "bg-[#aebdc8]" : "bg-[#050505]"
+      "relative min-h-[100svh] overflow-x-hidden transition-colors duration-300 lg:h-[100svh] [@media(max-height:860px)]:lg:h-auto"
     )}>
       {/* Full Screen Globe Background */}
       <Globe 
@@ -420,20 +419,13 @@ export default function Hero() {
         focusToken={globeFocusToken}
       />
 
-      {isLight ? (
-        <>
-          <div className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-[46%] bg-[linear-gradient(90deg,rgba(183,197,209,0.98)_0%,rgba(183,197,209,0.94)_26%,rgba(183,197,209,0.68)_52%,rgba(183,197,209,0.18)_74%,rgba(183,197,209,0)_100%)]" />
-          <div className="pointer-events-none absolute left-0 top-0 z-[1] h-[54%] w-[40%] bg-[radial-gradient(circle_at_22%_18%,rgba(234,242,247,0.20)_0%,rgba(203,216,225,0.14)_34%,rgba(163,179,191,0)_74%)]" />
-        </>
-      ) : null}
-
       {/* UI Overlay */}
       <div className="relative z-10 mx-auto grid min-h-[100svh] w-full max-w-[1600px] grid-rows-[minmax(0,1fr)_auto] px-3 pb-3 pt-3 md:px-4 md:pb-4 md:pt-4 lg:h-full lg:min-h-0 lg:grid-rows-[minmax(0,1fr)_minmax(2.8rem,auto)] lg:px-6 lg:pb-3 lg:pt-4 xl:px-8 xl:pb-4 xl:pt-5 [@media(max-height:940px)]:lg:grid-rows-[minmax(0,1fr)_minmax(2.45rem,auto)] [@media(max-height:940px)]:lg:pt-3 [@media(max-height:860px)]:lg:h-auto [@media(max-height:860px)]:lg:min-h-[100svh] [@media(max-height:860px)]:lg:grid-rows-[auto_auto] pointer-events-none">
         <div className="grid min-h-0 gap-4 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1.08fr)_minmax(22.75rem,25.5rem)] lg:items-stretch lg:gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(23rem,26rem)] xl:gap-8 [@media(max-height:940px)]:lg:gap-5 [@media(max-height:860px)]:lg:h-auto">
         {/* Left Side: Info & Server List */}
         <div className="pointer-events-none flex min-h-0 flex-col gap-4 lg:h-full lg:max-w-[44rem] lg:justify-between xl:max-w-[46rem]">
           <div className="pointer-events-none flex flex-col gap-4 lg:gap-5 [@media(max-height:940px)]:lg:gap-4 [@media(max-height:860px)]:lg:gap-3">
-            <div className="w-full">
+            <div className="w-full max-w-[35rem] xl:max-w-[37rem] [@media(max-height:940px)]:lg:max-w-[32rem] [@media(max-height:860px)]:lg:max-w-[29rem]">
               {/* Header/Logo */}
               <header className="pointer-events-none flex max-w-[28rem] items-center justify-between [@media(max-height:940px)]:lg:max-w-[27rem] [@media(max-height:860px)]:lg:max-w-[25.5rem]">
                 <div className="flex items-center gap-2">
@@ -442,14 +434,14 @@ export default function Hero() {
                   </div>
                   <span className={cn(
                     "text-2xl font-bold tracking-tighter font-mono transition-colors",
-                    isLight ? "text-slate-950" : "text-white"
+                    isLight ? "text-[var(--text-1)]" : "text-white"
                   )}>WW.pro</span>
                 </div>
                 <div
                   className={cn(
-                    "pointer-events-auto inline-flex items-center gap-1 rounded-full border p-1 backdrop-blur-xl shadow-[0_16px_44px_rgba(15,23,42,0.12)] transition-all",
+                    "pointer-events-auto inline-flex items-center gap-1 rounded-full border p-1 backdrop-blur-xl transition-all",
                     isLight
-                      ? "border-[#536577]/34 bg-[#c2ced7]/74 shadow-[0_18px_44px_rgba(47,65,83,0.16)]"
+                      ? "border-[var(--border-strong)] bg-[var(--surface-2)] shadow-[0_22px_54px_var(--shadow-color),inset_0_1px_0_var(--panel-highlight),0_0_0_1px_rgba(255,255,255,0.08)]"
                       : "border-white/10 bg-black/30"
                   )}
                 >
@@ -466,13 +458,13 @@ export default function Hero() {
                         onClick={() => setGlobeTheme(option.id as 'dark' | 'light')}
                         aria-label={option.label}
                         className={cn(
-                          "relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-all",
+                          "relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-all outline-none focus:outline-none focus-visible:outline-none",
                           active
                             ? isLight
-                              ? "bg-[#102132] text-[#f6fbff] shadow-[0_10px_24px_rgba(17,32,51,0.22)]"
+                              ? "bg-white text-[var(--accent-text)] shadow-[0_12px_28px_rgba(15,23,42,0.1),0_0_0_1px_var(--border-strong)]"
                               : "bg-white text-zinc-950 shadow-[0_10px_24px_rgba(255,255,255,0.18)]"
                             : isLight
-                              ? "text-[#3e5467] hover:bg-[#102132]/8 hover:text-[#102132]"
+                              ? "text-[var(--text-2)] hover:bg-[var(--surface-3)] hover:text-[var(--text-1)]"
                               : "text-white/45 hover:bg-white/8 hover:text-white/80"
                         )}
                         title={option.label}
@@ -492,10 +484,10 @@ export default function Hero() {
                   animate={{ opacity: 1, x: 0 }}
                   className={cn(
                     "max-w-[8.1ch] text-[clamp(3rem,10vw,5rem)] font-bold tracking-tight leading-[0.84] md:text-[clamp(4rem,9vw,6.2rem)] lg:text-[clamp(4.15rem,6vw,6.75rem)] [@media(max-height:940px)]:lg:text-[clamp(3rem,4.65vw,5rem)] [@media(max-height:860px)]:lg:text-[clamp(2.55rem,4vw,4.25rem)] transition-colors",
-                    isLight ? "text-[#102132] drop-shadow-[0_8px_14px_rgba(235,243,248,0.10)]" : "text-white drop-shadow-2xl"
+                    isLight ? "text-[var(--text-1)] drop-shadow-[0_8px_14px_rgba(235,243,248,0.08)]" : "text-white drop-shadow-2xl"
                   )}
                 >
-                  Лучший <span className="text-emerald-500 italic">VPN</span> сервис
+                  Лучший <span className={cn("italic", isLight ? "text-[var(--accent-text)]" : "text-emerald-500")}>VPN</span> сервис
                 </motion.h1>
                 
                 <motion.p 
@@ -504,7 +496,7 @@ export default function Hero() {
                   transition={{ delay: 0.2 }}
                   className={cn(
                     "max-w-[32rem] text-sm leading-relaxed md:text-base lg:text-[clamp(0.95rem,1vw,1.12rem)] [@media(max-height:940px)]:lg:max-w-[27.5rem] [@media(max-height:940px)]:lg:text-[0.98rem] [@media(max-height:860px)]:lg:max-w-[25.5rem] [@media(max-height:860px)]:lg:text-[0.9rem] transition-colors",
-                    isLight ? "text-[#24384d] drop-shadow-none" : "text-zinc-300 drop-shadow-md"
+                    isLight ? "text-[var(--text-2)] [text-shadow:0_1px_0_rgba(255,255,255,0.12)]" : "text-zinc-300 drop-shadow-md"
                   )}
                 >
                   Максимальная скорость и безопасность в один клик. Выбирайте лучшие локации по всему миру.
@@ -523,9 +515,9 @@ export default function Hero() {
             <div
               className="relative overflow-hidden rounded-[2.5rem] group transition-all duration-1000"
               style={{
-                background: isLight ? 'rgba(184, 198, 210, 0.88)' : 'rgba(5, 5, 5, 0.4)',
+                background: isLight ? 'var(--surface-1)' : 'rgba(5, 5, 5, 0.4)',
                 boxShadow: isLight
-                  ? '0 24px 64px rgba(47,65,83,0.18), inset 0 0 0 1px rgba(255,255,255,0.08)'
+                  ? '0 32px 88px var(--shadow-color), inset 0 1px 0 var(--panel-highlight), 0 0 0 1px rgba(255,255,255,0.06)'
                   : '0 20px 80px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05)',
                 backdropFilter: 'blur(50px) saturate(1.8)',
                 WebkitBackdropFilter: 'blur(50px) saturate(1.8)',
@@ -533,14 +525,24 @@ export default function Hero() {
             >
               {/* Premium Quantum Liquid Fill — "Aurora Silk" Edition */}
               <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-[1500ms] pointer-events-none">
-                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/[0.03] via-transparent to-blue-500/[0.03]" />
+                <div className={cn(
+                  "absolute inset-0",
+                  isLight
+                    ? "bg-gradient-to-tr from-white/[0.4] via-transparent to-slate-200/[0.4]"
+                    : "bg-gradient-to-tr from-emerald-500/[0.03] via-transparent to-blue-500/[0.03]"
+                )} />
                 <motion.div 
                   animate={{ 
                     rotate: [0, 360],
                     scale: [1, 1.1, 1],
                   }}
                   transition={{ repeat: Infinity, duration: 25, ease: "linear" }}
-                  className="absolute -top-full -left-full w-[300%] h-[300%] bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.04)_0%,transparent_50%)] blur-[150px]"
+                  className={cn(
+                    "absolute -top-full -left-full w-[300%] h-[300%] blur-[150px]",
+                    isLight
+                      ? "bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.6)_0%,transparent_50%)]"
+                      : "bg-[radial-gradient(circle_at_center,rgba(16,185,129,0.04)_0%,transparent_50%)]"
+                  )}
                 />
                 <motion.div 
                   animate={{ 
@@ -548,22 +550,33 @@ export default function Hero() {
                     scale: [1.1, 1, 1.1],
                   }}
                   transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
-                  className="absolute -bottom-full -right-full w-[300%] h-[300%] bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.04)_0%,transparent_50%)] blur-[150px]"
+                  className={cn(
+                    "absolute -bottom-full -right-full w-[300%] h-[300%] blur-[150px]",
+                    isLight
+                      ? "bg-[radial-gradient(circle_at_center,rgba(14,165,233,0.15)_0%,transparent_50%)]"
+                      : "bg-[radial-gradient(circle_at_center,rgba(99,102,241,0.04)_0%,transparent_50%)]"
+                  )}
                 />
-                <div className="absolute inset-0 bg-[conic-gradient(from_0deg_at_50%_50%,transparent,white/[0.01],transparent)] group-hover:animate-[spin_10s_linear_infinite]" />
+                <div className={cn(
+                  "absolute inset-0 group-hover:animate-[spin_10s_linear_infinite]",
+                  isLight ? "bg-[conic-gradient(from_0deg_at_50%_50%,transparent,white/[0.2],transparent)]" : "bg-[conic-gradient(from_0deg_at_50%_50%,transparent,white/[0.01],transparent)]"
+                )} />
               </div>
               
               {/* Soft Volume Glow & Refined Border */}
               <div className={cn(
                 "absolute inset-0 rounded-[2.5rem] pointer-events-none transition-all duration-1000",
                 isLight
-                  ? "border border-[#4d6276]/18 group-hover:border-[#0f766e]/24 shadow-[inset_0_0_60px_rgba(226,236,244,0.05)]"
+                  ? "border border-[var(--border-default)] group-hover:border-[var(--accent-border)] shadow-[inset_0_1px_0_var(--panel-highlight),0_0_0_1px_rgba(255,255,255,0.6),inset_0_0_60px_rgba(255,255,255,0.5)]"
                   : "border border-white/[0.04] group-hover:border-emerald-500/10 shadow-[inset_0_0_100px_rgba(16,185,129,0.03)]"
               )} />
+              {isLight ? (
+                <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/90 to-transparent opacity-90" />
+              ) : null}
               <div className={cn(
                 "absolute inset-0 opacity-0 group-hover:opacity-100 transition-all duration-[1500ms] pointer-events-none",
                 isLight
-                  ? "bg-[radial-gradient(circle_at_50%_0%,rgba(165,243,252,0.14)_0%,transparent_60%)]"
+                  ? "bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.4)_0%,transparent_58%)]"
                   : "bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,250,0.05)_0%,transparent_60%)]"
               )} />
 
@@ -571,18 +584,21 @@ export default function Hero() {
               <div className="relative flex items-center justify-between px-4 py-3 sm:px-5 sm:py-4 [@media(max-height:940px)]:lg:px-4 [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5">
                 <span className={cn(
                   "text-[10px] uppercase font-black tracking-[0.3em] transition-colors",
-                  isLight ? "text-[#465d73]" : "text-white/40"
+                  isLight ? "text-[var(--text-3)]" : "text-white/40"
                 )}>
                   Доступные локации
                 </span>
                 <button
                   onClick={() => SERVERS.forEach((server) => simulatePing(server.id))}
-                  className="flex items-center justify-center w-7 h-7 rounded-full transition-all duration-200 hover:bg-white/10 active:scale-90"
+                  className={cn(
+                    "flex items-center justify-center w-7 h-7 rounded-full transition-all duration-200 active:scale-90",
+                    isLight ? "hover:bg-[var(--surface-3)]" : "hover:bg-white/10"
+                  )}
                   title="Проверить пинг"
                 >
                   <RefreshCw className={cn(
                     "w-3.5 h-3.5 transition-colors",
-                    isLight ? "text-[#4b6277] hover:text-[#102132]" : "text-white/40 hover:text-white/70",
+                    isLight ? "text-[var(--text-3)] hover:text-[var(--text-1)]" : "text-white/40 hover:text-white/70",
                     isAnyPingTesting && 'refresh-spin'
                   )} />
                 </button>
@@ -596,14 +612,14 @@ export default function Hero() {
                   const isTesting = currentPing === 'testing';
 
                   const pingColor = () => {
-                    if (typeof currentPing !== 'number') return isLight ? 'text-[#5b7185]' : 'text-white/25';
+                    if (typeof currentPing !== 'number') return isLight ? 'text-[var(--text-3)]' : 'text-white/25';
                     if (currentPing < 50) return 'text-emerald-400';
                     if (currentPing < 100) return 'text-yellow-400';
                     return 'text-rose-400';
                   };
 
                   const dotColor = () => {
-                    if (typeof currentPing !== 'number') return isLight ? 'bg-[#6b8297]' : 'bg-white/20';
+                    if (typeof currentPing !== 'number') return isLight ? 'bg-[var(--text-3)]' : 'bg-white/20';
                     if (currentPing < 50) return 'bg-emerald-400';
                     if (currentPing < 100) return 'bg-yellow-400';
                     return 'bg-rose-400';
@@ -615,7 +631,7 @@ export default function Hero() {
                       {index > 0 && !isSelected && SERVERS[index - 1].id !== selectedServer.id && (
                         <div className={cn(
                           "mx-4 sm:mx-5 h-px [@media(max-height:860px)]:lg:mx-4",
-                          isLight ? "bg-[#50667a]/14" : "bg-white/[0.045]"
+                          isLight ? "bg-[var(--border-soft)]" : "bg-white/[0.045]"
                         )} />
                       )}
 
@@ -633,10 +649,10 @@ export default function Hero() {
                           "relative flex items-center gap-3 sm:gap-4 rounded-[1.55rem] sm:rounded-[1.9rem] px-4 py-4 sm:px-6 sm:py-5 [@media(max-height:940px)]:lg:gap-3 [@media(max-height:940px)]:lg:px-4 [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:px-3.5 [@media(max-height:860px)]:lg:py-2.5 cursor-pointer select-none bg-transparent outline-none transition-all duration-300 focus:outline-none focus-visible:outline-none",
                           isSelected
                             ? isLight
-                              ? 'bg-[rgba(232,239,244,0.82)] shadow-[inset_0_1px_1px_rgba(255,255,255,0.14),0_14px_28px_rgba(47,65,83,0.14)]'
+                              ? 'bg-[linear-gradient(135deg,rgba(255,255,255,0.9)_0%,rgba(238,242,246,0.9)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,1),0_16px_32px_var(--shadow-color),0_0_0_1px_rgba(15,23,42,0.08)]'
                               : 'bg-white/[0.07] shadow-[inset_0_1px_1px_rgba(255,255,255,0.04),0_16px_40px_rgba(4,10,24,0.18)]'
                             : isLight
-                              ? 'hover:bg-[rgba(224,233,239,0.72)] active:scale-[0.995]'
+                              ? 'hover:bg-[rgba(255,255,255,0.6)] active:scale-[0.995]'
                               : 'hover:bg-white/[0.025] active:scale-[0.995]'
                         )}
                       >
@@ -646,9 +662,9 @@ export default function Hero() {
                             layoutId="server-outline"
                             className="pointer-events-none absolute inset-0 rounded-[1.55rem] sm:rounded-[1.9rem] border"
                             style={{
-                              borderColor: isLight ? 'rgba(5, 150, 105, 0.28)' : 'rgba(110, 231, 183, 0.34)',
+                              borderColor: isLight ? 'var(--accent-ui)' : 'rgba(110, 231, 183, 0.34)',
                               boxShadow: isLight
-                                ? 'inset 0 0 0 1px rgba(240,246,250,0.14), 0 0 0 1px rgba(13,148,136,0.14), 0 14px 28px rgba(13,148,136,0.08), 0 0 18px rgba(125,211,252,0.05)'
+                                ? 'inset 0 1px 0 rgba(255,255,255,1), 0 0 0 1px rgba(14,165,233,0.3), 0 0 0 2px var(--accent-ui-soft), 0 16px 28px rgba(14,165,233,0.1)'
                                 : 'inset 0 0 0 1px rgba(255,255,255,0.03), 0 0 0 1px rgba(110,231,183,0.14), 0 12px 30px rgba(16,185,129,0.10), 0 0 22px rgba(129,140,248,0.08)',
                             }}
                             transition={{ type: 'spring', stiffness: 350, damping: 25 }}
@@ -663,14 +679,14 @@ export default function Hero() {
                           <span className={cn(
                             "block text-[14px] sm:text-[15px] [@media(max-height:940px)]:lg:text-[14px] [@media(max-height:860px)]:lg:text-[13px] tracking-tight leading-tight transition-colors",
                             isSelected
-                              ? isLight ? 'font-bold text-slate-950' : 'font-bold text-white'
-                              : isLight ? 'font-medium text-[#31475c]' : 'font-medium text-white/60'
+                              ? isLight ? 'font-bold text-[var(--text-1)]' : 'font-bold text-white'
+                              : isLight ? 'font-medium text-[var(--text-2)]' : 'font-medium text-white/60'
                           )}>
                             {server.country}
                           </span>
                           <span className={cn(
                             "block mt-0.5 text-[10px] sm:text-[11px] [@media(max-height:940px)]:lg:text-[10px] [@media(max-height:860px)]:lg:text-[9px] font-medium tracking-wide transition-colors",
-                            isLight ? "text-[#61778b]" : "text-white/20"
+                            isLight ? "text-[var(--text-3)]" : "text-white/20"
                           )}>
                             {server.city.toUpperCase()}
                           </span>
@@ -684,7 +700,7 @@ export default function Hero() {
                                 animate={{ opacity: [0.3, 0.8, 0.3] }}
                                 transition={{ repeat: Infinity, duration: 1 }}
                                 className={cn(
-                                  isLight ? "text-[#5d7387]" : "text-white/30"
+                                  isLight ? "text-[var(--text-3)]" : "text-white/30"
                                 )}
                               >
                                 —
@@ -740,41 +756,50 @@ export default function Hero() {
             >
               {/* Micro-label */}
               <div className="flex items-center gap-2 mb-1 text-center">
-                <div className={`w-1 h-1 rounded-full ${isTelling ? 'bg-emerald-500 animate-pulse' : 'bg-white/20 group-hover:bg-emerald-500/50'} transition-colors`} />
+                <div className={`w-1 h-1 rounded-full ${isTelling ? (isLight ? 'bg-[var(--accent-ui)] animate-pulse' : 'bg-emerald-500 animate-pulse') : isLight ? 'bg-[var(--text-3)] group-hover:bg-[var(--accent-ui)]' : 'bg-white/20 group-hover:bg-emerald-500/50'} transition-colors`} />
                 <span className={cn(
                   "text-[8px] font-black uppercase tracking-[0.4em] transition-colors duration-500",
-                  isLight ? "text-[#52687d] group-hover:text-[#0f766e]" : "text-white/20 group-hover:text-emerald-500/60"
+                  isLight ? "text-[var(--text-4)] group-hover:text-[var(--accent-text)]" : "text-white/20 group-hover:text-emerald-500/60"
                 )}>
                   {isTelling ? 'Подготовка...' : 'О ПРЕИМУЩЕСТВАХ'}
                 </span>
                 <div className={cn(
                   "w-4 h-px group-hover:w-8 transition-all duration-500",
-                  isLight ? "bg-[#50667a]/16 group-hover:bg-[#0f766e]/26" : "bg-white/5 group-hover:bg-emerald-500/30"
+                  isLight ? "bg-[var(--border-default)] group-hover:bg-[var(--accent-ui-soft)]" : "bg-white/5 group-hover:bg-emerald-500/30"
                 )} />
               </div>
               
               <div className="flex items-center gap-3">
                 <h3 className={cn(
                   "text-lg md:text-xl font-black italic tracking-tighter transition-all duration-500 [@media(max-height:940px)]:lg:text-[1.05rem] [@media(max-height:860px)]:lg:text-[0.95rem]",
-                  isLight ? "text-[#40586d] group-hover:text-[#102132]" : "text-white/50 group-hover:text-white"
+                  isLight ? "text-[var(--text-2)] group-hover:text-[var(--text-1)]" : "text-white/50 group-hover:text-white"
                 )}>
                   <span className="mr-2">{isTelling ? 'Сейчас все' : 'Почему выбирают'}</span>
-                  <span className="text-emerald-500/60 group-hover:text-emerald-400 transition-colors duration-500">{isTelling ? 'расскажем' : 'нас?'}</span>
+                  <span className={cn(
+                    "transition-colors duration-500",
+                    isLight ? "text-[var(--accent-text)] group-hover:text-[var(--accent-ui-strong)]" : "text-emerald-500/60 group-hover:text-emerald-400"
+                  )}>{isTelling ? 'расскажем' : 'нас?'}</span>
                 </h3>
               </div>
 
               {/* Sophisticated Underline Progress */}
               <div className={cn(
                 "mt-2 relative w-full h-[1px] overflow-hidden",
-                isLight ? "bg-[#50667a]/12" : "bg-white/[0.03]"
+                isLight ? "bg-[var(--border-soft)]" : "bg-white/[0.03]"
               )}>
                 <motion.div 
                   initial={false}
                   animate={isTelling ? { x: ['-100%', '0%'] } : { x: '-100%' }}
                   transition={{ duration: 1, ease: "easeInOut" }}
-                  className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent"
+                  className={cn(
+                    "absolute inset-0 bg-gradient-to-r from-transparent to-transparent",
+                    isLight ? "via-[var(--accent-ui-soft)]" : "via-emerald-500/50"
+                  )}
                 />
-                <div className="absolute inset-0 w-0 group-hover:w-full bg-white/10 transition-all duration-700 ease-out" />
+                <div className={cn(
+                  "absolute inset-0 w-0 group-hover:w-full transition-all duration-700 ease-out",
+                  isLight ? "bg-[var(--border-default)]" : "bg-white/10"
+                )} />
               </div>
             </div>
           </div>
@@ -783,16 +808,28 @@ export default function Hero() {
           {/* Right Side: Auth Section with Interactive Glow */}
           <div className="group relative flex w-full self-stretch pointer-events-none lg:h-full lg:max-w-[25rem] lg:min-h-0 lg:justify-self-end xl:max-w-[26rem] [@media(max-height:940px)]:lg:max-w-[24rem] [@media(max-height:860px)]:lg:max-w-[22.75rem]">
             {/* Background Kinetic Glow */}
-            <div className="absolute -inset-4 bg-emerald-500/10 blur-[100px] rounded-[3rem] opacity-0 group-hover:opacity-100 transition-opacity duration-1000" />
+            <div className={cn(
+              "absolute -inset-4 blur-[100px] rounded-[3rem] opacity-0 group-hover:opacity-100 transition-opacity duration-1000",
+              isLight ? "bg-[#223447]/10" : "bg-emerald-500/10"
+            )} />
             
             <div className={cn(
               "pointer-events-auto relative flex min-h-[36rem] w-full flex-col overflow-hidden rounded-[2.5rem] p-5 backdrop-blur-3xl md:p-8 lg:h-full lg:min-h-[calc(100svh-7.6rem)] lg:flex-1 xl:min-h-[calc(100svh-8rem)] [@media(max-height:940px)]:lg:min-h-[calc(100svh-6.7rem)] [@media(max-height:940px)]:lg:p-6 [@media(max-height:860px)]:lg:h-auto [@media(max-height:860px)]:lg:min-h-[31rem] [@media(max-height:860px)]:lg:p-5 transition-colors",
               isLight
-                ? "border border-[#50667a]/16 bg-[rgba(195,209,220,0.88)] shadow-[0_28px_72px_rgba(47,65,83,0.16)]"
+                ? "border border-[var(--border-default)] bg-[var(--surface-1)] shadow-[0_36px_100px_var(--shadow-color),inset_0_1px_0_var(--panel-highlight),0_0_0_1px_rgba(255,255,255,0.06)]"
                 : "border border-white/10 bg-white/[0.03] shadow-[0_24px_80px_rgba(0,0,0,0.4)]"
             )}>
+              {isLight ? (
+                <>
+                  <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-80" />
+                  <div className="pointer-events-none absolute inset-y-10 right-0 w-px bg-gradient-to-b from-transparent via-[var(--accent-ui-soft)] to-transparent opacity-70" />
+                </>
+              ) : null}
               {/* Inner Glass Glow */}
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-emerald-500/10 blur-[60px] rounded-full" />
+              <div className={cn(
+                "absolute -top-24 -right-24 w-48 h-48 blur-[60px] rounded-full",
+                isLight ? "bg-[#223447]/10" : "bg-emerald-500/10"
+              )} />
               
               <AnimatePresence mode="wait">
                 {user ? (
@@ -820,13 +857,13 @@ export default function Hero() {
                         <div className="space-y-0.5">
                           <h2 className={cn(
                             "text-2xl font-bold tracking-tight leading-tight",
-                            isLight ? "text-[#102132]" : "text-white"
+                            isLight ? "text-[var(--text-1)]" : "text-white"
                           )}>Привет, {user.displayName?.split(' ')[0] || 'Пользователь'}</h2>
                           <div className="flex items-center gap-2">
                              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                              <p className={cn(
                                "text-xs font-medium tracking-wide",
-                               isLight ? "text-[#546b80]" : "text-white/40"
+                               isLight ? "text-[var(--text-3)]" : "text-white/40"
                              )}>{user.email}</p>
                           </div>
                         </div>
@@ -835,19 +872,22 @@ export default function Hero() {
                       <div className={cn(
                         "relative overflow-hidden bg-gradient-to-br border rounded-2xl p-4",
                         isLight
-                          ? "from-emerald-500/[0.08] to-white/0 border-emerald-500/18 bg-[rgba(210,221,229,0.74)]"
+                          ? "from-[var(--accent-ui-soft)] to-white/0 border-[var(--accent-ui-soft)] bg-[var(--surface-2)]"
                           : "from-emerald-500/[0.08] to-transparent border-emerald-500/20"
                       )}>
                         <div className="absolute top-0 right-0 p-3">
-                          <Zap className="w-8 h-8 text-emerald-500/10 -rotate-12" />
+                          <Zap className={cn("w-8 h-8 -rotate-12", isLight ? "text-[rgba(127,183,217,0.12)]" : "text-emerald-500/10")} />
                         </div>
                         <div className="flex items-center justify-between mb-2 relative z-10">
-                          <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-[0.2em]">Статус</span>
-                          <span className="bg-emerald-500/20 text-emerald-400 text-[8px] font-black px-2 py-0.5 rounded-full border border-emerald-500/30">БЕЗЛИМИТ</span>
+                          <span className={cn("text-[9px] font-bold uppercase tracking-[0.2em]", isLight ? "text-[var(--accent-text)]" : "text-emerald-400")}>Статус</span>
+                          <span className={cn(
+                            "text-[8px] font-black px-2 py-0.5 rounded-full border",
+                            isLight ? "bg-[var(--accent-ui-soft)] text-[var(--accent-text)] border-[var(--accent-ui-soft)]" : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                          )}>БЕЗЛИМИТ</span>
                         </div>
                         <p className={cn(
                           "text-xs leading-relaxed relative z-10 font-medium tracking-tight",
-                          isLight ? "text-[#31475c]" : "text-white/70"
+                          isLight ? "text-[var(--text-2)]" : "text-white/70"
                         )}>
                           Раскройте потенциал сети с вашим Platinum тарифом.
                         </p>
@@ -858,13 +898,13 @@ export default function Hero() {
                       <button className={cn(
                         "w-full font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2 border group",
                         isLight
-                          ? "bg-[#102132]/6 hover:bg-[#102132]/10 text-[#102132] border-[#50667a]/18"
+                          ? "bg-[var(--surface-2)] hover:bg-[var(--surface-4)] text-[var(--text-1)] border-[var(--border-default)]"
                           : "bg-white/[0.05] hover:bg-white/[0.08] text-white border-white/10"
                       )}>
                         <span className="text-sm">Настройки</span>
                         <ArrowRight className={cn(
                           "w-4 h-4 group-hover:translate-x-1 transition-all",
-                          isLight ? "text-[#50677c] group-hover:text-[#102132]" : "text-white/40 group-hover:text-white"
+                          isLight ? "text-[var(--text-3)] group-hover:text-[var(--text-1)]" : "text-white/40 group-hover:text-white"
                         )} />
                       </button>
                       <button 
@@ -890,15 +930,15 @@ export default function Hero() {
                   >
                     <div className={cn(
                       "flex p-1 rounded-xl mb-6 border relative [@media(max-height:940px)]:lg:mb-5 [@media(max-height:860px)]:lg:mb-4",
-                      isLight ? "bg-[#afbcc7]/46 border-[#50667a]/14" : "bg-white/[0.03] border-white/5"
+                      isLight ? "bg-[rgba(146,162,176,0.38)] border-[var(--border-strong)] shadow-[inset_0_1px_0_rgba(255,255,255,0.16)]" : "bg-white/[0.03] border-white/5"
                     )}>
                       <button 
                         onClick={() => setAuthMode('login')}
                         className={cn(
-                          "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative z-10",
+                          "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative z-10 outline-none focus:outline-none focus-visible:outline-none",
                           authMode === 'login'
                             ? isLight ? 'text-white' : 'text-zinc-950'
-                            : isLight ? 'text-[#465d73] hover:text-[#102132]' : 'text-white/40 hover:text-white/60'
+                            : isLight ? 'text-[var(--text-3)] hover:text-[var(--text-1)]' : 'text-white/40 hover:text-white/60'
                         )}
                       >
                         Вход
@@ -908,7 +948,7 @@ export default function Hero() {
                             className={cn(
                               "absolute inset-0 rounded-lg -z-10",
                               isLight
-                                ? "bg-[#102132] shadow-[0_10px_20px_rgba(17,32,51,0.18)]"
+                                ? "bg-[#102132] shadow-[0_14px_24px_rgba(17,32,51,0.2),0_0_0_1px_var(--accent-glow),inset_0_1px_0_rgba(255,255,255,0.08)]"
                                 : "bg-white shadow-[0_10px_20px_rgba(255,255,255,0.2)]"
                             )}
                           />
@@ -917,10 +957,10 @@ export default function Hero() {
                       <button 
                         onClick={() => setAuthMode('register')}
                         className={cn(
-                          "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative z-10",
+                          "flex-1 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all relative z-10 outline-none focus:outline-none focus-visible:outline-none",
                           authMode === 'register'
                             ? isLight ? 'text-white' : 'text-zinc-950'
-                            : isLight ? 'text-[#465d73] hover:text-[#102132]' : 'text-white/40 hover:text-white/60'
+                            : isLight ? 'text-[var(--text-3)] hover:text-[var(--text-1)]' : 'text-white/40 hover:text-white/60'
                         )}
                       >
                         Регистрация
@@ -930,7 +970,7 @@ export default function Hero() {
                             className={cn(
                               "absolute inset-0 rounded-lg -z-10",
                               isLight
-                                ? "bg-[#102132] shadow-[0_10px_20px_rgba(17,32,51,0.18)]"
+                                ? "bg-[#102132] shadow-[0_14px_24px_rgba(17,32,51,0.2),0_0_0_1px_var(--accent-glow),inset_0_1px_0_rgba(255,255,255,0.08)]"
                                 : "bg-white shadow-[0_10px_20px_rgba(255,255,255,0.2)]"
                             )}
                           />
@@ -941,13 +981,13 @@ export default function Hero() {
                     <div className="mb-6">
                       <h2 className={cn(
                         "text-3xl font-bold tracking-tighter mb-1 italic leading-none [@media(max-height:940px)]:lg:text-[2.35rem] [@media(max-height:860px)]:lg:text-[2rem]",
-                        isLight ? "text-[#102132]" : "text-white"
+                        isLight ? "text-[var(--text-1)]" : "text-white"
                       )}>
                         {authMode === 'login' ? 'С возвращением' : 'Присоединяйтесь'}
                       </h2>
                       <p className={cn(
                         "text-xs font-medium leading-relaxed max-w-[220px] [@media(max-height:940px)]:lg:text-[11px] [@media(max-height:860px)]:lg:max-w-[12rem] [@media(max-height:860px)]:lg:text-[10px]",
-                        isLight ? "text-[#31475c]" : "text-white/30"
+                        isLight ? "text-[var(--text-2)]" : "text-white/30"
                       )}>
                         {authMode === 'login' ? 'Ваш зашифрованный доступ к свободному интернету.' : 'Безопасный и анонимный серфинг в один клик.'}
                       </p>
@@ -956,36 +996,40 @@ export default function Hero() {
                     <form className="space-y-4 [@media(max-height:940px)]:lg:space-y-3.5 [@media(max-height:860px)]:lg:space-y-3" onSubmit={(e) => e.preventDefault()}>
                       <div className="space-y-1.5 group/input">
                         <label className={cn(
-                          "ml-2 text-[8px] uppercase tracking-[0.3em] font-black group-focus-within/input:text-emerald-500/50 transition-colors",
-                          isLight ? "text-[#546b80]" : "text-white/20"
+                          isLight
+                            ? "ml-2 text-[8px] uppercase tracking-[0.3em] font-black group-focus-within/input:text-[var(--accent-text)] transition-colors"
+                            : "ml-2 text-[8px] uppercase tracking-[0.3em] font-black group-focus-within/input:text-emerald-500/50 transition-colors",
+                          isLight ? "text-[var(--text-3)]" : "text-white/20"
                         )}>Электронная почта</label>
                         <div className="relative">
                           <input 
                             type="email" 
                             placeholder="vlad@example.com"
                             className={cn(
-                              "w-full rounded-xl border px-4 py-3.5 text-xs font-medium transition-all focus:outline-none focus:border-emerald-500/50 focus:bg-emerald-500/[0.02] [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5",
+                              "w-full rounded-xl border px-4 py-3.5 text-xs font-medium transition-all focus:outline-none [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5",
                               isLight
-                                ? "border-[#50667a]/14 bg-[rgba(229,236,241,0.72)] text-[#102132] placeholder:text-[#62788c]"
-                                : "border-white/10 bg-white/[0.03] text-white placeholder:text-white/10"
+                                ? "border-[var(--border-default)] bg-[rgba(185,197,207,0.6)] text-[var(--text-1)] placeholder:text-[var(--text-3)] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] focus:border-[var(--accent-ui)] focus:bg-[rgba(198,208,216,0.78)]"
+                                : "border-white/10 bg-white/[0.03] text-white placeholder:text-white/10 focus:border-emerald-500/50 focus:bg-emerald-500/[0.02]"
                             )}
                           />
                         </div>
                       </div>
                       <div className="space-y-1.5 group/input">
                         <label className={cn(
-                          "ml-2 text-[8px] uppercase tracking-[0.3em] font-black group-focus-within/input:text-emerald-500/50 transition-colors",
-                          isLight ? "text-[#546b80]" : "text-white/20"
+                          isLight
+                            ? "ml-2 text-[8px] uppercase tracking-[0.3em] font-black group-focus-within/input:text-[var(--accent-text)] transition-colors"
+                            : "ml-2 text-[8px] uppercase tracking-[0.3em] font-black group-focus-within/input:text-emerald-500/50 transition-colors",
+                          isLight ? "text-[var(--text-3)]" : "text-white/20"
                         )}>Пароль доступа</label>
                         <div className="relative">
                           <input 
                             type="password" 
                             placeholder="••••••••"
                             className={cn(
-                              "w-full rounded-xl border px-4 py-3.5 text-xs font-medium transition-all focus:outline-none focus:border-emerald-500/50 focus:bg-emerald-500/[0.02] [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5",
+                              "w-full rounded-xl border px-4 py-3.5 text-xs font-medium transition-all focus:outline-none [@media(max-height:940px)]:lg:py-3 [@media(max-height:860px)]:lg:py-2.5",
                               isLight
-                                ? "border-[#50667a]/14 bg-[rgba(229,236,241,0.72)] text-[#102132] placeholder:text-[#62788c]"
-                                : "border-white/10 bg-white/[0.03] text-white placeholder:text-white/10"
+                                ? "border-[var(--border-default)] bg-[rgba(185,197,207,0.6)] text-[var(--text-1)] placeholder:text-[var(--text-3)] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] focus:border-[var(--accent-ui)] focus:bg-[rgba(198,208,216,0.78)]"
+                                : "border-white/10 bg-white/[0.03] text-white placeholder:text-white/10 focus:border-emerald-500/50 focus:bg-emerald-500/[0.02]"
                             )}
                           />
                         </div>
@@ -994,7 +1038,7 @@ export default function Hero() {
                       <button className={cn(
                         "w-full font-black text-[11px] uppercase tracking-widest py-4 rounded-xl transition-all flex items-center justify-center gap-3 group mt-4 relative overflow-hidden active:scale-95 [@media(max-height:940px)]:lg:py-3.5 [@media(max-height:860px)]:lg:mt-3 [@media(max-height:860px)]:lg:py-3",
                         isLight
-                          ? "bg-[#102132] text-[#f6fbff] shadow-[0_20px_40px_rgba(17,32,51,0.18)]"
+                          ? "bg-[#102132] text-[#f6fbff] shadow-[0_24px_44px_rgba(17,32,51,0.22),0_0_0_1px_var(--accent-ui-soft)]"
                           : "bg-white text-zinc-950 shadow-[0_20px_40px_rgba(255,255,255,0.1)]"
                       )}>
                         {/* Shimmer Effect */}
@@ -1009,13 +1053,13 @@ export default function Hero() {
                       <div className="absolute inset-0 flex items-center">
                         <div className={cn(
                           "w-full border-t",
-                          isLight ? "border-[#50667a]/14" : "border-white/[0.06]"
+                          isLight ? "border-[var(--border-default)]" : "border-white/[0.06]"
                         )}></div>
                       </div>
                       <div className="relative flex justify-center text-[8px] uppercase tracking-[0.4em] font-bold">
                         <span className={cn(
                           "px-4",
-                          isLight ? "bg-transparent text-[#5a7186]" : "bg-[#0b0b0b]/0 text-white/20"
+                          isLight ? "bg-transparent text-[var(--text-3)]" : "bg-[#0b0b0b]/0 text-white/20"
                         )}>Или через</span>
                       </div>
                     </div>
@@ -1030,12 +1074,12 @@ export default function Hero() {
                             exit={{ opacity: 0, scale: 0.95 }}
                             className={cn(
                               "absolute inset-0 w-full rounded-xl p-3 sm:p-4 flex items-center justify-center text-center border",
-                              isLight ? "bg-[rgba(226,234,239,0.82)] border-[#50667a]/14" : "bg-white/[0.03] border-white/10"
+                              isLight ? "bg-[var(--surface-4)] border-[var(--border-default)]" : "bg-white/[0.03] border-white/10"
                             )}
                           >
                             <p className={cn(
                               "text-[9px] sm:text-[10px] leading-relaxed font-medium tracking-tight",
-                              isLight ? "text-[#31475c]" : "text-white/50"
+                              isLight ? "text-[var(--text-2)]" : "text-white/50"
                             )}>
                               {FEATURE_INFO[hoveredFeature]}
                             </p>
@@ -1054,13 +1098,13 @@ export default function Hero() {
                               className={cn(
                                 "flex items-center justify-center gap-2 h-full rounded-xl transition-all group disabled:opacity-50 border",
                                 isLight
-                                  ? "bg-[rgba(226,234,239,0.72)] hover:bg-[rgba(234,240,244,0.82)] border-[#50667a]/14"
+                                  ? "bg-[rgba(184,197,207,0.54)] hover:bg-[rgba(204,214,222,0.76)] border-[var(--border-default)] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]"
                                   : "bg-white/[0.03] hover:bg-white/[0.06] border-white/10"
                               )}
                             >
                               <svg className={cn(
                                 "w-4 h-4 transition-colors",
-                                isLight ? "text-[#4c6378] group-hover:text-[#102132]" : "text-white/60 group-hover:text-white"
+                                isLight ? "text-[var(--text-3)] group-hover:text-[var(--text-1)]" : "text-white/60 group-hover:text-white"
                               )} viewBox="0 0 24 24">
                                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                                 <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
@@ -1069,7 +1113,7 @@ export default function Hero() {
                               </svg>
                               <span className={cn(
                                 "text-[10px] font-black uppercase tracking-widest transition-colors",
-                                isLight ? "text-[#40576c] group-hover:text-[#102132]" : "text-white/40 group-hover:text-white/80"
+                                isLight ? "text-[var(--text-2)] group-hover:text-[var(--text-1)]" : "text-white/40 group-hover:text-white/80"
                               )}>{loading ? '...' : 'Google'}</span>
                             </button>
                             <button 
@@ -1077,19 +1121,19 @@ export default function Hero() {
                               className={cn(
                                 "flex items-center justify-center gap-2 h-full rounded-xl transition-all group border",
                                 isLight
-                                  ? "bg-[rgba(226,234,239,0.72)] hover:bg-[rgba(234,240,244,0.82)] border-[#50667a]/14"
+                                  ? "bg-[rgba(184,197,207,0.54)] hover:bg-[rgba(204,214,222,0.76)] border-[var(--border-default)] shadow-[inset_0_1px_0_rgba(255,255,255,0.14)]"
                                   : "bg-white/[0.03] hover:bg-white/[0.06] border-white/10"
                               )}
                             >
                               <svg className={cn(
                                 "w-4 h-4 transition-colors",
-                                isLight ? "text-[#4c6378] group-hover:text-[#24A1DE]" : "text-white/60 group-hover:text-[#24A1DE]"
+                                isLight ? "text-[var(--text-3)] group-hover:text-[#24A1DE]" : "text-white/60 group-hover:text-[#24A1DE]"
                               )} viewBox="0 0 24 24">
                                 <path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69.01-.03.01-.14-.07-.2-.08-.06-.19-.04-.27-.02-.11.02-1.93 1.23-5.46 3.62-.51.35-.98.52-1.4.51-.46-.01-1.35-.26-2.01-.48-.81-.27-1.45-.42-1.39-.89.03-.24.37-.49 1.02-.73 4-1.74 6.67-2.88 8-3.43 3.8-1.57 4.59-1.84 5.1-.14.11.27.1.55.07.82z" />
                               </svg>
                               <span className={cn(
                                 "text-[10px] font-black uppercase tracking-widest transition-colors",
-                                isLight ? "text-[#40576c] group-hover:text-[#102132]" : "text-white/40 group-hover:text-white/80"
+                                isLight ? "text-[var(--text-2)] group-hover:text-[var(--text-1)]" : "text-white/40 group-hover:text-white/80"
                               )}>Telegram</span>
                             </button>
                           </motion.div>
@@ -1104,7 +1148,7 @@ export default function Hero() {
               <div className="mt-auto pt-4 relative [@media(max-height:940px)]:lg:pt-4 [@media(max-height:860px)]:lg:pt-3">
                 <div className="space-y-3 [@media(max-height:860px)]:lg:space-y-2.5">
                   {[
-                    { icon: InfinityIcon, text: 'Безлимитный квантовый трафик', color: 'text-emerald-400/80', glow: 'shadow-[0_0_15px_rgba(52,211,153,0.1)]' },
+                    { icon: InfinityIcon, text: 'Безлимитный квантовый трафик', color: isLight ? 'text-[var(--accent-text)]' : 'text-emerald-400/80', glow: isLight ? 'shadow-[0_0_12px_rgba(127,183,217,0.22)]' : 'shadow-[0_0_15px_rgba(52,211,153,0.1)]' },
                     { icon: Fingerprint, text: 'Шифрование военного уровня', color: 'text-blue-400/80', glow: 'shadow-[0_0_15px_rgba(96,165,250,0.1)]' },
                     { icon: Waypoints, text: 'Обход Белых списков', color: 'text-purple-400/80', glow: 'shadow-[0_0_15px_rgba(192,132,252,0.1)]' }
                   ].map((item, i) => (
@@ -1117,7 +1161,7 @@ export default function Hero() {
                       transition={{ delay: 0.5 + (i * 0.1) }}
                       className={cn(
                         "flex items-center gap-4 text-xs font-semibold group/feat cursor-help [@media(max-height:860px)]:lg:gap-3",
-                        isLight ? "text-[#50677c]" : "text-white/30"
+                        isLight ? "text-[var(--text-3)]" : "text-white/30"
                       )}
                     >
                       <item.icon 
@@ -1127,8 +1171,8 @@ export default function Hero() {
                       <span className={cn(
                         "transition-all uppercase tracking-[0.2em] text-[8px] font-bold [@media(max-height:860px)]:lg:text-[7px]",
                         hoveredFeature === i
-                          ? isLight ? "text-[#102132] translate-x-1" : "text-white/80 translate-x-1"
-                          : isLight ? "group-hover/feat:text-[#102132]" : "group-hover/feat:text-white/60"
+                          ? isLight ? "text-[var(--text-1)] translate-x-1" : "text-white/80 translate-x-1"
+                          : isLight ? "group-hover/feat:text-[var(--text-1)]" : "group-hover/feat:text-white/60"
                       )}>
                         {item.text}
                       </span>
@@ -1151,10 +1195,13 @@ export default function Hero() {
                 isLight && "opacity-75"
               )}
             >
-              <div className="w-1 h-1 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+              <div className={cn(
+                "w-1 h-1 rounded-full",
+                isLight ? "bg-[var(--accent-ui)] shadow-[0_0_8px_rgba(127,183,217,0.34)]" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
+              )} />
               <span className={cn(
                 "text-[8px] uppercase font-black tracking-[0.28em] [@media(max-height:940px)]:lg:text-[7px]",
-                isLight ? "text-[#31475c]" : "text-white"
+                isLight ? "text-[var(--text-2)]" : "text-white"
               )}>
                 Активен: {selectedServer.country}
               </span>
@@ -1166,7 +1213,7 @@ export default function Hero() {
                 key={selectedServer.id}
                 className={cn(
                   "text-[0.95rem] font-bold leading-tight tracking-tight text-center md:text-[1.05rem] [@media(max-height:940px)]:lg:text-[0.88rem]",
-                  isLight ? "text-[#102132] drop-shadow-none" : "text-white drop-shadow-lg"
+                  isLight ? "text-[var(--text-1)] drop-shadow-none" : "text-white drop-shadow-lg"
                 )}
               >
                 {selectedServer.description.split('').map((char, index) => (

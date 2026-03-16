@@ -11,14 +11,54 @@
   --page-fg: #f4f4f5;
   --scroll-thumb: #27272a;
   --scroll-thumb-hover: #3f3f46;
+  --surface-1: rgba(5, 5, 5, 0.4);
+  --surface-2: rgba(255, 255, 255, 0.03);
+  --surface-3: rgba(255, 255, 255, 0.02);
+  --surface-4: rgba(255, 255, 255, 0.07);
+  --border-soft: rgba(255, 255, 255, 0.05);
+  --border-default: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.12);
+  --accent-border: rgba(110, 231, 183, 0.24);
+  --accent-border-warm: rgba(251, 146, 60, 0.22);
+  --accent-ui: #6ee7b7;
+  --accent-ui-strong: #34d399;
+  --accent-ui-soft: rgba(110, 231, 183, 0.24);
+  --accent-glow: rgba(110, 231, 183, 0.34);
+  --accent-text: #6ee7b7;
+  --text-1: #f4f4f5;
+  --text-2: rgba(244, 244, 245, 0.72);
+  --text-3: rgba(244, 244, 245, 0.4);
+  --text-4: rgba(244, 244, 245, 0.28);
+  --shadow-color: rgba(0, 0, 0, 0.4);
+  --panel-highlight: rgba(255, 255, 255, 0.1);
 }
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --page-bg: #aebdc8;
-  --page-fg: #112033;
-  --scroll-thumb: #5f7287;
-  --scroll-thumb-hover: #43566b;
+  --page-bg: #e6edf3;
+  --page-fg: #0f172a;
+  --scroll-thumb: #94a3b8;
+  --scroll-thumb-hover: #64748b;
+  --surface-1: rgba(255, 255, 255, 0.75);
+  --surface-2: rgba(255, 255, 255, 0.55);
+  --surface-3: rgba(255, 255, 255, 0.35);
+  --surface-4: rgba(255, 255, 255, 0.88);
+  --border-soft: rgba(15, 23, 42, 0.08);
+  --border-default: rgba(15, 23, 42, 0.14);
+  --border-strong: rgba(15, 23, 42, 0.22);
+  --accent-border: rgba(14, 165, 233, 0.35);
+  --accent-border-warm: rgba(245, 158, 11, 0.35);
+  --accent-ui: #0ea5e9;
+  --accent-ui-strong: #0284c7;
+  --accent-ui-soft: rgba(14, 165, 233, 0.25);
+  --accent-glow: rgba(14, 165, 233, 0.45);
+  --accent-text: #0284c7;
+  --text-1: #0f172a;
+  --text-2: #1e293b;
+  --text-3: #475569;
+  --text-4: #64748b;
+  --shadow-color: rgba(15, 23, 42, 0.1);
+  --panel-highlight: rgba(255, 255, 255, 1);
 }
 
 @layer base {
@@ -157,9 +197,10 @@
 }
 
 .signal-node__label.is-light {
-  background: rgba(255, 255, 255, 0.8);
-  color: rgb(15, 23, 42);
-  outline: 1px solid rgba(71, 85, 105, 0.08);
+  background: var(--surface-4);
+  color: var(--text-1);
+  box-shadow: 0 10px 24px var(--shadow-color);
+  outline: 1px solid var(--border-default);
 }
 
 .signal-node__flag {
@@ -215,10 +256,10 @@
 }
 
 .country-hover-pill.is-light {
-  background: rgba(255, 255, 255, 0.82);
-  color: rgb(15, 23, 42);
-  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.1);
-  outline: 1px solid rgba(71, 85, 105, 0.08);
+  background: var(--surface-4);
+  color: var(--text-1);
+  box-shadow: 0 8px 20px var(--shadow-color);
+  outline: 1px solid var(--border-default);
 }
 
 .country-hover-pill__flag {
