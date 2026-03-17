@@ -292,7 +292,7 @@ function Globe({
         return 'rgba(0,0,0,0)';
       }
 
-      return theme === 'light' ? 'rgba(95, 146, 180, 0.08)' : 'rgba(190, 242, 230, 0.075)';
+      return theme === 'light' ? 'rgba(45, 156, 219, 0.1)' : 'rgba(190, 242, 230, 0.075)';
     },
     [theme]
   );
@@ -302,14 +302,14 @@ function Globe({
       const countryCode = polygon.properties?.__countryCode ?? '';
 
       if (polygon.properties?.__isSelected) {
-        return theme === 'light' ? '#0ea5e9' : '#c8fff0';
+        return theme === 'light' ? '#1b6c99' : '#c8fff0';
       }
 
       if (countryCode === hoveredCountryCode) {
-        return theme === 'light' ? '#38bdf8' : '#e9fff8';
+        return theme === 'light' ? '#2d9cdb' : '#e9fff8';
       }
 
-      return theme === 'light' ? 'rgba(14,165,233,0.15)' : 'rgba(214,228,245,0.14)';
+      return theme === 'light' ? 'rgba(27,108,153,0.18)' : 'rgba(214,228,245,0.14)';
     },
     [hoveredCountryCode, theme]
   );
@@ -354,12 +354,12 @@ function Globe({
       const dirLight = scene.children.find((c: any) => c.type === 'DirectionalLight');
       
       if (ambientLight) {
-        ambientLight.intensity = theme === 'light' ? 0.6 : 0.4;
+        ambientLight.intensity = theme === 'light' ? 0.58 : 0.4;
       }
       
       if (dirLight) {
-        dirLight.intensity = theme === 'light' ? 1.8 : 2;
-        dirLight.position.set(-1.2, 1, 1.2);
+        dirLight.intensity = theme === 'light' ? 1.6 : 2;
+        dirLight.position.set(-1.35, 1.18, 1.14);
       }
     }
 
@@ -376,7 +376,7 @@ function Globe({
 
   return (
     <div
-      className="fixed inset-0 z-0 pointer-events-auto"
+      className="fixed inset-0 z-0 overflow-hidden pointer-events-auto"
       onMouseMove={moveHoverLabel}
       onMouseLeave={() => {
         clearHoveredCountry();
@@ -385,32 +385,38 @@ function Globe({
       {/* Background Overlays - Centralized base layer */}
       {theme === 'light' ? (
         <>
-          {/* Main Atmospheric Depth */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_45%,#f1f5f9_0%,#e2e8f0_45%,#cbd5e1_100%)]" />
-          
-          {/* Left-side content fade for readability - Moved from Hero */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-[55%] bg-[linear-gradient(90deg,rgba(255,255,255,0.92)_0%,rgba(255,255,255,0.4)_50%,transparent_100%)]" />
+          {/* Daylight atmosphere */}
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: `
+                radial-gradient(circle at 14% 10%, rgba(255, 247, 230, 0.72) 0%, rgba(255, 247, 230, 0.32) 14%, rgba(255, 247, 230, 0) 34%),
+                radial-gradient(circle at 60% 45%, rgba(113, 181, 226, 0.16) 0%, rgba(113, 181, 226, 0.08) 18%, rgba(255, 255, 255, 0) 38%),
+                linear-gradient(180deg, #ebf3f9 0%, #d9e6f0 36%, #adc3d5 72%, #8aa5bb 100%)
+              `,
+            }}
+          />
 
-          {/* Soft Atmospheric Haze */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_40%,rgba(148,163,184,0.08)_75%,rgba(71,85,105,0.15)_100%)]" />
+          {/* Left-side readability veil */}
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-[36%] bg-[linear-gradient(90deg,rgba(244,249,253,0.92)_0%,rgba(236,244,249,0.68)_42%,rgba(217,229,238,0.12)_82%,transparent_100%)]" />
+
+          {/* Globe halo */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_58%_48%,rgba(97,174,223,0.18)_0%,rgba(97,174,223,0.06)_22%,rgba(255,255,255,0)_48%)]" />
+
+          {/* Daylight structure */}
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[34vh] bg-[linear-gradient(180deg,rgba(235,244,250,0.64)_0%,rgba(228,238,246,0.24)_58%,transparent_100%)]" />
+          <div className="pointer-events-none absolute -left-[12%] -top-[10%] h-[38rem] w-[38rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,247,233,0.42)_0%,rgba(238,247,253,0.18)_42%,transparent_74%)] blur-[96px] animate-[daylightDrift_24s_ease-in-out_infinite]" />
+          <div className="pointer-events-none absolute left-[38%] top-[12%] h-[24rem] w-[34rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(180,211,233,0.24)_0%,rgba(180,211,233,0.08)_40%,transparent_72%)] blur-[84px]" />
+          <div className="pointer-events-none absolute right-[-14%] bottom-[-12%] h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(94,133,169,0.22)_0%,rgba(161,190,215,0.12)_38%,transparent_74%)] blur-[92px]" />
+
+          {/* Bottom depth band */}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[38vh] bg-[linear-gradient(180deg,rgba(224,234,242,0)_0%,rgba(170,190,208,0.12)_30%,rgba(97,123,149,0.28)_100%)]" />
+
+          {/* Orbit accents */}
+          <div className="pointer-events-none absolute right-[-6%] top-[12%] h-[26rem] w-[26rem] rounded-full border border-[rgba(45,156,219,0.14)] opacity-60 [mask-image:linear-gradient(180deg,black,transparent)]" />
 
           {/* Vignette */}
-          <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_200px_rgba(15,23,42,0.12)]" />
-          
-          {/* Tactical grid overlay */}
-          <div className="pointer-events-none absolute inset-0 opacity-[0.22] overflow-hidden">
-            <div className="absolute inset-0 [background-image:radial-gradient(circle_at_center,rgba(56,189,248,0.5)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:radial-gradient(circle_at_50%_45%,transparent_25%,black_100%)]" />
-          </div>
-          
-          {/* Sub-pixel noise */}
-          <div className="pointer-events-none absolute inset-0 opacity-[0.05] mix-blend-multiply" 
-               style={{ backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")` }} 
-          />
-          
-          {/* Subtle star-like motes */}
-          <div className="pointer-events-none absolute inset-0 opacity-[0.15] overflow-hidden">
-             <div className="absolute inset-0 [background-image:radial-gradient(circle_at_center,rgba(14,165,233,0.4)_0.6px,transparent_0.6px)] [background-size:120px_120px] [background-position:30px_30px]" />
-          </div>
+          <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_220px_rgba(19,39,61,0.12)]" />
         </>
       ) : (
         <>
@@ -428,8 +434,8 @@ function Globe({
         globeImageUrl={theme === 'light' ? '/globe/earth-blue-marble.jpg' : '/globe/earth-night.jpg'}
         bumpImageUrl="/globe/earth-topology.png"
         showAtmosphere
-        atmosphereColor={theme === 'light' ? 'rgba(56, 189, 248, 0.45)' : '#84a9ff'}
-        atmosphereAltitude={theme === 'light' ? 0.05 : 0.11}
+        atmosphereColor={theme === 'light' ? 'rgba(116, 183, 224, 0.4)' : '#84a9ff'}
+        atmosphereAltitude={theme === 'light' ? 0.055 : 0.11}
         polygonsData={countryPolygons}
         polygonCapColor={polygonCapColor}
         polygonSideColor={() => 'rgba(0,0,0,0)'}
