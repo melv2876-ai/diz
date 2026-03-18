@@ -331,7 +331,7 @@ export default function Hero() {
             'absolute inset-y-0 right-0 w-[18vw] min-w-[120px] bg-gradient-to-l',
             theme === 'dark'
               ? 'from-black/25 via-black/5 to-transparent'
-              : 'from-[#faf8f5]/20 via-[#faf8f5]/5 to-transparent'
+              : 'from-[#eef5fa]/26 via-[#eef5fa]/6 to-transparent'
           )}
         />
         <div
@@ -339,7 +339,7 @@ export default function Hero() {
             'absolute inset-x-0 bottom-0 h-[24vh] bg-gradient-to-t',
             theme === 'dark'
               ? 'from-[#050505]/26 via-[#050505]/6 to-transparent'
-              : 'from-[#faf8f5]/36 via-[#faf8f5]/6 to-transparent'
+              : 'from-[#eef5fa]/42 via-[#eef5fa]/8 to-transparent'
           )}
         />
       </div>
@@ -422,6 +422,7 @@ export default function Hero() {
                   <div
                     className={cn(
                       'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.22em]',
+                      glassPillClass,
                       a.bgSoft,
                       a.border,
                       a.textSoft
@@ -429,7 +430,7 @@ export default function Hero() {
                   >
                     Безопасный вход
                   </div>
-                  <div className={cn('inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px]', t.badge, t.border, t.muted)}>
+                  <div className={cn('inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px]', glassPillClass, t.badge, t.border, t.muted)}>
                     <div
                       className={cn(
                         'h-2 w-2 rounded-full',
@@ -468,7 +469,7 @@ export default function Hero() {
                           'rounded-xl px-4 py-2.5 text-sm font-medium transition-all',
                           active
                             ? cn(glassPillClass, a.textSoft, 'shadow-[0_10px_28px_rgba(15,23,42,0.12)]')
-                            : cn(t.muted, 'hover:text-current')
+                            : cn(t.muted, 'opacity-85 hover:opacity-100')
                         )}
                       >
                         {mode === 'register' ? 'Регистрация' : 'Вход'}
@@ -588,7 +589,7 @@ export default function Hero() {
                               glassCellClass,
                               t.softBorder,
                               'hover:-translate-y-0.5',
-                              theme === 'dark' ? 'hover:border-white/10' : 'hover:border-black/12'
+                              theme === 'dark' ? 'hover:border-white/16' : 'hover:border-white/[0.82]'
                             )
                       )}
                     >
@@ -608,7 +609,7 @@ export default function Hero() {
                       <div
                         className={cn(
                           'relative z-10 rounded-full px-2 py-1 text-sm font-mono transition-colors',
-                          typeof ping !== 'number' ? cn('ping-shimmer', theme === 'dark' ? 'text-zinc-200' : 'text-zinc-700') : pingTone
+                          typeof ping !== 'number' ? cn('ping-shimmer', theme === 'dark' ? 'text-zinc-200' : 'text-slate-800') : pingTone
                         )}
                       >
                         {pingText}
@@ -659,7 +660,7 @@ export default function Hero() {
                     glassPillClass,
                     a.bgSoft,
                     a.border,
-                    typeof selectedPing === 'number' ? a.textSoft : cn('ping-shimmer', theme === 'dark' ? 'text-zinc-200' : 'text-zinc-700')
+                    typeof selectedPing === 'number' ? a.textSoft : cn('ping-shimmer', theme === 'dark' ? 'text-zinc-200' : 'text-slate-800')
                   )}
                 >
                   {typeof selectedPing === 'number' ? `${selectedPing} ms` : 'Сканирование'}
