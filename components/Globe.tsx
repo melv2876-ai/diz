@@ -24,6 +24,7 @@ interface GlobeProps {
   serverInfo?: { city: string; country: string; flagCode: string } | null;
   theme?: 'dark' | 'light';
   focusToken?: number;
+  accentRgb?: string;
 }
 
 interface HoveredCountry {
@@ -59,8 +60,55 @@ const getCountryMeta = (properties: Record<string, any>) => {
   };
 };
 
-const Starfield = memo(({ isVisible }: { isVisible: boolean }) => {
+const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+const rgbaFromRgb = (rgb: string, alpha: number) => `rgba(${rgb}, ${alpha})`;
+
+type Star = {
+  x: number;
+  y: number;
+  size: number;
+  opacity: number;
+  twinkleSpeed: number;
+  phase: number;
+  blur: number;
+  drift: number;
+  parallax: number;
+  layer: 0 | 1 | 2;
+  sparkle: number;
+};
+
+type ShootingStar = {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  length: number;
+  thickness: number;
+  life: number;
+  ttl: number;
+};
+
+const Starfield = memo(
+  ({
+    isVisible,
+    intensity,
+    accentRgb,
+  }: {
+    isVisible: boolean;
+    intensity: number;
+    accentRgb: string;
+  }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const intensityRef = useRef(intensity);
+  const accentRgbRef = useRef(accentRgb);
+
+  useEffect(() => {
+    intensityRef.current = intensity;
+  }, [intensity]);
+
+  useEffect(() => {
+    accentRgbRef.current = accentRgb;
+  }, [accentRgb]);
 
   useEffect(() => {
     if (!isVisible || !canvasRef.current) return;
@@ -70,67 +118,237 @@ const Starfield = memo(({ isVisible }: { isVisible: boolean }) => {
     if (!ctx) return;
 
     let animationFrameId = 0;
-    let w = (canvas.width = window.innerWidth);
-    let h = (canvas.height = window.innerHeight);
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let dpr = 1;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const stars: Star[] = [];
+    const shootingStars: ShootingStar[] = [];
 
-    const stars: { x: number; y: number; size: number; opacity: number; speed: number }[] = [];
-    const starCount = Math.floor((w * h) / (prefersReducedMotion ? 14000 : 12000));
-
-    for (let i = 0; i < starCount; i++) {
-      stars.push({
-        x: Math.random() * w,
-        y: Math.random() * h,
-        size: Math.random() * 1.5,
-        opacity: Math.random(),
-        speed: 0.005 + Math.random() * 0.015,
-      });
-    }
-
-    const draw = () => {
-      ctx.clearRect(0, 0, w, h);
-      ctx.fillStyle = '#fff';
-
-      stars.forEach((star) => {
-        star.opacity += star.speed;
-        if (star.opacity > 1 || star.opacity < 0) {
-          star.speed = -star.speed;
-        }
-
-        ctx.globalAlpha = star.opacity * 0.8;
-        ctx.beginPath();
-        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-        ctx.fill();
-      });
-
-      if (!prefersReducedMotion) {
-        animationFrameId = requestAnimationFrame(draw);
+    const createStars = (
+      count: number,
+      layer: Star['layer'],
+      options: {
+        size: [number, number];
+        opacity: [number, number];
+        blur: [number, number];
+        parallax: [number, number];
+      }
+    ) => {
+      for (let i = 0; i < count; i++) {
+        stars.push({
+          x: Math.random() * width,
+          y: Math.random() * height,
+          size: options.size[0] + Math.random() * (options.size[1] - options.size[0]),
+          opacity: options.opacity[0] + Math.random() * (options.opacity[1] - options.opacity[0]),
+          twinkleSpeed: 0.55 + Math.random() * 1.8,
+          phase: Math.random() * Math.PI * 2,
+          blur: options.blur[0] + Math.random() * (options.blur[1] - options.blur[0]),
+          drift: 0.45 + Math.random() * 1.4,
+          parallax: options.parallax[0] + Math.random() * (options.parallax[1] - options.parallax[0]),
+          layer,
+          sparkle: Math.random(),
+        });
       }
     };
 
-    const handleResize = () => {
-      w = canvas.width = window.innerWidth;
-      h = canvas.height = window.innerHeight;
+    const buildScene = () => {
+      stars.length = 0;
+      shootingStars.length = 0;
+
+      const densityFactor = prefersReducedMotion ? 1.55 : 1;
+      const area = width * height;
+
+      createStars(Math.floor(area / (9000 * densityFactor)), 0, {
+        size: [0.35, 0.95],
+        opacity: [0.18, 0.52],
+        blur: [0, 0.4],
+        parallax: [0.7, 1.6],
+      });
+      createStars(Math.floor(area / (16000 * densityFactor)), 1, {
+        size: [0.65, 1.45],
+        opacity: [0.28, 0.74],
+        blur: [0.3, 1.2],
+        parallax: [1.1, 2.4],
+      });
+      createStars(Math.floor(area / (32000 * densityFactor)), 2, {
+        size: [1.05, 2.4],
+        opacity: [0.42, 0.92],
+        blur: [0.8, 3.6],
+        parallax: [1.8, 4.4],
+      });
     };
 
-    window.addEventListener('resize', handleResize);
+    const resizeCanvas = () => {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      buildScene();
+    };
+
+    const spawnShootingStar = () => {
+      const fromRight = Math.random() > 0.38;
+      const directionX = fromRight ? -(0.88 + Math.random() * 0.2) : 0.88 + Math.random() * 0.2;
+      const directionY = 0.32 + Math.random() * 0.16;
+      const directionLength = Math.hypot(directionX, directionY) || 1;
+      const speed = 10 + Math.random() * 7;
+
+      shootingStars.push({
+        x: fromRight ? width * (0.74 + Math.random() * 0.2) : width * (0.06 + Math.random() * 0.2),
+        y: height * (0.06 + Math.random() * 0.24),
+        vx: (directionX / directionLength) * speed,
+        vy: (directionY / directionLength) * speed,
+        length: 120 + Math.random() * 140 + intensityRef.current * 90,
+        thickness: 1.15 + Math.random() * 1.35,
+        life: 0,
+        ttl: 28 + Math.random() * 20,
+      });
+    };
+
+    const draw = () => {
+      const time = performance.now() * 0.001;
+      const currentIntensity = clamp(intensityRef.current, 0, 1);
+      const currentAccent = accentRgbRef.current;
+      const motionScale = prefersReducedMotion ? 0 : 1;
+
+      ctx.clearRect(0, 0, width, height);
+      ctx.globalCompositeOperation = 'source-over';
+
+      stars.forEach((star) => {
+        const layerVisibility =
+          star.layer === 0
+            ? 0.42 + currentIntensity * 0.62
+            : star.layer === 1
+              ? 0.58 + currentIntensity * 0.48
+              : 0.78 + currentIntensity * 0.4;
+        const twinkle = 0.58 + Math.sin(time * star.twinkleSpeed + star.phase) * 0.42;
+        const x = star.x + Math.sin(time * 0.12 * star.drift + star.phase) * star.parallax * motionScale;
+        const y = star.y + Math.cos(time * 0.08 * star.drift + star.phase) * star.parallax * 0.45 * motionScale;
+        const alpha = clamp(star.opacity * twinkle * layerVisibility, 0.03, 1);
+
+        if (alpha < 0.045) {
+          return;
+        }
+
+        ctx.globalAlpha = alpha;
+        ctx.shadowBlur = star.blur * (0.7 + currentIntensity * 0.7);
+        ctx.shadowColor =
+          star.layer === 2 && star.sparkle > 0.7
+            ? rgbaFromRgb(currentAccent, 0.16 + currentIntensity * 0.18)
+            : `rgba(255,255,255,${0.1 + currentIntensity * 0.18})`;
+        ctx.fillStyle = 'rgba(248, 251, 255, 0.98)';
+        ctx.beginPath();
+        ctx.arc(x, y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (!prefersReducedMotion && star.layer === 2 && star.sparkle > 0.86 && twinkle > 0.9) {
+          ctx.globalAlpha = alpha * 0.26;
+          ctx.strokeStyle = rgbaFromRgb(currentAccent, 0.72);
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(x - star.size * 2.2, y);
+          ctx.lineTo(x + star.size * 2.2, y);
+          ctx.moveTo(x, y - star.size * 2.2);
+          ctx.lineTo(x, y + star.size * 2.2);
+          ctx.stroke();
+        }
+      });
+
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+
+      if (!prefersReducedMotion && currentIntensity > 0.16 && shootingStars.length < 2) {
+        const spawnChance = 0.00035 + currentIntensity * 0.00125;
+        if (Math.random() < spawnChance) {
+          spawnShootingStar();
+        }
+      }
+
+      ctx.globalCompositeOperation = 'screen';
+      for (let i = shootingStars.length - 1; i >= 0; i--) {
+        const star = shootingStars[i];
+        star.x += star.vx;
+        star.y += star.vy;
+        star.life += 1;
+
+        const progress = star.life / star.ttl;
+        if (
+          progress >= 1 ||
+          star.x < -star.length ||
+          star.x > width + star.length ||
+          star.y > height + star.length
+        ) {
+          shootingStars.splice(i, 1);
+          continue;
+        }
+
+        const fadeIn = clamp(progress / 0.18, 0, 1);
+        const fadeOut = clamp((1 - progress) / 0.34, 0, 1);
+        const alpha = Math.min(fadeIn, fadeOut) * (0.4 + currentIntensity * 0.42);
+        const directionLength = Math.hypot(star.vx, star.vy) || 1;
+        const directionX = star.vx / directionLength;
+        const directionY = star.vy / directionLength;
+        const tailX = star.x - directionX * star.length;
+        const tailY = star.y - directionY * star.length;
+        const gradient = ctx.createLinearGradient(star.x, star.y, tailX, tailY);
+
+        gradient.addColorStop(0, `rgba(255,255,255,${alpha})`);
+        gradient.addColorStop(0.26, rgbaFromRgb(currentAccent, alpha * 0.82));
+        gradient.addColorStop(0.72, `rgba(255,255,255,${alpha * 0.1})`);
+        gradient.addColorStop(1, 'rgba(255,255,255,0)');
+
+        ctx.strokeStyle = gradient;
+        ctx.lineWidth = star.thickness;
+        ctx.lineCap = 'round';
+        ctx.shadowBlur = 18;
+        ctx.shadowColor = rgbaFromRgb(currentAccent, 0.24 + currentIntensity * 0.22);
+        ctx.beginPath();
+        ctx.moveTo(star.x, star.y);
+        ctx.lineTo(tailX, tailY);
+        ctx.stroke();
+
+        ctx.shadowBlur = 28;
+        ctx.fillStyle = `rgba(255,255,255,${alpha * 0.94})`;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.thickness * 1.2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = 1;
+
+      if (!prefersReducedMotion) {
+        animationFrameId = window.requestAnimationFrame(draw);
+      }
+    };
+
+    resizeCanvas();
+
+    window.addEventListener('resize', resizeCanvas);
     draw();
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
-      window.removeEventListener('resize', handleResize);
+      window.cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', resizeCanvas);
     };
   }, [isVisible]);
 
   return (
     <canvas
       ref={canvasRef}
-      className={`pointer-events-none fixed inset-0 z-0 transition-opacity duration-1000 ${
+      className={`pointer-events-none fixed inset-0 z-0 mix-blend-screen transition-opacity duration-1000 ${
         isVisible ? 'opacity-100' : 'opacity-0'
       }`}
     />
   );
-});
+  }
+);
 
 Starfield.displayName = 'Starfield';
 
@@ -141,6 +359,7 @@ function Globe({
   serverInfo,
   theme = 'dark',
   focusToken = 0,
+  accentRgb,
 }: GlobeProps) {
   type InteractionMode = 'idle' | 'hover' | 'dragging' | 'transitioning';
 
@@ -158,9 +377,31 @@ function Globe({
   const [countries, setCountries] = useState<GlobeCountryFeature[]>([]);
   const [hoveredCountry, setHoveredCountry] = useState<HoveredCountry | null>(null);
   const [interactionMode, setInteractionMode] = useState<InteractionMode>('idle');
+  const [viewAltitude, setViewAltitude] = useState(selectedLocation ? 0.74 : 2.2);
+  const accentColorRgb = accentRgb ?? (theme === 'light' ? '45, 156, 219' : '132, 169, 255');
+  const zoomOutProgress = useMemo(
+    () => clamp((viewAltitude - 0.74) / 1.46, 0, 1),
+    [viewAltitude]
+  );
+  const starfieldIntensity = theme === 'dark' ? 0.38 + zoomOutProgress * 0.62 : 0;
+  const accentGlow = useCallback(
+    (alpha: number) => rgbaFromRgb(accentColorRgb, alpha),
+    [accentColorRgb]
+  );
 
   const syncInteractionMode = useCallback((nextMode: InteractionMode) => {
     setInteractionMode((currentMode) => (currentMode === nextMode ? currentMode : nextMode));
+  }, []);
+
+  const syncViewAltitude = useCallback((nextAltitude: number | null | undefined) => {
+    if (typeof nextAltitude !== 'number' || !Number.isFinite(nextAltitude)) {
+      return;
+    }
+
+    const normalizedAltitude = clamp(nextAltitude, 0.72, 2.35);
+    setViewAltitude((currentAltitude) =>
+      Math.abs(currentAltitude - normalizedAltitude) < 0.015 ? currentAltitude : normalizedAltitude
+    );
   }, []);
 
   const syncHoveredCountry = useCallback((nextCountry: HoveredCountry | null) => {
@@ -258,6 +499,7 @@ function Globe({
       scheduleCameraTransitionEnd(duration);
 
       if (location) {
+        syncViewAltitude(0.74);
         globeRef.current.pointOfView(
           {
             lat: location[0],
@@ -269,9 +511,10 @@ function Globe({
         return;
       }
 
+      syncViewAltitude(2.2);
       globeRef.current.pointOfView({ altitude: 2.2 }, duration);
     },
-    [clearHoveredCountry, scheduleCameraTransitionEnd]
+    [clearHoveredCountry, scheduleCameraTransitionEnd, syncViewAltitude]
   );
 
   useEffect(() => {
@@ -480,46 +723,46 @@ function Globe({
       const isHovered = (polygon.properties?.__countryCode ?? '') === hoveredCountryCode;
 
       if (isSelected) {
-        return theme === 'light' ? 'rgba(45, 156, 219, 0.16)' : 'rgba(110, 231, 183, 0.14)';
+        return theme === 'light' ? accentGlow(0.16) : accentGlow(0.14);
       }
 
       if (isHovered) {
-        return theme === 'light' ? 'rgba(45, 156, 219, 0.07)' : 'rgba(233, 255, 248, 0.05)';
+        return theme === 'light' ? accentGlow(0.07) : accentGlow(0.05);
       }
 
       return 'rgba(0,0,0,0)';
     },
-    [theme]
+    [accentGlow, hoveredCountryCode, theme]
   );
 
   const polygonStrokeColor = useCallback(
     (polygon: GlobeCountryFeature) => {
       if (polygon.properties?.__isSelected) {
-        return theme === 'light' ? '#1b6c99' : '#c8fff0';
+        return theme === 'light' ? accentGlow(0.92) : accentGlow(0.92);
       }
 
       if ((polygon.properties?.__countryCode ?? '') === hoveredCountryCode) {
-        return theme === 'light' ? '#2d9cdb' : '#f2fff9';
+        return theme === 'light' ? accentGlow(0.76) : accentGlow(0.82);
       }
 
       return theme === 'light' ? 'rgba(27,108,153,0.24)' : 'rgba(214,228,245,0.18)';
     },
-    [hoveredCountryCode, theme]
+    [accentGlow, hoveredCountryCode, theme]
   );
 
   const polygonSideColor = useCallback(
     (polygon: GlobeCountryFeature) => {
       if (polygon.properties?.__isSelected) {
-        return theme === 'light' ? 'rgba(45, 156, 219, 0.12)' : 'rgba(110, 231, 183, 0.11)';
+        return theme === 'light' ? accentGlow(0.12) : accentGlow(0.11);
       }
 
       if ((polygon.properties?.__countryCode ?? '') === hoveredCountryCode) {
-        return theme === 'light' ? 'rgba(45, 156, 219, 0.06)' : 'rgba(239, 248, 255, 0.05)';
+        return theme === 'light' ? accentGlow(0.06) : accentGlow(0.05);
       }
 
       return 'rgba(0,0,0,0)';
     },
-    [hoveredCountryCode, theme]
+    [accentGlow, hoveredCountryCode, theme]
   );
 
   const polygonAltitude = useCallback(
@@ -572,6 +815,10 @@ function Globe({
       });
     };
 
+    const handleChange = () => {
+      syncViewAltitude(globeRef.current?.pointOfView?.().altitude);
+    };
+
     // Fine-tune lighting for depth
     const scene = globeRef.current.scene();
     if (scene) {
@@ -591,13 +838,16 @@ function Globe({
     controlsCleanupRef.current?.();
     controls.addEventListener('start', handleStart);
     controls.addEventListener('end', handleEnd);
+    controls.addEventListener('change', handleChange);
     controlsCleanupRef.current = () => {
       controls.removeEventListener('start', handleStart);
       controls.removeEventListener('end', handleEnd);
+      controls.removeEventListener('change', handleChange);
     };
 
+    handleChange();
     moveCamera(selectedLocation ?? null);
-  }, [clearHoveredCountry, moveCamera, selectedLocation, syncInteractionMode, theme]);
+  }, [clearHoveredCountry, moveCamera, selectedLocation, syncInteractionMode, syncViewAltitude, theme]);
 
   const globeCursorClassName =
     interactionMode === 'dragging'
@@ -614,60 +864,94 @@ function Globe({
         clearHoveredCountry();
       }}
     >
-      {/* Dynamic Starfield for Night Theme */}
-      <Starfield isVisible={theme === 'dark'} />
-
-      {/* Background Overlays - Centralized base layer */}
       {theme === 'light' ? (
         <>
-          {/* Vibrant Daylight atmosphere */}
           <div
             className="pointer-events-none absolute inset-0 transition-opacity duration-1000"
             style={{
               background: `
                 radial-gradient(circle at 14% 10%, rgba(255, 247, 230, 0.72) 0%, rgba(255, 247, 230, 0.32) 14%, rgba(255, 247, 230, 0) 34%),
-                radial-gradient(circle at 60% 45%, rgba(135, 206, 235, 0.22) 0%, rgba(135, 206, 235, 0.08) 22%, rgba(255, 255, 255, 0) 45%),
+                radial-gradient(circle at 58% 48%, ${accentGlow(0.18)} 0%, ${accentGlow(0.08)} 24%, rgba(255, 255, 255, 0) 50%),
                 linear-gradient(180deg, #bae6fd 0%, #e0f2fe 38%, #f8fafc 100%)
               `,
             }}
           />
 
-          {/* Sun Glow Overlay */}
           <div className="pointer-events-none absolute left-0 top-0 h-[50vh] w-[50vw] bg-[radial-gradient(circle_at_0%_0%,rgba(255,251,235,0.4)_0%,transparent_70%)] blur-[100px] animate-[daylightDrift_30s_ease-in-out_infinite]" />
-
-          {/* Left-side readability veil */}
           <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-[linear-gradient(90deg,rgba(240,249,255,0.96)_0%,rgba(240,249,255,0.72)_48%,rgba(240,249,255,0.12)_86%,transparent_100%)]" />
-
-          {/* Globe halo enhancement */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_58%_48%,rgba(135,206,235,0.22)_0%,rgba(135,206,235,0.08)_28%,rgba(255,255,255,0)_52%)]" />
-
-          {/* Soft cloud-like glows */}
+          <div
+            className="pointer-events-none absolute inset-0 transition-opacity duration-700"
+            style={{
+              background: `radial-gradient(circle at 58% 48%, ${accentGlow(0.2)} 0%, ${accentGlow(0.08)} 28%, rgba(255,255,255,0) 54%)`,
+            }}
+          />
           <div className="pointer-events-none absolute left-[15%] top-[20%] h-[18rem] w-[32rem] rounded-full bg-white/20 blur-[120px] animate-[atmosphereFloat_24s_ease-in-out_infinite]" />
-          <div className="pointer-events-none absolute right-[10%] bottom-[15%] h-[24rem] w-[40rem] rounded-full bg-sky-200/20 blur-[140px] animate-[atmospherePulse_22s_ease-in-out_infinite]" />
-
-          {/* Bottom depth band */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[42vh] bg-[linear-gradient(180deg,rgba(224,242,254,0)_0%,rgba(186,230,253,0.15)_35%,rgba(125,211,252,0.35)_100%)]" />
-
-          {/* Orbit accents */}
-          <div className="pointer-events-none absolute right-[-6%] top-[12%] h-[26rem] w-[26rem] rounded-full border border-[rgba(45,156,219,0.14)] opacity-60 [mask-image:linear-gradient(180deg,black,transparent)]" />
-
-          {/* Vignette */}
+          <div
+            className="pointer-events-none absolute right-[10%] bottom-[15%] h-[24rem] w-[40rem] rounded-full blur-[140px] animate-[atmospherePulse_22s_ease-in-out_infinite]"
+            style={{ background: `radial-gradient(circle, ${accentGlow(0.12)} 0%, rgba(255,255,255,0) 70%)` }}
+          />
+          <div
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-[42vh]"
+            style={{
+              background: `linear-gradient(180deg, rgba(224,242,254,0) 0%, ${accentGlow(0.08)} 35%, ${accentGlow(0.2)} 100%)`,
+            }}
+          />
+          <div
+            className="pointer-events-none absolute right-[-6%] top-[12%] h-[26rem] w-[26rem] rounded-full opacity-60 [mask-image:linear-gradient(180deg,black,transparent)]"
+            style={{ border: `1px solid ${accentGlow(0.14)}` }}
+          />
           <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_240px_rgba(30,58,88,0.08)]" />
         </>
       ) : (
         <>
-          {/* Celestial Night atmosphere */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_52%_46%,rgba(136,174,255,0.14)_0%,rgba(7,10,18,0)_32%,rgba(2,6,23,0.36)_62%,rgba(2,6,23,1)_100%)]" />
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(3,7,18,0.1)_0%,rgba(3,7,18,0.0)_40%,rgba(3,7,18,1)_100%)]" />
-          
-          {/* Deep Space Glows */}
-          <div className="pointer-events-none absolute left-[-10%] top-[-5%] h-[40rem] w-[40rem] rounded-full bg-indigo-500/10 blur-[160px] animate-[atmospherePulse_25s_ease-in-out_infinite]" />
-          <div className="pointer-events-none absolute right-[-5%] bottom-[-10%] h-[35rem] w-[35rem] rounded-full bg-purple-500/5 blur-[140px] animate-[atmosphereFloat_28s_ease-in-out_infinite]" />
-          
-          {/* Cosmic Dust */}
-          <div className="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_80%,rgba(124,58,237,0.1)_0%,transparent_50%),radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.1)_0%,transparent_50%)]" />
+          <div
+            className="pointer-events-none absolute inset-0 transition-opacity duration-1000"
+            style={{
+              background: `
+                radial-gradient(circle at 52% 50%, ${accentGlow(0.14 + zoomOutProgress * 0.12)} 0%, ${accentGlow(0.08 + zoomOutProgress * 0.06)} 18%, rgba(7,10,18,0) 36%),
+                radial-gradient(circle at 52% 44%, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0) 18%),
+                linear-gradient(180deg, rgba(3,7,18,0.14) 0%, rgba(3,7,18,0) 34%, rgba(2,6,23,0.94) 100%)
+              `,
+            }}
+          />
+          <div
+            className="pointer-events-none absolute left-1/2 top-[53%] h-[92vh] w-[110vw] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[160px] animate-[atmosphereFloat_34s_ease-in-out_infinite] transition-opacity duration-700"
+            style={{
+              background: `radial-gradient(ellipse at center, ${accentGlow(0.16 + zoomOutProgress * 0.14)} 0%, ${accentGlow(0.08 + zoomOutProgress * 0.06)} 30%, ${accentGlow(0.025 + zoomOutProgress * 0.03)} 54%, rgba(2,6,23,0) 72%)`,
+              opacity: 0.48 + zoomOutProgress * 0.34,
+            }}
+          />
+          <div
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[36rem] w-[36rem] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[86px] animate-[atmospherePulse_18s_ease-in-out_infinite] transition-opacity duration-700"
+            style={{
+              background: `radial-gradient(circle, ${accentGlow(0.24 + zoomOutProgress * 0.18)} 0%, ${accentGlow(0.12 + zoomOutProgress * 0.08)} 22%, ${accentGlow(0.05 + zoomOutProgress * 0.04)} 44%, rgba(2,6,23,0) 74%)`,
+              opacity: 0.58 + zoomOutProgress * 0.24,
+            }}
+          />
+          <div
+            className="pointer-events-none absolute left-[-10%] top-[-5%] h-[40rem] w-[40rem] rounded-full blur-[160px] animate-[atmospherePulse_25s_ease-in-out_infinite]"
+            style={{ background: `radial-gradient(circle, ${accentGlow(0.1)} 0%, rgba(7,10,18,0) 70%)` }}
+          />
+          <div
+            className="pointer-events-none absolute right-[-5%] bottom-[-10%] h-[35rem] w-[35rem] rounded-full blur-[140px] animate-[atmosphereFloat_28s_ease-in-out_infinite]"
+            style={{ background: `radial-gradient(circle, ${accentGlow(0.07)} 0%, rgba(2,6,23,0) 68%)` }}
+          />
+          <div
+            className="pointer-events-none absolute inset-0 transition-opacity duration-700"
+            style={{
+              opacity: 0.24 + zoomOutProgress * 0.24,
+              background: `
+                radial-gradient(circle at 18% 76%, ${accentGlow(0.08)} 0%, rgba(2,6,23,0) 32%),
+                radial-gradient(circle at 82% 18%, ${accentGlow(0.07)} 0%, rgba(2,6,23,0) 28%),
+                radial-gradient(circle at 60% 58%, rgba(255,255,255,0.04) 0%, rgba(255,255,255,0) 16%)
+              `,
+            }}
+          />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,rgba(2,6,23,0.16)_0%,rgba(2,6,23,0)_24%,rgba(2,6,23,0)_76%,rgba(2,6,23,0.14)_100%)]" />
         </>
       )}
+
+      <Starfield isVisible={theme === 'dark'} intensity={starfieldIntensity} accentRgb={accentColorRgb} />
 
       <Suspense fallback={globeFallback}>
         <ReactGlobe
@@ -680,8 +964,8 @@ function Globe({
           globeImageUrl={theme === 'light' ? '/globe/earth-blue-marble.jpg' : '/globe/earth-night.jpg'}
           bumpImageUrl="/globe/earth-topology.png"
           showAtmosphere
-          atmosphereColor={theme === 'light' ? 'rgba(125, 211, 252, 0.45)' : '#84a9ff'}
-          atmosphereAltitude={theme === 'light' ? 0.065 : 0.11}
+          atmosphereColor={theme === 'light' ? accentGlow(0.34) : accentGlow(0.72)}
+          atmosphereAltitude={theme === 'light' ? 0.065 + zoomOutProgress * 0.008 : 0.11 + zoomOutProgress * 0.016}
           polygonsData={countryPolygons}
           polygonCapColor={polygonCapColor}
           polygonSideColor={polygonSideColor}
@@ -693,6 +977,9 @@ function Globe({
           htmlTransitionDuration={0}
           htmlElement={renderMarkerElement}
           onPolygonHover={handlePolygonHover}
+          onZoom={(pov: any) => {
+            syncViewAltitude(pov?.altitude);
+          }}
           onGlobeReady={handleGlobeReady}
         />
       </Suspense>

@@ -34,6 +34,23 @@ const ACCENTS = {
     button: 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_28px_rgba(16,185,129,0.25)]',
     glowDark: 'bg-emerald-500/18',
     glowLight: 'bg-emerald-500/12',
+    rgb: '110, 231, 183',
+    cssDark: {
+      border: 'rgba(110, 231, 183, 0.24)',
+      ui: '#6ee7b7',
+      uiStrong: '#34d399',
+      uiSoft: 'rgba(110, 231, 183, 0.24)',
+      glow: 'rgba(110, 231, 183, 0.34)',
+      text: '#6ee7b7',
+    },
+    cssLight: {
+      border: 'rgba(16, 185, 129, 0.22)',
+      ui: '#10b981',
+      uiStrong: '#047857',
+      uiSoft: 'rgba(16, 185, 129, 0.14)',
+      glow: 'rgba(16, 185, 129, 0.2)',
+      text: '#047857',
+    },
   },
   orange: {
     swatch: 'bg-orange-500',
@@ -44,6 +61,23 @@ const ACCENTS = {
     button: 'bg-orange-500 hover:bg-orange-400 text-black shadow-[0_0_28px_rgba(249,115,22,0.22)]',
     glowDark: 'bg-orange-500/18',
     glowLight: 'bg-orange-500/12',
+    rgb: '251, 146, 60',
+    cssDark: {
+      border: 'rgba(251, 146, 60, 0.22)',
+      ui: '#fb923c',
+      uiStrong: '#f97316',
+      uiSoft: 'rgba(251, 146, 60, 0.22)',
+      glow: 'rgba(251, 146, 60, 0.3)',
+      text: '#fdba74',
+    },
+    cssLight: {
+      border: 'rgba(249, 115, 22, 0.22)',
+      ui: '#f97316',
+      uiStrong: '#c2410c',
+      uiSoft: 'rgba(249, 115, 22, 0.14)',
+      glow: 'rgba(249, 115, 22, 0.2)',
+      text: '#c2410c',
+    },
   },
   blue: {
     swatch: 'bg-blue-500',
@@ -54,6 +88,23 @@ const ACCENTS = {
     button: 'bg-blue-500 hover:bg-blue-400 text-white shadow-[0_0_28px_rgba(59,130,246,0.22)]',
     glowDark: 'bg-blue-500/18',
     glowLight: 'bg-blue-500/12',
+    rgb: '59, 130, 246',
+    cssDark: {
+      border: 'rgba(59, 130, 246, 0.24)',
+      ui: '#60a5fa',
+      uiStrong: '#3b82f6',
+      uiSoft: 'rgba(59, 130, 246, 0.22)',
+      glow: 'rgba(59, 130, 246, 0.3)',
+      text: '#93c5fd',
+    },
+    cssLight: {
+      border: 'rgba(45, 156, 219, 0.28)',
+      ui: '#2d9cdb',
+      uiStrong: '#1b6c99',
+      uiSoft: 'rgba(45, 156, 219, 0.18)',
+      glow: 'rgba(45, 156, 219, 0.24)',
+      text: '#164c6f',
+    },
   },
   pink: {
     swatch: 'bg-pink-500',
@@ -64,6 +115,23 @@ const ACCENTS = {
     button: 'bg-pink-500 hover:bg-pink-400 text-white shadow-[0_0_28px_rgba(236,72,153,0.22)]',
     glowDark: 'bg-pink-500/18',
     glowLight: 'bg-pink-500/12',
+    rgb: '236, 72, 153',
+    cssDark: {
+      border: 'rgba(236, 72, 153, 0.22)',
+      ui: '#f472b6',
+      uiStrong: '#ec4899',
+      uiSoft: 'rgba(236, 72, 153, 0.2)',
+      glow: 'rgba(236, 72, 153, 0.28)',
+      text: '#f9a8d4',
+    },
+    cssLight: {
+      border: 'rgba(236, 72, 153, 0.22)',
+      ui: '#ec4899',
+      uiStrong: '#be185d',
+      uiSoft: 'rgba(236, 72, 153, 0.14)',
+      glow: 'rgba(236, 72, 153, 0.18)',
+      text: '#be185d',
+    },
   },
 } as const;
 
@@ -86,19 +154,19 @@ const THEMES = {
   },
   milky: {
     page: 'bg-[#eef5fa] text-slate-900',
-    panel: 'bg-white/[0.42]',
-    panelSolid: 'bg-white/[0.56]',
+    panel: 'bg-white/[0.5]',
+    panelSolid: 'bg-white/[0.64]',
     border: 'border-white/[0.44]',
     borderStrong: 'border-white/[0.62]',
     textStrong: 'text-slate-950',
     text: 'text-slate-900',
-    muted: 'text-slate-700',
-    subtle: 'text-slate-600/82',
-    field: 'bg-white/[0.58] text-slate-950 placeholder:text-slate-500 border-white/[0.72] focus:border-slate-300/95',
-    badge: 'bg-white/[0.5]',
-    selected: 'bg-white/[0.62]',
+    muted: 'text-slate-800/88',
+    subtle: 'text-slate-700/88',
+    field: 'bg-white/[0.66] text-slate-950 placeholder:text-slate-600/88 border-white/[0.82] focus:border-slate-300/95',
+    badge: 'bg-white/[0.6]',
+    selected: 'bg-white/[0.7]',
     softBorder: 'border-white/[0.42]',
-    veil: 'from-[#eef5fa]/96 via-[#eef5fa]/62 to-transparent',
+    veil: 'from-[#eef5fa]/98 via-[#eef5fa]/74 to-transparent',
   },
 } as const;
 
@@ -170,6 +238,12 @@ export default function Hero() {
     theme === 'dark' ? 'liquid-glass-cell liquid-glass-cell--dark' : 'liquid-glass-cell liquid-glass-cell--light';
   const glassInputClass =
     theme === 'dark' ? 'liquid-glass-input liquid-glass-input--dark' : 'liquid-glass-input liquid-glass-input--light';
+  const secondaryTextClass = theme === 'milky' ? 'text-slate-800/88' : t.muted;
+  const subtleTextClass = theme === 'milky' ? 'text-slate-700/88' : t.subtle;
+  const eyebrowTextClass =
+    theme === 'milky'
+      ? 'text-slate-700/94 [text-shadow:0_1px_0_rgba(255,255,255,0.55)]'
+      : 'text-zinc-300/72';
 
   const selectedServerInfo = useMemo(
     () => ({
@@ -224,6 +298,14 @@ export default function Hero() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = globeTheme;
+    const accentVars = globeTheme === 'dark' ? a.cssDark : a.cssLight;
+
+    document.documentElement.style.setProperty('--accent-border', accentVars.border);
+    document.documentElement.style.setProperty('--accent-ui', accentVars.ui);
+    document.documentElement.style.setProperty('--accent-ui-strong', accentVars.uiStrong);
+    document.documentElement.style.setProperty('--accent-ui-soft', accentVars.uiSoft);
+    document.documentElement.style.setProperty('--accent-glow', accentVars.glow);
+    document.documentElement.style.setProperty('--accent-text', accentVars.text);
 
     if (!isReady) {
       return;
@@ -231,7 +313,7 @@ export default function Hero() {
 
     window.localStorage.setItem(STORAGE_THEME_KEY, globeTheme);
     window.localStorage.setItem(STORAGE_ACCENT_KEY, accent);
-  }, [accent, globeTheme, isReady]);
+  }, [a, accent, globeTheme, isReady]);
 
   useEffect(() => {
     SERVERS.forEach((server) => {
@@ -316,6 +398,7 @@ export default function Hero() {
         serverInfo={selectedServerInfo}
         theme={globeTheme}
         focusToken={globeFocusToken}
+        accentRgb={a.rgb}
       />
 
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -346,11 +429,17 @@ export default function Hero() {
 
       <div className="pointer-events-none relative z-10 mx-auto flex min-h-[100svh] w-full max-w-[1520px] flex-col px-4 py-4 md:px-8 md:py-6">
         <header className="mb-6 flex items-center justify-between gap-4">
-          <div className="pointer-events-auto flex items-center gap-3">
+          <div
+            className={cn(
+              'hero-brand pointer-events-auto flex items-center gap-3 rounded-[1.35rem] border px-4 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.1)]',
+              glassPillClass,
+              t.border
+            )}
+          >
             <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl shadow-lg', a.swatch)}>
               <Shield className={cn('h-5 w-5', theme === 'dark' ? 'text-black' : 'text-white')} />
             </div>
-            <div>
+            <div className="hero-brand-copy">
               <div className={cn('text-lg font-semibold tracking-tight', t.textStrong)}>WW.pro</div>
               <div className={cn('text-[10px] uppercase tracking-[0.26em]', t.subtle)}>Защищенный доступ</div>
             </div>
@@ -421,7 +510,7 @@ export default function Hero() {
                 <div className="mb-5 flex flex-wrap items-center gap-2">
                   <div
                     className={cn(
-                      'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] uppercase tracking-[0.22em]',
+                      'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
                       glassPillClass,
                       a.bgSoft,
                       a.border,
@@ -430,7 +519,7 @@ export default function Hero() {
                   >
                     Безопасный вход
                   </div>
-                  <div className={cn('inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px]', glassPillClass, t.badge, t.border, t.muted)}>
+                  <div className={cn('inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium', glassPillClass, t.badge, t.border, secondaryTextClass)}>
                     <div
                       className={cn(
                         'h-2 w-2 rounded-full',
@@ -445,7 +534,7 @@ export default function Hero() {
                   <h1 className={cn('font-[var(--font-display)] text-3xl font-medium tracking-tight md:text-[2.6rem]', t.textStrong)}>
                     {authMode === 'register' ? 'Создайте доступ' : 'Войдите в кабинет'}
                   </h1>
-                  <p className={cn('mt-3 text-sm leading-6 md:text-[15px]', t.muted)}>
+                  <p className={cn('mt-3 text-sm leading-6 md:text-[15px]', secondaryTextClass)}>
                     Тихий первый экран без лишних блоков. Выберите маршрут и продолжите в личный кабинет.
                   </p>
                 </div>
@@ -469,7 +558,7 @@ export default function Hero() {
                           'rounded-xl px-4 py-2.5 text-sm font-medium transition-all',
                           active
                             ? cn(glassPillClass, a.textSoft, 'shadow-[0_10px_28px_rgba(15,23,42,0.12)]')
-                            : cn(t.muted, 'opacity-85 hover:opacity-100')
+                            : cn(secondaryTextClass, 'opacity-92 hover:opacity-100')
                         )}
                       >
                         {mode === 'register' ? 'Регистрация' : 'Вход'}
@@ -479,7 +568,7 @@ export default function Hero() {
                 </div>
 
                 <form className="mt-6 space-y-4" onSubmit={handleCredentialsSubmit}>
-                  <label className="block">
+                  <label className="hero-form-field block">
                     <span className={cn('mb-2 block text-[11px] uppercase tracking-[0.24em]', t.subtle)}>Почта</span>
                     <input
                       type="email"
@@ -494,7 +583,7 @@ export default function Hero() {
                     />
                   </label>
 
-                  <label className="block">
+                  <label className="hero-form-field block">
                     <span className={cn('mb-2 block text-[11px] uppercase tracking-[0.24em]', t.subtle)}>Пароль</span>
                     <input
                       type="password"
@@ -522,7 +611,7 @@ export default function Hero() {
                   </button>
                 </form>
 
-                <p className={cn('mt-4 text-xs leading-5', t.subtle)}>
+                <p className={cn('mt-4 text-[13px] leading-5', subtleTextClass)}>
                   После входа откроется личный кабинет с текущим маршрутом.
                 </p>
               </div>
@@ -539,7 +628,7 @@ export default function Hero() {
               )}
             >
               <div className="mb-4 flex items-center justify-between gap-3">
-                <div>
+                <div className="hero-route-panel-copy">
                   <h2 className={cn('text-base font-medium', t.textStrong)}>Маршрут</h2>
                   <p className={cn('mt-1 text-sm', t.muted)}>Глобус остается связанным с выбранной нодой.</p>
                 </div>
@@ -603,7 +692,7 @@ export default function Hero() {
 
                       <div className="relative z-10 min-w-0 flex-1">
                         <div className={cn('text-sm font-medium', t.textStrong)}>{server.country}</div>
-                        <div className={cn('mt-1 text-[11px] uppercase tracking-[0.24em]', t.subtle)}>{server.city}</div>
+                        <div className={cn('mt-1 text-[11px] font-semibold uppercase tracking-[0.18em]', eyebrowTextClass)}>{server.city}</div>
                       </div>
 
                       <div
@@ -638,10 +727,10 @@ export default function Hero() {
               )}
             >
               <div className="relative z-10 mb-5 flex items-start justify-between gap-3">
-                <div>
+                <div className="hero-active-route-copy">
                   <div className={cn('text-[11px] uppercase tracking-[0.24em]', t.subtle)}>Активный маршрут</div>
                   <h2 className={cn('mt-2 text-xl font-medium tracking-tight', t.textStrong)}>{selectedServer.city}</h2>
-                  <div className={cn('mt-1 inline-flex items-center gap-2 text-sm', t.muted)}>
+                  <div className={cn('mt-1 inline-flex items-center gap-2 text-sm', secondaryTextClass)}>
                     {selectedServerFlagClassName ? (
                       <span
                         className={cn(
@@ -674,7 +763,7 @@ export default function Hero() {
                 transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
                 className="relative z-10 space-y-4"
               >
-                  <p className={cn('text-[15px] leading-7', t.muted)}>{selectedServer.description}</p>
+                  <p className={cn('text-[15px] leading-7', secondaryTextClass)}>{selectedServer.description}</p>
 
                   <div className="grid grid-cols-3 gap-3">
                     {[
@@ -690,7 +779,7 @@ export default function Hero() {
                           t.softBorder
                         )}
                       >
-                        <div className={cn('text-[10px] uppercase tracking-[0.22em]', t.subtle)}>{item.label}</div>
+                        <div className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', eyebrowTextClass)}>{item.label}</div>
                         <div className={cn('mt-2 text-sm font-medium', t.textStrong)}>{item.value}</div>
                       </div>
                     ))}
