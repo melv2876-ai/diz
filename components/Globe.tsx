@@ -1,21 +1,18 @@
 'use client';
 
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import dynamic from 'next/dynamic';
+import { Suspense, lazy, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const ReactGlobe = dynamic(() => import('react-globe.gl'), {
-  ssr: false,
-  loading: () => (
+const ReactGlobe = lazy(() => import('react-globe.gl'));
+const globeFallback = (
     <div className="fixed inset-0 flex items-center justify-center bg-[var(--page-bg)] text-xs font-mono text-[var(--text-3)]">
       Инициализация глобальной сети...
     </div>
-  ),
-});
+);
 
 interface GlobeProps {
   selectedCountryId?: string | null;
   selectedLocation?: [number, number] | null;
-  serverInfo?: { city: string; country: string; flag: string } | null;
+  serverInfo?: { city: string; country: string; flagCode: string } | null;
   theme?: 'dark' | 'light';
   focusToken?: number;
 }
@@ -23,7 +20,6 @@ interface GlobeProps {
 interface HoveredCountry {
   code: string;
   name: string;
-  flag: string;
 }
 
 type GlobeCountryFeature = {
@@ -39,16 +35,81 @@ const getCountryCode = (properties: Record<string, any>) =>
 const getCountryName = (properties: Record<string, any>) =>
   properties.NAME || properties.ADMIN || properties.name || 'Country';
 
-const countryCodeToFlag = (code?: string) => {
-  if (!code || code.length !== 2) return '';
+const getFlagImageUrl = (code?: string, width = 40) =>
+  code && code.length === 2 ? `https://flagcdn.com/w${width}/${code.toLowerCase()}.png` : '';
 
-  return String.fromCodePoint(
-    ...code
-      .toUpperCase()
-      .split('')
-      .map((char) => 127397 + char.charCodeAt(0))
+const Starfield = memo(({ isVisible }: { isVisible: boolean }) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (!isVisible || !canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    let animationFrameId: number;
+    let w = (canvas.width = window.innerWidth);
+    let h = (canvas.height = window.innerHeight);
+
+    const stars: { x: number; y: number; size: number; opacity: number; speed: number }[] = [];
+    const starCount = Math.floor((w * h) / 4000);
+
+    for (let i = 0; i < starCount; i++) {
+      stars.push({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        size: Math.random() * 1.5,
+        opacity: Math.random(),
+        speed: 0.005 + Math.random() * 0.015,
+      });
+    }
+
+    const draw = () => {
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#fff';
+
+      stars.forEach((star) => {
+        star.opacity += star.speed;
+        if (star.opacity > 1 || star.opacity < 0) {
+          star.speed = -star.speed;
+        }
+
+        ctx.globalAlpha = star.opacity * 0.8;
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      animationFrameId = requestAnimationFrame(draw);
+    };
+
+    const handleResize = () => {
+      w = canvas.width = window.innerWidth;
+      h = canvas.height = window.innerHeight;
+    };
+
+    window.addEventListener('resize', handleResize);
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [isVisible]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className={`pointer-events-none fixed inset-0 z-0 transition-opacity duration-1000 ${
+        isVisible ? 'opacity-100' : 'opacity-0'
+      }`}
+    />
   );
-};
+});
+
+Starfield.displayName = 'Starfield';
+
 
 function Globe({
   selectedCountryId,
@@ -227,7 +288,7 @@ function Globe({
               lng: selectedLocation[1],
               city: serverInfo?.city || '',
               country: serverInfo?.country || '',
-              flag: serverInfo?.flag || '',
+              flagCode: serverInfo?.flagCode || '',
             },
           ]
         : [],
@@ -277,7 +338,6 @@ function Globe({
         return {
           code,
           name: getCountryName(polygon.properties),
-          flag: countryCodeToFlag(code),
         };
       });
     },
@@ -354,11 +414,11 @@ function Globe({
       const dirLight = scene.children.find((c: any) => c.type === 'DirectionalLight');
       
       if (ambientLight) {
-        ambientLight.intensity = theme === 'light' ? 0.58 : 0.4;
+        ambientLight.intensity = theme === 'light' ? 0.75 : 0.4;
       }
       
       if (dirLight) {
-        dirLight.intensity = theme === 'light' ? 1.6 : 2;
+        dirLight.intensity = theme === 'light' ? 1.8 : 2;
         dirLight.position.set(-1.35, 1.18, 1.14);
       }
     }
@@ -382,88 +442,102 @@ function Globe({
         clearHoveredCountry();
       }}
     >
+      {/* Dynamic Starfield for Night Theme */}
+      <Starfield isVisible={theme === 'dark'} />
+
       {/* Background Overlays - Centralized base layer */}
       {theme === 'light' ? (
         <>
-          {/* Daylight atmosphere */}
+          {/* Vibrant Daylight atmosphere */}
           <div
-            className="pointer-events-none absolute inset-0"
+            className="pointer-events-none absolute inset-0 transition-opacity duration-1000"
             style={{
               background: `
                 radial-gradient(circle at 14% 10%, rgba(255, 247, 230, 0.72) 0%, rgba(255, 247, 230, 0.32) 14%, rgba(255, 247, 230, 0) 34%),
-                radial-gradient(circle at 60% 45%, rgba(113, 181, 226, 0.16) 0%, rgba(113, 181, 226, 0.08) 18%, rgba(255, 255, 255, 0) 38%),
-                linear-gradient(180deg, #ebf3f9 0%, #d9e6f0 36%, #adc3d5 72%, #8aa5bb 100%)
+                radial-gradient(circle at 60% 45%, rgba(135, 206, 235, 0.22) 0%, rgba(135, 206, 235, 0.08) 22%, rgba(255, 255, 255, 0) 45%),
+                linear-gradient(180deg, #bae6fd 0%, #e0f2fe 38%, #f8fafc 100%)
               `,
             }}
           />
 
+          {/* Sun Glow Overlay */}
+          <div className="pointer-events-none absolute left-0 top-0 h-[50vh] w-[50vw] bg-[radial-gradient(circle_at_0%_0%,rgba(255,251,235,0.4)_0%,transparent_70%)] blur-[100px] animate-[daylightDrift_30s_ease-in-out_infinite]" />
+
           {/* Left-side readability veil */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-[36%] bg-[linear-gradient(90deg,rgba(244,249,253,0.92)_0%,rgba(236,244,249,0.68)_42%,rgba(217,229,238,0.12)_82%,transparent_100%)]" />
+          <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-[linear-gradient(90deg,rgba(240,249,255,0.96)_0%,rgba(240,249,255,0.72)_48%,rgba(240,249,255,0.12)_86%,transparent_100%)]" />
 
-          {/* Globe halo */}
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_58%_48%,rgba(97,174,223,0.18)_0%,rgba(97,174,223,0.06)_22%,rgba(255,255,255,0)_48%)]" />
+          {/* Globe halo enhancement */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_58%_48%,rgba(135,206,235,0.22)_0%,rgba(135,206,235,0.08)_28%,rgba(255,255,255,0)_52%)]" />
 
-          {/* Daylight structure */}
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-[34vh] bg-[linear-gradient(180deg,rgba(235,244,250,0.64)_0%,rgba(228,238,246,0.24)_58%,transparent_100%)]" />
-          <div className="pointer-events-none absolute -left-[12%] -top-[10%] h-[38rem] w-[38rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(255,247,233,0.42)_0%,rgba(238,247,253,0.18)_42%,transparent_74%)] blur-[96px] animate-[daylightDrift_24s_ease-in-out_infinite]" />
-          <div className="pointer-events-none absolute left-[38%] top-[12%] h-[24rem] w-[34rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(180,211,233,0.24)_0%,rgba(180,211,233,0.08)_40%,transparent_72%)] blur-[84px]" />
-          <div className="pointer-events-none absolute right-[-14%] bottom-[-12%] h-[36rem] w-[36rem] rounded-full bg-[radial-gradient(circle_at_center,rgba(94,133,169,0.22)_0%,rgba(161,190,215,0.12)_38%,transparent_74%)] blur-[92px]" />
+          {/* Soft cloud-like glows */}
+          <div className="pointer-events-none absolute left-[15%] top-[20%] h-[18rem] w-[32rem] rounded-full bg-white/20 blur-[120px] animate-pulse" />
+          <div className="pointer-events-none absolute right-[10%] bottom-[15%] h-[24rem] w-[40rem] rounded-full bg-sky-200/20 blur-[140px] animate-[atmospherePulse_22s_ease-in-out_infinite]" />
 
           {/* Bottom depth band */}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[38vh] bg-[linear-gradient(180deg,rgba(224,234,242,0)_0%,rgba(170,190,208,0.12)_30%,rgba(97,123,149,0.28)_100%)]" />
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[42vh] bg-[linear-gradient(180deg,rgba(224,242,254,0)_0%,rgba(186,230,253,0.15)_35%,rgba(125,211,252,0.35)_100%)]" />
 
           {/* Orbit accents */}
           <div className="pointer-events-none absolute right-[-6%] top-[12%] h-[26rem] w-[26rem] rounded-full border border-[rgba(45,156,219,0.14)] opacity-60 [mask-image:linear-gradient(180deg,black,transparent)]" />
 
           {/* Vignette */}
-          <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_220px_rgba(19,39,61,0.12)]" />
+          <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_240px_rgba(30,58,88,0.08)]" />
         </>
       ) : (
         <>
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_52%_46%,rgba(136,174,255,0.11)_0%,rgba(7,10,18,0)_26%,rgba(2,6,23,0.28)_54%,rgba(1,3,8,0.62)_100%)]" />
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(3,7,18,0.04)_0%,rgba(3,7,18,0.0)_32%,rgba(2,6,12,0.42)_100%)]" />
+          {/* Celestial Night atmosphere */}
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_52%_46%,rgba(136,174,255,0.14)_0%,rgba(7,10,18,0)_32%,rgba(2,6,23,0.36)_62%,rgba(2,6,23,1)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(3,7,18,0.1)_0%,rgba(3,7,18,0.0)_40%,rgba(3,7,18,1)_100%)]" />
+          
+          {/* Deep Space Glows */}
+          <div className="pointer-events-none absolute left-[-10%] top-[-5%] h-[40rem] w-[40rem] rounded-full bg-indigo-500/10 blur-[160px] animate-[atmospherePulse_25s_ease-in-out_infinite]" />
+          <div className="pointer-events-none absolute right-[-5%] bottom-[-10%] h-[35rem] w-[35rem] rounded-full bg-purple-500/5 blur-[140px] animate-pulse" />
+          
+          {/* Cosmic Dust */}
+          <div className="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_80%,rgba(124,58,237,0.1)_0%,transparent_50%),radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.1)_0%,transparent_50%)]" />
         </>
       )}
 
-      <ReactGlobe
-        ref={globeRef}
-        width={dimensions.width}
-        height={dimensions.height}
-        backgroundColor="rgba(0,0,0,0)"
-        animateIn={false}
-        globeImageUrl={theme === 'light' ? '/globe/earth-blue-marble.jpg' : '/globe/earth-night.jpg'}
-        bumpImageUrl="/globe/earth-topology.png"
-        showAtmosphere
-        atmosphereColor={theme === 'light' ? 'rgba(116, 183, 224, 0.4)' : '#84a9ff'}
-        atmosphereAltitude={theme === 'light' ? 0.055 : 0.11}
-        polygonsData={countryPolygons}
-        polygonCapColor={polygonCapColor}
-        polygonSideColor={() => 'rgba(0,0,0,0)'}
-        polygonStrokeColor={polygonStrokeColor}
-        polygonAltitude={polygonAltitude}
-        polygonCapCurvatureResolution={8}
-        polygonsTransitionDuration={0}
-        htmlElementsData={markerData}
-        htmlElement={(d: any) => {
-          const el = document.createElement('div');
-          el.className = 'signal-node';
-          el.innerHTML = `
-            <div class="signal-node__pulse"></div>
-            <div class="signal-node__core"></div>
-            <div class="signal-node__label ${theme === 'light' ? 'is-light' : 'is-dark'}">
-              ${d.flag ? `<span class="signal-node__flag">${d.flag}</span>` : ''}
-              <div class="signal-node__copy">
-                <span class="signal-node__eyebrow">Active Node</span>
-                <span class="signal-node__city">${d.city}</span>
-                <span class="signal-node__country">${d.country}</span>
+      <Suspense fallback={globeFallback}>
+        <ReactGlobe
+          ref={globeRef}
+          width={dimensions.width}
+          height={dimensions.height}
+          backgroundColor="rgba(0,0,0,0)"
+          animateIn={false}
+          globeImageUrl={theme === 'light' ? '/globe/earth-blue-marble.jpg' : '/globe/earth-night.jpg'}
+          bumpImageUrl="/globe/earth-topology.png"
+          showAtmosphere
+          atmosphereColor={theme === 'light' ? 'rgba(125, 211, 252, 0.45)' : '#84a9ff'}
+          atmosphereAltitude={theme === 'light' ? 0.065 : 0.11}
+          polygonsData={countryPolygons}
+          polygonCapColor={polygonCapColor}
+          polygonSideColor={() => 'rgba(0,0,0,0)'}
+          polygonStrokeColor={polygonStrokeColor}
+          polygonAltitude={polygonAltitude}
+          polygonCapCurvatureResolution={8}
+          polygonsTransitionDuration={0}
+          htmlElementsData={markerData}
+          htmlElement={(d: any) => {
+            const el = document.createElement('div');
+            el.className = 'signal-node';
+            el.innerHTML = `
+              <div class="signal-node__pulse"></div>
+              <div class="signal-node__core"></div>
+              <div class="signal-node__label ${theme === 'light' ? 'is-light' : 'is-dark'}">
+                ${d.flagCode ? `<img class="signal-node__flag-image" src="${getFlagImageUrl(d.flagCode, 32)}" alt="" />` : ''}
+                <div class="signal-node__copy">
+                  <span class="signal-node__eyebrow">Active Node</span>
+                  <span class="signal-node__city">${d.city}</span>
+                  <span class="signal-node__country">${d.country}</span>
+                </div>
               </div>
-            </div>
-          `;
-          return el;
-        }}
-        onPolygonHover={handlePolygonHover}
-        onGlobeReady={handleGlobeReady}
-      />
+            `;
+            return el;
+          }}
+          onPolygonHover={handlePolygonHover}
+          onGlobeReady={handleGlobeReady}
+        />
+      </Suspense>
 
       {hoveredCountry ? (
         <div
@@ -472,8 +546,15 @@ function Globe({
           style={{ transform: 'translate3d(-9999px,-9999px,0)' }}
         >
           <div className={`country-hover-pill ${theme === 'light' ? 'is-light' : 'is-dark'}`}>
-            {hoveredCountry.flag ? (
-              <span className="country-hover-pill__flag">{hoveredCountry.flag}</span>
+            {hoveredCountry.code ? (
+              <img
+                className="country-hover-pill__flag-image"
+                src={getFlagImageUrl(hoveredCountry.code, 32)}
+                alt=""
+                width={18}
+                height={14}
+                loading="lazy"
+              />
             ) : null}
             <span className="country-hover-pill__name">{hoveredCountry.name}</span>
           </div>

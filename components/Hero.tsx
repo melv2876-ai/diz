@@ -3,9 +3,8 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { Shield, Globe as GlobeIcon, Zap, ArrowRight, Sun, Moon, RefreshCw, Key, Fingerprint, Lock, Layers, Waves, ScanEye, ShieldCheck, Radar, Infinity as InfinityIcon, Waypoints } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import Image from 'next/image';
 import Globe from './Globe';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
 interface MockUser {
@@ -21,9 +20,12 @@ interface ServerData {
   city: string;
   coords: [number, number];
   basePing: number;
-  flag: string;
+  flagCode: string;
   description: string;
 }
+
+const getFlagImageUrl = (code: string, width = 40) =>
+  `https://flagcdn.com/w${width}/${code.toLowerCase()}.png`;
 
 
 // --- Mockup Components ---
@@ -205,7 +207,7 @@ const SERVERS: ServerData[] = [
     country: 'Германия', 
     city: 'Франкфурт', 
     coords: [50.1109, 8.6821], 
-    basePing: 35, flag: '🇩🇪',
+    basePing: 35, flagCode: 'de',
     description: 'Лучший сервер по скорости и стабильности'
   },
   { 
@@ -213,7 +215,7 @@ const SERVERS: ServerData[] = [
     country: 'Армения', 
     city: 'Ереван', 
     coords: [40.1772, 44.5035], 
-    basePing: 55, flag: '🇦🇲',
+    basePing: 55, flagCode: 'am',
     description: 'Полное отсутствие рекламы в YouTube'
   },
   { 
@@ -221,7 +223,7 @@ const SERVERS: ServerData[] = [
     country: 'Финляндия', 
     city: 'Хельсинки', 
     coords: [60.1699, 24.9384], 
-    basePing: 42, flag: '🇫🇮',
+    basePing: 42, flagCode: 'fi',
     description: 'Быстрый и без рекламы в YouTube'
   },
   { 
@@ -229,7 +231,7 @@ const SERVERS: ServerData[] = [
     country: 'США', 
     city: 'Нью-Йорк', 
     coords: [40.7128, -74.0060], 
-    basePing: 110, flag: '🇺🇸',
+    basePing: 110, flagCode: 'us',
     description: 'Отлично подходит для ИИ и регистраций'
   },
 ];
@@ -279,10 +281,10 @@ const FEATURE_INFO = [
 ];
 
 const STORAGE_THEME_KEY = 'wwpro-theme';
-const LEFT_RAIL_CLASS = "w-full max-w-[35rem] xl:max-w-[37rem] [@media(max-height:940px)]:lg:max-w-[32rem] [@media(max-height:860px)]:lg:max-w-[29rem]";
+const LEFT_RAIL_CLASS = "w-full max-w-full";
 
 export default function Hero() {
-  const router = useRouter();
+  const navigate = useNavigate();
   const pingTimeoutsRef = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const [selectedServer, setSelectedServer] = useState<ServerData>(SERVERS[0]);
   const [pings, setPings] = useState<Record<string, number | 'testing'>>({});
@@ -313,9 +315,9 @@ export default function Hero() {
     () => ({
       city: selectedServer.city,
       country: selectedServer.country,
-      flag: selectedServer.flag,
+      flagCode: selectedServer.flagCode,
     }),
-    [selectedServer.city, selectedServer.country, selectedServer.flag]
+    [selectedServer.city, selectedServer.country, selectedServer.flagCode]
   );
 
   const focusServer = (server: ServerData) => {
@@ -341,7 +343,7 @@ export default function Hero() {
     };
     setUser(mockUser);
     setLoading(false);
-    router.push('/dashboard');
+    navigate('/dashboard');
   };
 
   const handleTelegramLogin = () => {
@@ -353,7 +355,7 @@ export default function Hero() {
       photoURL: null
     };
     setUser(mockUser);
-    router.push('/dashboard');
+    navigate('/dashboard');
   };
 
   const handleLogout = () => {
@@ -406,10 +408,81 @@ export default function Hero() {
   }, [effectiveTheme, globeTheme, isThemeReady]);
 
   const isAnyPingTesting = Object.values(pings).some((ping) => ping === 'testing');
+  const renderAdvantagesCta = (wrapperClassName: string) => (
+    <motion.div 
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
+      onClick={() => {
+          if (isTelling) return;
+          setIsTelling(true);
+          setTimeout(() => {
+            setShowAdvantages(true);
+            setIsTelling(false);
+          }, 1000);
+      }}
+      className={cn(
+        "cursor-pointer overflow-hidden rounded-[2rem] p-5 sm:p-6 transition-all relative group flex w-full flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pointer-events-auto",
+        isLight
+          ? "bg-[linear-gradient(135deg,rgba(255,255,255,0.7)_0%,rgba(240,248,255,0.5)_100%)] border border-[var(--border-default)] shadow-[0_10px_30px_rgba(30,58,88,0.08)] hover:shadow-[0_20px_40px_rgba(30,58,88,0.12)]"
+          : "bg-white/[0.03] border border-white/10 hover:bg-white/[0.05] hover:border-emerald-500/30 shadow-[0_10px_30px_rgba(0,0,0,0.5)]",
+        wrapperClassName
+      )}
+    >
+      <div className="relative z-10 flex flex-col gap-1.5">
+        <div className="flex items-center gap-2 mb-1">
+           <div className={`h-1.5 w-1.5 rounded-full ${isTelling ? (isLight ? 'bg-[var(--accent-ui)] animate-pulse' : 'bg-emerald-500 animate-pulse') : isLight ? 'bg-[var(--accent-ui)]' : 'bg-emerald-400'}`} />
+           <span className={cn("text-[9px] sm:text-[10px] uppercase font-black tracking-widest", isLight ? "text-[var(--text-3)] group-hover:text-[var(--accent-text)]" : "text-white/40 group-hover:text-white/70")}>
+             {isTelling ? 'ПОДГОТОВКА...' : 'ПРЕМИУМ ВОЗМОЖНОСТИ'}
+           </span>
+        </div>
+        <h3 className={cn("text-xl sm:text-2xl font-black italic tracking-tighter", isLight ? "text-[var(--text-1)]" : "text-white")}>
+          Почему выбирают <span className={isLight ? "text-[var(--accent-text)]" : "text-emerald-400"}>нас?</span>
+        </h3>
+      </div>
+      
+      <div className={cn(
+        "relative z-10 w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-transform group-hover:translate-x-1",
+        isLight ? "bg-[var(--surface-3)] text-[var(--accent-text)]" : "bg-white/10 text-emerald-400"
+      )}>
+         {isTelling ? <RefreshCw className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
+      </div>
+      
+      {/* Background kinetic effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent w-full h-full transform -skew-x-12 translate-x-[-150%] group-hover:translate-x-[150%] transition-transform duration-1000" />
+    </motion.div>
+  );
+
+  const renderActiveServerStatus = (wrapperClassName: string) => (
+    <div className={cn(wrapperClassName, "pointer-events-none")}>
+      <div className="relative flex w-full flex-col items-center gap-2 px-6">
+        {isLight ? (
+          <div className="pointer-events-none absolute inset-x-0 -top-5 -bottom-5 rounded-[2.4rem] bg-[radial-gradient(circle_at_center,rgba(248,252,255,0.72)_0%,rgba(239,246,251,0.38)_48%,rgba(255,255,255,0)_100%)] blur-2xl" />
+        ) : null}
+        <motion.div 
+          initial={{ opacity: 0, y: 5 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={cn("flex items-center gap-2 opacity-55", isLight && "opacity-75")}
+        >
+          <div className={cn("h-1 w-1 rounded-full", isLight ? "bg-[var(--accent-ui)] shadow-[0_0_6px_rgba(45,156,219,0.24)]" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]")} />
+          <span className={cn("text-[8px] uppercase font-black tracking-[0.28em]", isLight ? "text-[var(--text-2)]" : "text-white")}>
+            Активен: {selectedServer.country}
+          </span>
+        </motion.div>
+        <div className="flex w-full items-center justify-center">
+          <motion.p 
+            key={selectedServer.id}
+            className={cn("text-center text-lg lg:text-xl xl:text-2xl font-bold leading-none tracking-tight", isLight ? "text-[var(--text-1)]" : "text-white drop-shadow-lg")}
+          >
+            {selectedServer.description}
+          </motion.p>
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className={cn(
-      "relative min-h-[100svh] overflow-x-hidden transition-colors duration-300 lg:h-[100svh] [@media(max-height:860px)]:lg:h-auto"
+      "relative min-h-[100svh] overflow-x-clip transition-colors duration-300"
     )}>
       {/* Full Screen Globe Background */}
       <Globe 
@@ -421,101 +494,103 @@ export default function Hero() {
       />
 
       {/* UI Overlay */}
-      <div className="relative z-10 mx-auto grid min-h-[100svh] w-full max-w-[1600px] grid-rows-[minmax(0,1fr)_auto] px-3 pb-3 pt-3 md:px-4 md:pb-4 md:pt-4 lg:h-full lg:min-h-0 lg:grid-rows-[minmax(0,1fr)_minmax(2.8rem,auto)] lg:px-6 lg:pb-3 lg:pt-4 xl:px-8 xl:pb-4 xl:pt-5 [@media(max-height:940px)]:lg:grid-rows-[minmax(0,1fr)_minmax(2.45rem,auto)] [@media(max-height:940px)]:lg:pt-3 [@media(max-height:860px)]:lg:h-auto [@media(max-height:860px)]:lg:min-h-[100svh] [@media(max-height:860px)]:lg:grid-rows-[auto_auto] pointer-events-none">
-        <div className="grid min-h-0 gap-4 lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,1.08fr)_minmax(22.75rem,25.5rem)] lg:items-stretch lg:gap-6 xl:grid-cols-[minmax(0,1.08fr)_minmax(23rem,26rem)] xl:gap-8 [@media(max-height:940px)]:lg:gap-5 [@media(max-height:860px)]:lg:h-auto">
-        {/* Left Side: Info & Server List */}
-        <div className="pointer-events-none flex min-h-0 flex-col gap-4 lg:h-full lg:max-w-[44rem] lg:justify-between xl:max-w-[46rem]">
-          <div className="pointer-events-none flex flex-col gap-4 lg:gap-5 [@media(max-height:940px)]:lg:gap-4 [@media(max-height:860px)]:lg:gap-3">
-            <div className={cn("relative", LEFT_RAIL_CLASS)}>
-              {isLight ? (
-                <div className="pointer-events-none absolute -left-8 -top-8 h-[22rem] w-[34rem] rounded-[3rem] bg-[radial-gradient(circle_at_top_left,rgba(250,253,255,0.76)_0%,rgba(237,245,251,0.44)_38%,rgba(255,255,255,0)_78%)] blur-[72px]" />
-              ) : null}
-              {/* Header/Logo */}
-              <header className="pointer-events-none flex w-full items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                    <Shield className="text-zinc-950 w-6 h-6" />
-                  </div>
-                  <span className={cn(
-                    "text-2xl font-bold tracking-tighter font-mono transition-colors",
-                    isLight ? "text-[var(--text-1)]" : "text-white"
-                  )}>WW.pro</span>
-                </div>
-                <div
-                  className={cn(
-                    "pointer-events-auto inline-flex items-center gap-1 rounded-full border p-1 backdrop-blur-xl transition-all",
-                    isLight
-                      ? "border-[var(--border-default)] bg-[rgba(236,244,250,0.72)] shadow-[0_18px_44px_var(--shadow-color),inset_0_1px_0_rgba(255,255,255,0.56)]"
-                      : "border-white/10 bg-black/30"
-                  )}
-                >
-                  {[
-                    { id: 'dark', icon: Moon, label: 'Тёмная тема' },
-                    { id: 'light', icon: Sun, label: 'Светлая тема' },
-                  ].map((option) => {
-                    const active = effectiveTheme === option.id;
-                    const Icon = option.icon;
+      <div className="relative z-10 flex w-full flex-col px-4 py-4 md:px-6 md:py-6 lg:px-8 lg:py-8 min-h-[100svh] lg:h-[100svh] 2xl:px-10 pointer-events-none lg:overflow-hidden">
+        
+       {/* Global Header */}
+       <header className="pointer-events-none flex w-full items-center justify-between shrink-0 z-20 mb-6 lg:mb-8">
+          {isLight ? (
+            <div className="pointer-events-none absolute -left-8 -top-8 h-[22rem] w-[34rem] rounded-[3rem] bg-[radial-gradient(circle_at_top_left,rgba(250,253,255,0.76)_0%,rgba(237,245,251,0.44)_38%,rgba(255,255,255,0)_78%)] blur-[72px]" />
+          ) : null}
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Shield className="text-zinc-950 w-6 h-6" />
+            </div>
+            <span className={cn(
+              "text-2xl font-bold tracking-tighter font-mono transition-colors",
+              isLight ? "text-[var(--text-1)]" : "text-white"
+            )}>WW.pro</span>
+          </div>
+          <div
+            className={cn(
+              "pointer-events-auto inline-flex items-center gap-1 rounded-full border p-1 backdrop-blur-xl transition-all",
+              isLight
+                ? "border-[var(--border-default)] bg-[rgba(236,244,250,0.72)] shadow-[0_18px_44px_var(--shadow-color),inset_0_1px_0_rgba(255,255,255,0.56)]"
+                : "border-white/10 bg-black/30"
+            )}
+          >
+            {[
+              { id: 'dark', icon: Moon, label: 'Тёмная тема' },
+              { id: 'light', icon: Sun, label: 'Светлая тема' },
+            ].map((option) => {
+              const active = effectiveTheme === option.id;
+              const Icon = option.icon;
 
-                    return (
-                      <button
-                        key={option.id}
-                        onClick={() => setGlobeTheme(option.id as 'dark' | 'light')}
-                        aria-label={option.label}
-                        className={cn(
-                          "relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-all outline-none focus:outline-none focus-visible:outline-none",
-                          active
-                            ? isLight
-                              ? "bg-[var(--surface-4)] text-[var(--accent-text)] shadow-[0_10px_24px_rgba(34,58,84,0.12),0_0_0_1px_rgba(255,255,255,0.46)]"
-                              : "bg-white text-zinc-950 shadow-[0_10px_24px_rgba(255,255,255,0.18)]"
-                            : isLight
-                              ? "text-[var(--text-2)] hover:bg-[var(--surface-3)] hover:text-[var(--text-1)]"
-                              : "text-white/45 hover:bg-white/8 hover:text-white/80"
-                        )}
-                        title={option.label}
-                        type="button"
-                      >
-                        <Icon className="h-3.5 w-3.5" />
-                      </button>
-                    );
-                  })}
-                </div>
-              </header>
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => setGlobeTheme(option.id as 'dark' | 'light')}
+                  aria-label={option.label}
+                  className={cn(
+                    "relative inline-flex h-9 w-9 items-center justify-center rounded-full transition-all outline-none focus:outline-none focus-visible:outline-none",
+                    active
+                      ? isLight
+                        ? "bg-[var(--surface-4)] text-[var(--accent-text)] shadow-[0_10px_24px_rgba(34,58,84,0.12),0_0_0_1px_rgba(255,255,255,0.46)]"
+                        : "bg-white text-zinc-950 shadow-[0_10px_24px_rgba(255,255,255,0.18)]"
+                      : isLight
+                        ? "text-[var(--text-2)] hover:bg-[var(--surface-3)] hover:text-[var(--text-1)]"
+                        : "text-white/45 hover:bg-white/8 hover:text-white/80"
+                  )}
+                  title={option.label}
+                  type="button"
+                >
+                  <Icon className="h-3.5 w-3.5" />
+                </button>
+              );
+            })}
+          </div>
+        </header>
 
-              {/* Main Headline */}
-              <div className="relative mt-4 w-full space-y-3 lg:mt-5 lg:space-y-4 [@media(max-height:940px)]:lg:mt-4 [@media(max-height:940px)]:lg:space-y-3 [@media(max-height:860px)]:lg:mt-3 [@media(max-height:860px)]:lg:space-y-2">
-                <motion.h1 
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  className={cn(
-                    "max-w-[8.1ch] text-[clamp(3rem,10vw,5rem)] font-bold tracking-tight leading-[0.84] md:text-[clamp(4rem,9vw,6.2rem)] lg:text-[clamp(4.15rem,6vw,6.75rem)] [@media(max-height:940px)]:lg:text-[clamp(3rem,4.65vw,5rem)] [@media(max-height:860px)]:lg:text-[clamp(2.55rem,4vw,4.25rem)] transition-colors",
-                    isLight ? "text-[var(--text-1)] drop-shadow-[0_10px_24px_rgba(255,255,255,0.12)]" : "text-white drop-shadow-2xl"
-                  )}
-                >
-                  Лучший <span className={cn("italic", isLight ? "text-[var(--accent-text)]" : "text-emerald-500")}>VPN</span> сервис
-                </motion.h1>
-                
-                <motion.p 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className={cn(
-                    "w-full text-sm leading-relaxed md:text-base lg:text-[clamp(0.95rem,1vw,1.12rem)] [@media(max-height:940px)]:lg:text-[0.98rem] [@media(max-height:860px)]:lg:text-[0.9rem] transition-colors",
-                    isLight
-                      ? "rounded-[1.4rem] border border-[rgba(255,255,255,0.46)] bg-[rgba(239,246,251,0.62)] px-4 py-3 text-[var(--text-2)] shadow-[0_14px_30px_rgba(30,58,88,0.08),inset_0_1px_0_rgba(255,255,255,0.56)] backdrop-blur-md"
-                      : "text-zinc-300 drop-shadow-md"
-                  )}
-                >
-                  Максимальная скорость и безопасность в один клик. Выбирайте лучшие локации по всему миру.
-                </motion.p>
-              </div>
+        {/* Main Content Layout */}
+        <div className="flex flex-col-reverse lg:flex-row flex-1 w-full gap-8 lg:gap-12 lg:items-stretch lg:justify-between h-full pt-4 lg:pt-0">
+          
+          {/* LEFT SIDEBAR (Desktop: Title -> Servers -> Adv; Mobile: Servers -> Adv) */}
+          <div className="flex flex-col w-full lg:w-[45%] xl:w-[35%] max-w-[48rem] gap-6 xl:gap-8 lg:justify-between shrink-0 pointer-events-none lg:h-full">
+            
+            {/* Desktop Title & Desc */}
+            <div className="hidden lg:block relative w-full space-y-4 pt-1 xl:pt-4">
+              <motion.h1 
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className={cn(
+                  "text-[clamp(3.5rem,6vw,5.5rem)] font-bold tracking-tight leading-[0.84] transition-colors",
+                  isLight ? "text-[var(--text-1)] drop-shadow-[0_10px_24px_rgba(255,255,255,0.12)]" : "text-white drop-shadow-2xl"
+                )}
+              >
+                Лучший <span className={cn("italic", isLight ? "text-[var(--accent-text)]" : "text-emerald-500")}>VPN</span> сервис
+              </motion.h1>
+              
+              <motion.p 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className={cn(
+                  "w-full text-base xl:text-lg leading-relaxed transition-colors",
+                  isLight
+                    ? "rounded-[1.4rem] border border-[rgba(255,255,255,0.46)] bg-[rgba(239,246,251,0.62)] px-4 py-3 text-[var(--text-2)] shadow-[0_14px_30px_rgba(30,58,88,0.08),inset_0_1px_0_rgba(255,255,255,0.56)] backdrop-blur-md"
+                    : "text-zinc-300 drop-shadow-md"
+                )}
+              >
+                Максимальная скорость и безопасность в один клик. Выбирайте лучшие локации по всему миру.
+              </motion.p>
             </div>
 
+            <div className="flex flex-col gap-5 w-full lg:flex-1 w-full min-h-0">
             {/* Server List — Liquid Glass */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.3, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-              className={cn("pointer-events-auto relative", LEFT_RAIL_CLASS)}
+              className={cn("pointer-events-auto relative w-full", LEFT_RAIL_CLASS)}
             >
             {/* Glass container */}
             <div
@@ -673,7 +748,14 @@ export default function Hero() {
                         )}
 
                         {/* Flag — bare, no container */}
-                        <span className="text-[1.35rem] sm:text-[1.5rem] [@media(max-height:940px)]:lg:text-[1.3rem] [@media(max-height:860px)]:lg:text-[1.2rem] leading-none shrink-0">{server.flag}</span>
+                        <img
+                          src={getFlagImageUrl(server.flagCode)}
+                          alt={`Флаг ${server.country}`}
+                          width={20}
+                          height={15}
+                          className="h-[0.95rem] w-[1.3rem] rounded-[3px] object-cover shrink-0 shadow-[0_0_0_1px_rgba(255,255,255,0.08)] sm:h-[1.05rem] sm:w-[1.45rem] [@media(max-height:940px)]:lg:h-[0.95rem] [@media(max-height:940px)]:lg:w-[1.3rem] [@media(max-height:860px)]:lg:h-[0.85rem] [@media(max-height:860px)]:lg:w-[1.18rem]"
+                          loading="lazy"
+                        />
 
                         {/* Info */}
                         <div className="min-w-0 flex-1">
@@ -740,74 +822,16 @@ export default function Hero() {
             </div>
           </motion.div>
           </div>
-
-
-          {/* Interactive Advantages CTA - Compact & Minimalist */}
-          <div className={cn("pointer-events-auto pt-3.5 lg:pb-1 [@media(max-height:940px)]:lg:pt-2 [@media(max-height:860px)]:lg:pt-1.5", LEFT_RAIL_CLASS)}>
-            <div 
-              onClick={() => {
-                if (isTelling) return;
-                setIsTelling(true);
-                setTimeout(() => {
-                  setShowAdvantages(true);
-                  setIsTelling(false);
-                }, 1000);
-              }}
-              className="group flex w-full cursor-pointer flex-col items-start"
-            >
-              {/* Micro-label */}
-              <div className="flex items-center gap-2 mb-1 text-center">
-                <div className={`w-1 h-1 rounded-full ${isTelling ? (isLight ? 'bg-[var(--accent-ui)] animate-pulse' : 'bg-emerald-500 animate-pulse') : isLight ? 'bg-[var(--text-3)] group-hover:bg-[var(--accent-ui)]' : 'bg-white/20 group-hover:bg-emerald-500/50'} transition-colors`} />
-                <span className={cn(
-                  "text-[8px] font-black uppercase tracking-[0.4em] transition-colors duration-500",
-                  isLight ? "text-[var(--text-3)] group-hover:text-[var(--accent-text)]" : "text-white/20 group-hover:text-emerald-500/60"
-                )}>
-                  {isTelling ? 'Подготовка...' : 'О ПРЕИМУЩЕСТВАХ'}
-                </span>
-                <div className={cn(
-                  "w-4 h-px group-hover:w-8 transition-all duration-500",
-                  isLight ? "bg-[var(--border-default)] group-hover:bg-[var(--accent-ui-soft)]" : "bg-white/5 group-hover:bg-emerald-500/30"
-                )} />
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <h3 className={cn(
-                  "text-lg md:text-xl font-black italic tracking-tighter transition-all duration-500 [@media(max-height:940px)]:lg:text-[1.05rem] [@media(max-height:860px)]:lg:text-[0.95rem]",
-                  isLight ? "text-[var(--text-2)] group-hover:text-[var(--text-1)]" : "text-white/50 group-hover:text-white"
-                )}>
-                  <span className="mr-2">{isTelling ? 'Сейчас все' : 'Почему выбирают'}</span>
-                  <span className={cn(
-                    "transition-colors duration-500",
-                    isLight ? "text-[var(--accent-text)] group-hover:text-[var(--accent-ui-strong)]" : "text-emerald-500/60 group-hover:text-emerald-400"
-                  )}>{isTelling ? 'расскажем' : 'нас?'}</span>
-                </h3>
-              </div>
-
-              {/* Sophisticated Underline Progress */}
-              <div className={cn(
-                "mt-2 relative w-full h-[1px] overflow-hidden",
-                isLight ? "bg-[var(--border-soft)]" : "bg-white/[0.03]"
-              )}>
-                <motion.div 
-                  initial={false}
-                  animate={isTelling ? { x: ['-100%', '0%'] } : { x: '-100%' }}
-                  transition={{ duration: 1, ease: "easeInOut" }}
-                  className={cn(
-                    "absolute inset-0 bg-gradient-to-r from-transparent to-transparent",
-                    isLight ? "via-[var(--accent-ui-soft)]" : "via-emerald-500/50"
-                  )}
-                />
-                <div className={cn(
-                  "absolute inset-0 w-0 group-hover:w-full transition-all duration-700 ease-out",
-                  isLight ? "bg-[var(--border-default)]" : "bg-white/10"
-                )} />
-              </div>
-            </div>
-          </div>
+          {renderAdvantagesCta("pointer-events-auto pt-3.5 [@media(max-height:860px)]:lg:pt-1.5 lg:hidden")}
         </div>
 
+          {/* Center Space to push items aside on LG screens */}
+          <div className="hidden lg:flex flex-1 min-w-[2rem] xl:min-w-[4rem] items-end justify-center pb-8">
+            {renderActiveServerStatus("pointer-events-none w-full max-w-[32rem]")}
+          </div>
+
           {/* Right Side: Auth Section with Interactive Glow */}
-          <div className="group relative flex w-full self-stretch pointer-events-none lg:h-full lg:max-w-[25rem] lg:min-h-0 lg:justify-self-end xl:max-w-[26rem] [@media(max-height:940px)]:lg:max-w-[24rem] [@media(max-height:860px)]:lg:max-w-[22.75rem]">
+          <div className="group relative flex w-full self-stretch pointer-events-none lg:w-[45%] xl:w-[32%] lg:max-w-[420px] shrink-0 z-20 xl:ml-auto">
             {/* Background Kinetic Glow */}
             <div className={cn(
               "absolute -inset-4 blur-[100px] rounded-[3rem] opacity-0 group-hover:opacity-100 transition-opacity duration-1000",
@@ -815,7 +839,7 @@ export default function Hero() {
             )} />
             
             <div className={cn(
-              "pointer-events-auto relative flex min-h-[36rem] w-full flex-col overflow-hidden rounded-[2.5rem] p-5 backdrop-blur-3xl md:p-8 lg:h-full lg:min-h-[calc(100svh-7.6rem)] lg:flex-1 xl:min-h-[calc(100svh-8rem)] [@media(max-height:940px)]:lg:min-h-[calc(100svh-6.7rem)] [@media(max-height:940px)]:lg:p-6 [@media(max-height:860px)]:lg:h-auto [@media(max-height:860px)]:lg:min-h-[31rem] [@media(max-height:860px)]:lg:p-5 transition-colors",
+              "pointer-events-auto relative flex w-full h-full flex-col overflow-hidden rounded-[2.5rem] p-6 lg:p-8 shrink-0 transition-colors shadow-2xl backdrop-blur-3xl xl:p-10",
               isLight
                 ? "border border-[var(--border-default)] bg-[linear-gradient(180deg,rgba(244,249,253,0.8)_0%,rgba(232,240,247,0.72)_100%)] shadow-[0_30px_80px_var(--shadow-color),inset_0_1px_0_rgba(255,255,255,0.54)]"
                 : "border border-white/10 bg-white/[0.03] shadow-[0_24px_80px_rgba(0,0,0,0.4)]"
@@ -839,13 +863,13 @@ export default function Hero() {
                     initial={{ opacity: 0, x: 20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -20 }}
-                    className="flex flex-col h-full relative z-10"
+                    className="relative z-10 flex min-h-0 flex-1 flex-col"
                   >
                     <div className="mb-8">
                       <div className="flex items-center gap-5 mb-6">
                         {user.photoURL ? (
                           <div className="relative">
-                            <Image src={user.photoURL} alt={user.displayName || ''} width={72} height={72} className="w-[72px] h-[72px] rounded-3xl border-2 border-emerald-500/30 object-cover shadow-lg" />
+                            <img src={user.photoURL} alt={user.displayName || ''} width={72} height={72} className="w-[72px] h-[72px] rounded-3xl border-2 border-emerald-500/30 object-cover shadow-lg" loading="lazy" />
                             <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-emerald-500 rounded-full border-4 border-[#0a0a0a] flex items-center justify-center">
                               <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
                             </div>
@@ -927,7 +951,7 @@ export default function Hero() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: 20 }}
-                    className="flex flex-col h-full relative z-10"
+                    className="relative z-10 flex min-h-0 flex-1 flex-col"
                   >
                     <div className={cn(
                       "flex p-1 rounded-xl mb-6 border relative [@media(max-height:940px)]:lg:mb-5 [@media(max-height:860px)]:lg:mb-4",
@@ -1145,7 +1169,7 @@ export default function Hero() {
                 )}
               </AnimatePresence>
 
-              {/* Unique Features List - Bottom Fixed */}
+              {/* Unique Features List */}
               <div className="mt-auto pt-4 relative [@media(max-height:940px)]:lg:pt-4 [@media(max-height:860px)]:lg:pt-3">
                 <div className="space-y-3 [@media(max-height:860px)]:lg:space-y-2.5">
                   {[
@@ -1185,58 +1209,14 @@ export default function Hero() {
           </div>
         </div>
 
-        <div className="pointer-events-none hidden w-full items-center justify-center lg:flex [@media(max-height:720px)]:hidden">
-          <div className="relative flex max-w-[34rem] flex-col items-center gap-1 px-6 [@media(max-height:940px)]:max-w-[30rem] [@media(max-height:940px)]:gap-0.5">
-            {isLight ? (
-              <div className="pointer-events-none absolute inset-x-0 -top-5 -bottom-5 rounded-[2.4rem] bg-[radial-gradient(circle_at_center,rgba(248,252,255,0.72)_0%,rgba(239,246,251,0.38)_48%,rgba(255,255,255,0)_100%)] blur-2xl" />
-            ) : null}
-            {/* Status Line */}
-            <motion.div 
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className={cn(
-                "flex items-center gap-2 opacity-55",
-                isLight && "opacity-75"
-              )}
-            >
-              <div className={cn(
-                "w-1 h-1 rounded-full",
-                isLight ? "bg-[var(--accent-ui)] shadow-[0_0_6px_rgba(45,156,219,0.24)]" : "bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"
-              )} />
-              <span className={cn(
-                "text-[8px] uppercase font-black tracking-[0.28em] [@media(max-height:940px)]:lg:text-[7px]",
-                isLight ? "text-[var(--text-2)]" : "text-white"
-              )}>
-                Активен: {selectedServer.country}
-              </span>
-            </motion.div>
-
-            {/* Typewriter Text */}
-            <div className="flex min-h-[20px] items-center justify-center [@media(max-height:940px)]:min-h-[18px]">
-              <motion.p 
-                key={selectedServer.id}
-                className={cn(
-                  "text-[0.95rem] font-bold leading-tight tracking-tight text-center md:text-[1.05rem] [@media(max-height:940px)]:lg:text-[0.88rem]",
-                  isLight ? "text-[var(--text-1)]" : "text-white drop-shadow-lg"
-                )}
-              >
-                {selectedServer.description.split('').map((char, index) => (
-                  <motion.span
-                    key={`${selectedServer.id}-${index}`}
-                    initial={{ opacity: 0, filter: 'blur(4px)' }}
-                    animate={{ opacity: 1, filter: 'blur(0px)' }}
-                    transition={{
-                      duration: 0.2,
-                      delay: index * 0.03,
-                      ease: "easeOut"
-                    }}
-                  >
-                    {char}
-                  </motion.span>
-                ))}
-              </motion.p>
-            </div>
+        <div className="pointer-events-none hidden lg:absolute lg:inset-x-6 lg:bottom-4 lg:flex lg:items-end lg:justify-between lg:gap-6 xl:inset-x-8 xl:bottom-5 xl:gap-8 2xl:inset-x-10 [@media(max-height:760px)]:lg:hidden">
+          <div className="w-[45%] xl:w-[40%] max-w-[48rem]">
+            {renderAdvantagesCta("pointer-events-auto w-full")}
           </div>
+          <div className="flex-1 flex justify-center min-w-0 self-center md:self-end">
+            {renderActiveServerStatus("pointer-events-none")}
+          </div>
+          <div className="w-[32%] xl:w-[28%] min-w-[300px] max-w-[28rem]"></div>
         </div>
       </div>
 

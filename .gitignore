@@ -2,7 +2,11 @@ node_modules/
 .next/
 .next-dev/
 .next_cache_broken_*/
+dist/
 coverage/
+.playwright-cli/
+test-results/
+tsconfig.tsbuildinfo
 .DS_Store
 *.log
 .env*
