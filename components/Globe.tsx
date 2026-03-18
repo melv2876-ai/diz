@@ -1,8 +1,17 @@
 'use client';
 
-import { Suspense, lazy, memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, lazy, memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { resolveFlagMeta } from '@/lib/flags';
 
 const ReactGlobe = lazy(() => import('react-globe.gl'));
+const HOVER_HIDE_DELAY_MS = 72;
+const MAX_RENDERER_PIXEL_RATIO = 1.2;
+const GLOBE_RENDERER_CONFIG = {
+  alpha: true,
+  antialias: true,
+  powerPreference: 'high-performance',
+} as const;
+
 const globeFallback = (
     <div className="fixed inset-0 flex items-center justify-center bg-[var(--page-bg)] text-xs font-mono text-[var(--text-3)]">
       Инициализация глобальной сети...
@@ -20,23 +29,35 @@ interface GlobeProps {
 interface HoveredCountry {
   code: string;
   name: string;
+  flagClassName: string;
 }
 
 type GlobeCountryFeature = {
   properties?: Record<string, any> & {
     __countryCode?: string;
+    __countryName?: string;
+    __flagClassName?: string;
     __isSelected?: boolean;
   };
 };
 
-const getCountryCode = (properties: Record<string, any>) =>
-  properties.ISO_A2 || properties['ISO3166-1-Alpha-2'] || properties.POSTAL || '';
-
 const getCountryName = (properties: Record<string, any>) =>
   properties.NAME || properties.ADMIN || properties.name || 'Country';
 
-const getFlagImageUrl = (code?: string, width = 40) =>
-  code && code.length === 2 ? `https://flagcdn.com/w${width}/${code.toLowerCase()}.png` : '';
+const getCountryMeta = (properties: Record<string, any>) => {
+  const name = getCountryName(properties);
+  const { code, className } = resolveFlagMeta({
+    code: properties.ISO_A2 || properties['ISO3166-1-Alpha-2'],
+    postalCode: properties.POSTAL,
+    countryName: name,
+  });
+
+  return {
+    code: code || '',
+    name,
+    flagClassName: className,
+  };
+};
 
 const Starfield = memo(({ isVisible }: { isVisible: boolean }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -48,12 +69,13 @@ const Starfield = memo(({ isVisible }: { isVisible: boolean }) => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let animationFrameId: number;
+    let animationFrameId = 0;
     let w = (canvas.width = window.innerWidth);
     let h = (canvas.height = window.innerHeight);
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const stars: { x: number; y: number; size: number; opacity: number; speed: number }[] = [];
-    const starCount = Math.floor((w * h) / 4000);
+    const starCount = Math.floor((w * h) / (prefersReducedMotion ? 14000 : 12000));
 
     for (let i = 0; i < starCount; i++) {
       stars.push({
@@ -81,7 +103,9 @@ const Starfield = memo(({ isVisible }: { isVisible: boolean }) => {
         ctx.fill();
       });
 
-      animationFrameId = requestAnimationFrame(draw);
+      if (!prefersReducedMotion) {
+        animationFrameId = requestAnimationFrame(draw);
+      }
     };
 
     const handleResize = () => {
@@ -118,17 +142,69 @@ function Globe({
   theme = 'dark',
   focusToken = 0,
 }: GlobeProps) {
+  type InteractionMode = 'idle' | 'hover' | 'dragging' | 'transitioning';
+
   const globeRef = useRef<any>(null);
   const hoverLabelRef = useRef<HTMLDivElement>(null);
   const pointerPositionRef = useRef({ x: -9999, y: -9999 });
   const hoverClearTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const cameraTransitionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const controlsCleanupRef = useRef<(() => void) | null>(null);
+  const hoverLabelFrameRef = useRef<number | null>(null);
+  const hoveredCountryRef = useRef<HoveredCountry | null>(null);
   const isCameraTransitioningRef = useRef(false);
   const isDraggingRef = useRef(false);
   const [dimensions, setDimensions] = useState({ width: 1200, height: 800 });
   const [countries, setCountries] = useState<GlobeCountryFeature[]>([]);
   const [hoveredCountry, setHoveredCountry] = useState<HoveredCountry | null>(null);
+  const [interactionMode, setInteractionMode] = useState<InteractionMode>('idle');
+
+  const syncInteractionMode = useCallback((nextMode: InteractionMode) => {
+    setInteractionMode((currentMode) => (currentMode === nextMode ? currentMode : nextMode));
+  }, []);
+
+  const syncHoveredCountry = useCallback((nextCountry: HoveredCountry | null) => {
+    const currentCountry = hoveredCountryRef.current;
+
+    if (
+      currentCountry?.code === nextCountry?.code &&
+      currentCountry?.name === nextCountry?.name
+    ) {
+      return;
+    }
+
+    hoveredCountryRef.current = nextCountry;
+    setHoveredCountry(nextCountry);
+
+    if (nextCountry) {
+      if (!isCameraTransitioningRef.current && !isDraggingRef.current) {
+        syncInteractionMode('hover');
+      }
+      return;
+    }
+
+    if (!isCameraTransitioningRef.current && !isDraggingRef.current) {
+      syncInteractionMode('idle');
+    }
+  }, [syncInteractionMode]);
+
+  const flushHoverLabelPosition = useCallback(() => {
+    hoverLabelFrameRef.current = null;
+
+    if (!hoverLabelRef.current || !hoveredCountryRef.current) {
+      return;
+    }
+
+    hoverLabelRef.current.style.transform = `translate3d(${pointerPositionRef.current.x}px, ${pointerPositionRef.current.y}px, 0)`;
+  }, []);
+
+  const scheduleHoverLabelPosition = useCallback(() => {
+    if (hoverLabelFrameRef.current !== null) {
+      return;
+    }
+
+    hoverLabelFrameRef.current = window.requestAnimationFrame(flushHoverLabelPosition);
+  }, [flushHoverLabelPosition]);
 
   const clearHoveredCountry = useCallback(() => {
     if (hoverClearTimeoutRef.current) {
@@ -136,8 +212,8 @@ function Globe({
       hoverClearTimeoutRef.current = null;
     }
 
-    setHoveredCountry(null);
-  }, []);
+    syncHoveredCountry(null);
+  }, [syncHoveredCountry]);
 
   const scheduleHoveredCountryClear = useCallback(() => {
     if (hoverClearTimeoutRef.current) {
@@ -145,10 +221,10 @@ function Globe({
     }
 
     hoverClearTimeoutRef.current = setTimeout(() => {
-      setHoveredCountry(null);
       hoverClearTimeoutRef.current = null;
-    }, 24);
-  }, []);
+      syncHoveredCountry(null);
+    }, HOVER_HIDE_DELAY_MS);
+  }, [syncHoveredCountry]);
 
   const scheduleCameraTransitionEnd = useCallback((duration: number) => {
     if (cameraTransitionTimeoutRef.current) {
@@ -156,11 +232,19 @@ function Globe({
     }
 
     isCameraTransitioningRef.current = true;
+    syncInteractionMode('transitioning');
     cameraTransitionTimeoutRef.current = setTimeout(() => {
       isCameraTransitioningRef.current = false;
       cameraTransitionTimeoutRef.current = null;
+
+      if (isDraggingRef.current) {
+        syncInteractionMode('dragging');
+        return;
+      }
+
+      syncInteractionMode(hoveredCountryRef.current ? 'hover' : 'idle');
     }, duration + 80);
-  }, []);
+  }, [syncInteractionMode]);
 
   const moveCamera = useCallback(
     (location: [number, number] | null) => {
@@ -168,7 +252,7 @@ function Globe({
         return;
       }
 
-      const duration = location ? 1400 : 1800;
+      const duration = location ? 1220 : 1480;
 
       clearHoveredCountry();
       scheduleCameraTransitionEnd(duration);
@@ -178,7 +262,7 @@ function Globe({
           {
             lat: location[0],
             lng: location[1],
-            altitude: 0.72,
+            altitude: 0.74,
           },
           duration
         );
@@ -192,6 +276,7 @@ function Globe({
 
   useEffect(() => {
     let isCancelled = false;
+    let resizeFrameId: number | null = null;
 
     const loadCountries = async () => {
       try {
@@ -211,7 +296,14 @@ function Globe({
     loadCountries();
 
     const handleResize = () => {
-      setDimensions({ width: window.innerWidth, height: window.innerHeight });
+      if (resizeFrameId !== null) {
+        return;
+      }
+
+      resizeFrameId = window.requestAnimationFrame(() => {
+        resizeFrameId = null;
+        setDimensions({ width: window.innerWidth, height: window.innerHeight });
+      });
     };
 
     handleResize();
@@ -224,30 +316,25 @@ function Globe({
         clearTimeout(cameraTransitionTimeoutRef.current);
         cameraTransitionTimeoutRef.current = null;
       }
+      if (hoverLabelFrameRef.current !== null) {
+        window.cancelAnimationFrame(hoverLabelFrameRef.current);
+        hoverLabelFrameRef.current = null;
+      }
+      if (resizeFrameId !== null) {
+        window.cancelAnimationFrame(resizeFrameId);
+      }
       controlsCleanupRef.current?.();
       controlsCleanupRef.current = null;
       window.removeEventListener('resize', handleResize);
     };
   }, [clearHoveredCountry]);
 
-  useEffect(() => {
-    const frameId = window.requestAnimationFrame(() => {
-      moveCamera(selectedLocation ?? null);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-    };
+  useLayoutEffect(() => {
+    moveCamera(selectedLocation ?? null);
   }, [focusToken, moveCamera, selectedLocation]);
 
-  useEffect(() => {
-    const frameId = window.requestAnimationFrame(() => {
-      clearHoveredCountry();
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-    };
+  useLayoutEffect(() => {
+    clearHoveredCountry();
   }, [clearHoveredCountry, selectedCountryId]);
 
   useEffect(() => {
@@ -255,16 +342,26 @@ function Globe({
       return;
     }
 
-    hoverLabelRef.current.style.transform = `translate3d(${pointerPositionRef.current.x}px, ${pointerPositionRef.current.y}px, 0)`;
-  }, [hoveredCountry]);
+    scheduleHoverLabelPosition();
+  }, [hoveredCountry, scheduleHoverLabelPosition]);
 
   const selectedCountryCode = selectedCountryId?.toLowerCase() ?? null;
   const hoveredCountryCode = hoveredCountry?.code.toLowerCase() ?? null;
+  const hoveredFlagClassName = hoveredCountry?.flagClassName ?? '';
+  const selectedServerFlagMeta = useMemo(
+    () =>
+      resolveFlagMeta({
+        code: serverInfo?.flagCode ?? selectedCountryId ?? null,
+        countryName: serverInfo?.country ?? null,
+      }),
+    [selectedCountryId, serverInfo?.country, serverInfo?.flagCode]
+  );
 
   const countryPolygons = useMemo(
     () =>
       countries.map((feature: GlobeCountryFeature) => {
-        const countryCode = getCountryCode(feature.properties || {}).toLowerCase();
+        const countryMeta = getCountryMeta(feature.properties || {});
+        const countryCode = countryMeta.code.toLowerCase();
         const isSelected = countryCode === selectedCountryCode;
 
         return {
@@ -272,6 +369,8 @@ function Globe({
           properties: {
             ...(feature.properties || {}),
             __countryCode: countryCode,
+            __countryName: countryMeta.name,
+            __flagClassName: countryMeta.flagClassName,
             __isSelected: isSelected,
           },
         };
@@ -284,29 +383,56 @@ function Globe({
       selectedLocation
         ? [
             {
+              id: `${selectedServerFlagMeta.code || 'node'}-${focusToken}`,
               lat: selectedLocation[0],
               lng: selectedLocation[1],
               city: serverInfo?.city || '',
               country: serverInfo?.country || '',
-              flagCode: serverInfo?.flagCode || '',
+              flagClassName: selectedServerFlagMeta.className,
             },
           ]
         : [],
-    [selectedLocation, serverInfo]
+    [focusToken, selectedLocation, selectedServerFlagMeta.className, selectedServerFlagMeta.code, serverInfo?.city, serverInfo?.country]
   );
 
-  const moveHoverLabel = (event: React.MouseEvent<HTMLDivElement>) => {
+  const markerThemeClassName = theme === 'light' ? 'is-light' : 'is-dark';
+
+  const renderMarkerElement = useCallback(
+    (d: any) => {
+      const el = document.createElement('div');
+      el.className = 'signal-node';
+      el.dataset.markerId = d.id;
+      el.innerHTML = `
+        <div class="signal-node__pulse"></div>
+        <div class="signal-node__pulse signal-node__pulse--delayed"></div>
+        <div class="signal-node__halo"></div>
+        <div class="signal-node__core"></div>
+        <div class="signal-node__label ${markerThemeClassName}">
+          ${d.flagClassName ? `<span class="signal-node__flag-icon ${d.flagClassName}"></span>` : ''}
+          <div class="signal-node__copy">
+            <span class="signal-node__eyebrow">Active Node</span>
+            <span class="signal-node__city">${d.city}</span>
+            <span class="signal-node__country">${d.country}</span>
+          </div>
+        </div>
+      `;
+      return el;
+    },
+    [markerThemeClassName]
+  );
+
+  const moveHoverLabel = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     pointerPositionRef.current = {
       x: event.clientX + 18,
       y: event.clientY - 22,
     };
 
-    if (!hoverLabelRef.current) {
+    if (!hoverLabelRef.current || !hoveredCountryRef.current) {
       return;
     }
 
-    hoverLabelRef.current.style.transform = `translate3d(${pointerPositionRef.current.x}px, ${pointerPositionRef.current.y}px, 0)`;
-  };
+    scheduleHoverLabelPosition();
+  }, [scheduleHoverLabelPosition]);
 
   const handlePolygonHover = useCallback(
     (polygon: any, prevPolygon: any) => {
@@ -315,7 +441,7 @@ function Globe({
       }
 
       if (isCameraTransitioningRef.current || isDraggingRef.current) {
-        clearHoveredCountry();
+        scheduleHoveredCountryClear();
         return;
       }
 
@@ -329,55 +455,86 @@ function Globe({
         hoverClearTimeoutRef.current = null;
       }
 
-      const code = getCountryCode(polygon.properties);
-      setHoveredCountry((current) => {
-        if (current?.code === code) {
-          return current;
-        }
+      const countryMeta = getCountryMeta(polygon.properties);
+      const code = polygon.properties.__countryCode ?? countryMeta.code;
+      const name = polygon.properties.__countryName ?? countryMeta.name;
+      const flagClassName = polygon.properties.__flagClassName ?? countryMeta.flagClassName;
+      const currentCountry = hoveredCountryRef.current;
 
-        return {
-          code,
-          name: getCountryName(polygon.properties),
-        };
+      if (currentCountry?.code === code && currentCountry?.name === name) {
+        return;
+      }
+
+      syncHoveredCountry({
+        code,
+        name,
+        flagClassName,
       });
     },
-    [clearHoveredCountry, scheduleHoveredCountryClear]
+    [scheduleHoveredCountryClear, syncHoveredCountry]
   );
 
   const polygonCapColor = useCallback(
     (polygon: GlobeCountryFeature) => {
       const isSelected = polygon.properties?.__isSelected;
+      const isHovered = (polygon.properties?.__countryCode ?? '') === hoveredCountryCode;
 
-      if (!isSelected) {
-        return 'rgba(0,0,0,0)';
+      if (isSelected) {
+        return theme === 'light' ? 'rgba(45, 156, 219, 0.16)' : 'rgba(110, 231, 183, 0.14)';
       }
 
-      return theme === 'light' ? 'rgba(45, 156, 219, 0.1)' : 'rgba(190, 242, 230, 0.075)';
+      if (isHovered) {
+        return theme === 'light' ? 'rgba(45, 156, 219, 0.07)' : 'rgba(233, 255, 248, 0.05)';
+      }
+
+      return 'rgba(0,0,0,0)';
     },
     [theme]
   );
 
   const polygonStrokeColor = useCallback(
     (polygon: GlobeCountryFeature) => {
-      const countryCode = polygon.properties?.__countryCode ?? '';
-
       if (polygon.properties?.__isSelected) {
         return theme === 'light' ? '#1b6c99' : '#c8fff0';
       }
 
-      if (countryCode === hoveredCountryCode) {
-        return theme === 'light' ? '#2d9cdb' : '#e9fff8';
+      if ((polygon.properties?.__countryCode ?? '') === hoveredCountryCode) {
+        return theme === 'light' ? '#2d9cdb' : '#f2fff9';
       }
 
-      return theme === 'light' ? 'rgba(27,108,153,0.18)' : 'rgba(214,228,245,0.14)';
+      return theme === 'light' ? 'rgba(27,108,153,0.24)' : 'rgba(214,228,245,0.18)';
+    },
+    [hoveredCountryCode, theme]
+  );
+
+  const polygonSideColor = useCallback(
+    (polygon: GlobeCountryFeature) => {
+      if (polygon.properties?.__isSelected) {
+        return theme === 'light' ? 'rgba(45, 156, 219, 0.12)' : 'rgba(110, 231, 183, 0.11)';
+      }
+
+      if ((polygon.properties?.__countryCode ?? '') === hoveredCountryCode) {
+        return theme === 'light' ? 'rgba(45, 156, 219, 0.06)' : 'rgba(239, 248, 255, 0.05)';
+      }
+
+      return 'rgba(0,0,0,0)';
     },
     [hoveredCountryCode, theme]
   );
 
   const polygonAltitude = useCallback(
-    (polygon: GlobeCountryFeature) =>
-      polygon.properties?.__isSelected ? 0.008 : 0.001,
-    []
+    (polygon: GlobeCountryFeature) => {
+      if (polygon.properties?.__isSelected) {
+        return 0.012;
+      }
+
+      if ((polygon.properties?.__countryCode ?? '') === hoveredCountryCode) {
+        return 0.0045;
+      }
+
+      return 0.001;
+    },
+    [hoveredCountryCode]
   );
 
   const handleGlobeReady = useCallback(() => {
@@ -386,24 +543,32 @@ function Globe({
     }
 
     const controls = globeRef.current.controls();
+    const renderer = globeRef.current.renderer?.();
     controls.autoRotate = false;
     controls.enableRotate = true;
-    controls.rotateSpeed = 0.8;
+    controls.rotateSpeed = 0.68;
     controls.enableZoom = true;
+    controls.zoomSpeed = 0.82;
     controls.enablePan = false;
     controls.enableDamping = true;
-    controls.dampingFactor = 0.06;
+    controls.dampingFactor = 0.085;
     controls.minDistance = 180;
     controls.maxDistance = 560;
 
+    if (renderer) {
+      renderer.setPixelRatio(Math.min(MAX_RENDERER_PIXEL_RATIO, window.devicePixelRatio || 1));
+    }
+
     const handleStart = () => {
       isDraggingRef.current = true;
+      syncInteractionMode('dragging');
       clearHoveredCountry();
     };
 
     const handleEnd = () => {
       requestAnimationFrame(() => {
         isDraggingRef.current = false;
+        syncInteractionMode(isCameraTransitioningRef.current ? 'transitioning' : hoveredCountryRef.current ? 'hover' : 'idle');
       });
     };
 
@@ -432,11 +597,18 @@ function Globe({
     };
 
     moveCamera(selectedLocation ?? null);
-  }, [clearHoveredCountry, moveCamera, selectedLocation, theme]);
+  }, [clearHoveredCountry, moveCamera, selectedLocation, syncInteractionMode, theme]);
+
+  const globeCursorClassName =
+    interactionMode === 'dragging'
+      ? 'cursor-grabbing'
+      : hoveredCountry
+        ? 'cursor-pointer'
+        : 'cursor-grab';
 
   return (
     <div
-      className="fixed inset-0 z-0 overflow-hidden pointer-events-auto"
+      className={`fixed inset-0 z-0 overflow-hidden pointer-events-auto select-none ${globeCursorClassName}`}
       onMouseMove={moveHoverLabel}
       onMouseLeave={() => {
         clearHoveredCountry();
@@ -470,7 +642,7 @@ function Globe({
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_58%_48%,rgba(135,206,235,0.22)_0%,rgba(135,206,235,0.08)_28%,rgba(255,255,255,0)_52%)]" />
 
           {/* Soft cloud-like glows */}
-          <div className="pointer-events-none absolute left-[15%] top-[20%] h-[18rem] w-[32rem] rounded-full bg-white/20 blur-[120px] animate-pulse" />
+          <div className="pointer-events-none absolute left-[15%] top-[20%] h-[18rem] w-[32rem] rounded-full bg-white/20 blur-[120px] animate-[atmosphereFloat_24s_ease-in-out_infinite]" />
           <div className="pointer-events-none absolute right-[10%] bottom-[15%] h-[24rem] w-[40rem] rounded-full bg-sky-200/20 blur-[140px] animate-[atmospherePulse_22s_ease-in-out_infinite]" />
 
           {/* Bottom depth band */}
@@ -490,7 +662,7 @@ function Globe({
           
           {/* Deep Space Glows */}
           <div className="pointer-events-none absolute left-[-10%] top-[-5%] h-[40rem] w-[40rem] rounded-full bg-indigo-500/10 blur-[160px] animate-[atmospherePulse_25s_ease-in-out_infinite]" />
-          <div className="pointer-events-none absolute right-[-5%] bottom-[-10%] h-[35rem] w-[35rem] rounded-full bg-purple-500/5 blur-[140px] animate-pulse" />
+          <div className="pointer-events-none absolute right-[-5%] bottom-[-10%] h-[35rem] w-[35rem] rounded-full bg-purple-500/5 blur-[140px] animate-[atmosphereFloat_28s_ease-in-out_infinite]" />
           
           {/* Cosmic Dust */}
           <div className="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(circle_at_20%_80%,rgba(124,58,237,0.1)_0%,transparent_50%),radial-gradient(circle_at_80%_20%,rgba(59,130,246,0.1)_0%,transparent_50%)]" />
@@ -502,6 +674,7 @@ function Globe({
           ref={globeRef}
           width={dimensions.width}
           height={dimensions.height}
+          rendererConfig={GLOBE_RENDERER_CONFIG}
           backgroundColor="rgba(0,0,0,0)"
           animateIn={false}
           globeImageUrl={theme === 'light' ? '/globe/earth-blue-marble.jpg' : '/globe/earth-night.jpg'}
@@ -511,29 +684,14 @@ function Globe({
           atmosphereAltitude={theme === 'light' ? 0.065 : 0.11}
           polygonsData={countryPolygons}
           polygonCapColor={polygonCapColor}
-          polygonSideColor={() => 'rgba(0,0,0,0)'}
+          polygonSideColor={polygonSideColor}
           polygonStrokeColor={polygonStrokeColor}
           polygonAltitude={polygonAltitude}
-          polygonCapCurvatureResolution={8}
+          polygonCapCurvatureResolution={6}
           polygonsTransitionDuration={0}
           htmlElementsData={markerData}
-          htmlElement={(d: any) => {
-            const el = document.createElement('div');
-            el.className = 'signal-node';
-            el.innerHTML = `
-              <div class="signal-node__pulse"></div>
-              <div class="signal-node__core"></div>
-              <div class="signal-node__label ${theme === 'light' ? 'is-light' : 'is-dark'}">
-                ${d.flagCode ? `<img class="signal-node__flag-image" src="${getFlagImageUrl(d.flagCode, 32)}" alt="" />` : ''}
-                <div class="signal-node__copy">
-                  <span class="signal-node__eyebrow">Active Node</span>
-                  <span class="signal-node__city">${d.city}</span>
-                  <span class="signal-node__country">${d.country}</span>
-                </div>
-              </div>
-            `;
-            return el;
-          }}
+          htmlTransitionDuration={0}
+          htmlElement={renderMarkerElement}
           onPolygonHover={handlePolygonHover}
           onGlobeReady={handleGlobeReady}
         />
@@ -546,16 +704,7 @@ function Globe({
           style={{ transform: 'translate3d(-9999px,-9999px,0)' }}
         >
           <div className={`country-hover-pill ${theme === 'light' ? 'is-light' : 'is-dark'}`}>
-            {hoveredCountry.code ? (
-              <img
-                className="country-hover-pill__flag-image"
-                src={getFlagImageUrl(hoveredCountry.code, 32)}
-                alt=""
-                width={18}
-                height={14}
-                loading="lazy"
-              />
-            ) : null}
+            {hoveredFlagClassName ? <span className={`country-hover-pill__flag-icon ${hoveredFlagClassName}`} /> : null}
             <span className="country-hover-pill__name">{hoveredCountry.name}</span>
           </div>
         </div>

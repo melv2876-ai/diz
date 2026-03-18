@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-sans: "Golos Text", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+  --font-display: "Unbounded", "Golos Text", ui-sans-serif, system-ui, sans-serif;
 }
 
 :root {
@@ -143,12 +144,60 @@
   }
 }
 
+@keyframes atmosphereFloat {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.68;
+  }
+  50% {
+    transform: translate3d(16px, -10px, 0) scale(1.03);
+    opacity: 0.9;
+  }
+}
+
 @keyframes daylightDrift {
   0%, 100% {
     transform: translate3d(0, 0, 0) scale(1);
   }
   50% {
     transform: translate3d(18px, -12px, 0) scale(1.04);
+  }
+}
+
+@keyframes markerCoreBreath {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 8px rgba(186, 230, 253, 0.34),
+      0 0 18px rgba(125, 211, 252, 0.12);
+  }
+  50% {
+    transform: scale(1.18);
+    box-shadow:
+      0 0 12px rgba(186, 230, 253, 0.42),
+      0 0 24px rgba(125, 211, 252, 0.2);
+  }
+}
+
+@keyframes markerLabelIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes hoverPillIn {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 6px, 0) scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
   }
 }
 
@@ -171,12 +220,85 @@
   animation: spin-once 0.8s ease-in-out;
 }
 
+.liquid-glass-panel {
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
+}
+
+.liquid-glass-panel--dark {
+  border-color: rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.07) 16%, rgba(125, 211, 252, 0.1) 42%, rgba(10, 16, 28, 0.22) 100%),
+    rgba(8, 14, 24, 0.22);
+  box-shadow:
+    0 24px 80px rgba(0, 0, 0, 0.24),
+    0 10px 32px rgba(15, 23, 42, 0.14);
+}
+
+.liquid-glass-panel--dark::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.08) 14%, rgba(255, 255, 255, 0.03) 32%, transparent 60%),
+    radial-gradient(140px 88px at 18% 0%, rgba(255, 255, 255, 0.14), transparent 72%),
+    radial-gradient(180px 120px at 86% 8%, rgba(125, 211, 252, 0.18), transparent 70%);
+  opacity: 0.95;
+  pointer-events: none;
+}
+
+.liquid-glass-panel--dark::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.24),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+.liquid-glass-pill {
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+.liquid-glass-pill--dark {
+  border-color: rgba(255, 255, 255, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.04) 100%),
+    rgba(9, 15, 26, 0.24);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 8px 18px rgba(2, 6, 23, 0.14);
+}
+
+.liquid-glass-cell {
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+}
+
+.liquid-glass-cell--dark {
+  border-color: rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.03) 100%),
+    rgba(8, 14, 24, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 10px 24px rgba(2, 6, 23, 0.12);
+}
+
 .signal-node {
   pointer-events: none;
   display: flex;
   flex-direction: column;
   align-items: center;
   position: relative;
+  will-change: transform, opacity;
 }
 
 .signal-node__core {
@@ -189,17 +311,41 @@
     0 0 8px rgba(186, 230, 253, 0.34),
     0 0 18px rgba(125, 211, 252, 0.12);
   z-index: 2;
+  animation: markerCoreBreath 2.4s ease-in-out infinite;
 }
 
 .signal-node__pulse {
   position: absolute;
+  left: 50%;
+  top: 50%;
   width: 18px;
   height: 18px;
+  margin-left: -9px;
+  margin-top: -9px;
   background: rgba(191, 219, 254, 0.1);
   border-radius: 999px;
   animation: markerPulse 2.6s ease-out infinite;
   z-index: 1;
   box-shadow: 0 0 10px rgba(125, 211, 252, 0.08);
+}
+
+.signal-node__pulse--delayed {
+  animation-delay: 1.15s;
+  opacity: 0.3;
+}
+
+.signal-node__halo {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  margin-left: -13px;
+  margin-top: -13px;
+  border-radius: 999px;
+  border: 1px solid rgba(191, 219, 254, 0.18);
+  background: radial-gradient(circle, rgba(191, 219, 254, 0.12) 0%, rgba(191, 219, 254, 0) 72%);
+  z-index: 1;
 }
 
 .signal-node__label {
@@ -214,6 +360,9 @@
   white-space: nowrap;
   backdrop-filter: blur(10px);
   box-shadow: 0 10px 24px rgba(2, 6, 23, 0.2);
+  transform-origin: left center;
+  animation: markerLabelIn 320ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
 }
 
 .signal-node__label.is-dark {
@@ -265,6 +414,18 @@
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
+.signal-node__flag-icon {
+  display: inline-block;
+  width: 18px;
+  height: 13px;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  flex: 0 0 auto;
+}
+
 .signal-node__copy {
   display: flex;
   flex-direction: column;
@@ -303,6 +464,8 @@
   backdrop-filter: blur(8px);
   white-space: nowrap;
   pointer-events: none;
+  animation: hoverPillIn 160ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform, opacity;
 }
 
 .country-hover-pill.is-dark {
@@ -342,6 +505,29 @@
   flex: 0 0 auto;
 }
 
+.country-hover-pill__flag-icon {
+  display: inline-block;
+  width: 18px;
+  height: 13px;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.12);
+  flex: 0 0 auto;
+}
+
+.server-flag-icon {
+  display: inline-block;
+  width: 20px;
+  height: 15px;
+  border-radius: 4px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  flex: 0 0 auto;
+}
+
 .emoji-flag {
   font-family:
     "Apple Color Emoji",
@@ -368,5 +554,17 @@
 @media (hover: none) {
   .country-hover-pill {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ping-shimmer,
+  .refresh-spin,
+  .signal-node__core,
+  .signal-node__pulse,
+  .signal-node__pulse--delayed,
+  .signal-node__label,
+  .country-hover-pill {
+    animation: none !important;
   }
 }

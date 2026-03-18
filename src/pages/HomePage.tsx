@@ -3,7 +3,7 @@ import Hero from '@/components/Hero';
 
 export default function HomePage() {
   useEffect(() => {
-    document.title = 'WW.pro - Лучший VPN сервис';
+    document.title = 'WW.pro - VPN нового поколения';
   }, []);
 
   return (

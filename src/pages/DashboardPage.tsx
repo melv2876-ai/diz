@@ -4,7 +4,7 @@ const DashboardApp = lazy(() => import('../../asic/src/App'));
 
 export default function DashboardPage() {
   useEffect(() => {
-    document.title = 'WW.pro - Dashboard';
+    document.title = 'WW.pro - Личный кабинет';
   }, []);
 
   return (
