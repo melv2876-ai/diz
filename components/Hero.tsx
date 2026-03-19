@@ -3,7 +3,7 @@
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { ArrowRight, Moon, RefreshCw, Shield, Sun, Zap } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import Globe from './Globe';
 import { resolveFlagMeta } from '@/lib/flags';
 import { cn } from '@/lib/utils';
@@ -232,6 +232,7 @@ export default function Hero() {
   const [pings, setPings] = useState<Record<string, number | 'testing'>>({});
   const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
   const [loading, setLoading] = useState(false);
+  const [termsAccepted, setTermsAccepted] = useState(false);
   const [globeFocusToken, setGlobeFocusToken] = useState(0);
 
   const t = THEMES[theme];
@@ -522,7 +523,7 @@ export default function Hero() {
 
                     <button
                       type="submit"
-                      disabled={loading}
+                      disabled={loading || (authMode === 'register' && !termsAccepted)}
                       className={cn(
                         'inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
                         a.button,
@@ -533,6 +534,28 @@ export default function Hero() {
                     </button>
                   </form>
 
+                    {/* consent checkbox — only for register */}
+                    {authMode === 'register' && (
+                      <label className="mt-3 flex cursor-pointer items-start gap-2.5">
+                        <input
+                          type="checkbox"
+                          checked={termsAccepted}
+                          onChange={(e) => setTermsAccepted(e.target.checked)}
+                          className="mt-0.5 h-4 w-4 shrink-0 rounded accent-current"
+                        />
+                        <span className={cn('text-xs leading-relaxed', t.textMuted)}>
+                          Я принимаю{' '}
+                          <Link to="/terms" className="underline underline-offset-2">
+                            Пользовательское соглашение
+                          </Link>
+                          ,{' '}
+                          <Link to="/privacy" className="underline underline-offset-2">
+                            Политику обработки ПД
+                          </Link>{' '}
+                          и даю согласие на обработку персональных данных
+                        </span>
+                      </label>
+                    )}
                   {/* divider */}
                   <div className="my-4 flex items-center gap-3">
                     <div className={cn('h-px flex-1', t.divider)} />
@@ -581,8 +604,12 @@ export default function Hero() {
                   <div className="flex-1" />
 
                   {/* footer text */}
-                  <p className={cn('mt-4 text-center text-xs leading-relaxed', t.textSubtle)}>
-                    Продолжая, вы соглашаетесь с условиями использования сервиса WW.pro
+                  <p className={cn('mt-4 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-[11px]', t.textSubtle)}>
+                    <span>© 2026 WW.pro</span>
+                    <Link to="/terms" className="hover:underline">Условия</Link>
+                    <Link to="/privacy" className="hover:underline">Конфиденциальность</Link>
+                    <Link to="/refund" className="hover:underline">Возврат</Link>
+                    <Link to="/cookies" className="hover:underline">Cookies</Link>
                   </p>
                 </motion.div>
               </AnimatePresence>
