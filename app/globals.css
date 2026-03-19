@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+@utility scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
 @theme {
   --font-sans: "Golos Text", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
@@ -36,8 +44,8 @@
 
 :root[data-theme='light'] {
   color-scheme: light;
-  --page-bg: #f0f9ff;
-  --page-fg: #0d1c2f;
+  --page-bg: #faf8f5;
+  --page-fg: #18181b;
   --scroll-thumb: #8da3b8;
   --scroll-thumb-hover: #657b90;
   --surface-1: rgba(255, 255, 255, 0.82);
@@ -422,7 +430,7 @@
 
 :root[data-theme='dark'] .hero-brand-copy > :last-child,
 :root[data-theme='dark'] .hero-form-field > span {
-  color: rgba(212, 212, 216, 0.72);
+  color: rgba(212, 212, 216, 0.82);
 }
 
 :root[data-theme='light'] .hero-route-panel-copy > h2 {
@@ -448,7 +456,7 @@
 }
 
 :root[data-theme='dark'] .hero-active-route-copy > :first-child {
-  color: rgba(212, 212, 216, 0.72);
+  color: rgba(212, 212, 216, 0.82);
 }
 
 .signal-node {

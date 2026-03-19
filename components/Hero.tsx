@@ -1,12 +1,14 @@
 'use client';
 
 import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'motion/react';
-import { ArrowRight, Moon, RefreshCw, Shield, Sun } from 'lucide-react';
+import { AnimatePresence, motion } from 'motion/react';
+import { ArrowRight, Moon, RefreshCw, Shield, Sun, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Globe from './Globe';
 import { resolveFlagMeta } from '@/lib/flags';
 import { cn } from '@/lib/utils';
+
+/* ───────────── types ───────────── */
 
 type ThemeName = 'dark' | 'milky';
 type AccentName = 'emerald' | 'orange' | 'blue' | 'pink';
@@ -21,19 +23,23 @@ interface ServerData {
   description: string;
 }
 
+/* ───────────── storage keys ───────────── */
+
 const STORAGE_THEME_KEY = 'wwpro-theme';
 const STORAGE_ACCENT_KEY = 'wwpro-accent';
 
+/* ───────────── design tokens (aligned with ASIC) ───────────── */
+
 const ACCENTS = {
   emerald: {
-    swatch: 'bg-emerald-500',
+    color: 'bg-emerald-500',
     text: 'text-emerald-500',
-    textSoft: 'text-emerald-400',
+    textLight: 'text-emerald-400',
     bgSoft: 'bg-emerald-500/10',
     border: 'border-emerald-500/20',
-    button: 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_28px_rgba(16,185,129,0.25)]',
-    glowDark: 'bg-emerald-500/18',
-    glowLight: 'bg-emerald-500/12',
+    button: 'bg-emerald-500 hover:bg-emerald-400 text-black shadow-[0_0_20px_rgba(16,185,129,0.3)]',
+    blur1: 'bg-emerald-500/20',
+    glowCard: 'to-emerald-500/10',
     rgb: '110, 231, 183',
     cssDark: {
       border: 'rgba(110, 231, 183, 0.24)',
@@ -53,14 +59,14 @@ const ACCENTS = {
     },
   },
   orange: {
-    swatch: 'bg-orange-500',
+    color: 'bg-orange-500',
     text: 'text-orange-500',
-    textSoft: 'text-orange-400',
+    textLight: 'text-orange-400',
     bgSoft: 'bg-orange-500/10',
     border: 'border-orange-500/20',
-    button: 'bg-orange-500 hover:bg-orange-400 text-black shadow-[0_0_28px_rgba(249,115,22,0.22)]',
-    glowDark: 'bg-orange-500/18',
-    glowLight: 'bg-orange-500/12',
+    button: 'bg-orange-500 hover:bg-orange-400 text-black shadow-[0_0_20px_rgba(249,115,22,0.3)]',
+    blur1: 'bg-orange-500/20',
+    glowCard: 'to-orange-500/10',
     rgb: '251, 146, 60',
     cssDark: {
       border: 'rgba(251, 146, 60, 0.22)',
@@ -80,14 +86,14 @@ const ACCENTS = {
     },
   },
   blue: {
-    swatch: 'bg-blue-500',
+    color: 'bg-blue-500',
     text: 'text-blue-500',
-    textSoft: 'text-blue-400',
+    textLight: 'text-blue-400',
     bgSoft: 'bg-blue-500/10',
     border: 'border-blue-500/20',
-    button: 'bg-blue-500 hover:bg-blue-400 text-white shadow-[0_0_28px_rgba(59,130,246,0.22)]',
-    glowDark: 'bg-blue-500/18',
-    glowLight: 'bg-blue-500/12',
+    button: 'bg-blue-500 hover:bg-blue-400 text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]',
+    blur1: 'bg-blue-500/20',
+    glowCard: 'to-blue-500/10',
     rgb: '59, 130, 246',
     cssDark: {
       border: 'rgba(59, 130, 246, 0.24)',
@@ -107,14 +113,14 @@ const ACCENTS = {
     },
   },
   pink: {
-    swatch: 'bg-pink-500',
+    color: 'bg-pink-500',
     text: 'text-pink-500',
-    textSoft: 'text-pink-400',
+    textLight: 'text-pink-400',
     bgSoft: 'bg-pink-500/10',
     border: 'border-pink-500/20',
-    button: 'bg-pink-500 hover:bg-pink-400 text-white shadow-[0_0_28px_rgba(236,72,153,0.22)]',
-    glowDark: 'bg-pink-500/18',
-    glowLight: 'bg-pink-500/12',
+    button: 'bg-pink-500 hover:bg-pink-400 text-white shadow-[0_0_20px_rgba(236,72,153,0.3)]',
+    blur1: 'bg-pink-500/20',
+    glowCard: 'to-pink-500/10',
     rgb: '236, 72, 153',
     cssDark: {
       border: 'rgba(236, 72, 153, 0.22)',
@@ -137,38 +143,38 @@ const ACCENTS = {
 
 const THEMES = {
   dark: {
-    page: 'bg-[#050505] text-zinc-100',
-    panel: 'bg-[#0b1420]/44',
-    panelSolid: 'bg-[#0b1420]/58',
-    border: 'border-white/10',
-    borderStrong: 'border-white/14',
+    bg: 'bg-[#050505]',
     textStrong: 'text-white',
-    text: 'text-zinc-100',
-    muted: 'text-zinc-200/82',
-    subtle: 'text-zinc-300/58',
-    field: 'bg-[#0b1420]/52 text-white placeholder:text-zinc-300/42 border-white/14 focus:border-white/28',
-    badge: 'bg-white/[0.08]',
-    selected: 'bg-white/[0.09]',
-    softBorder: 'border-white/[0.09]',
-    veil: 'from-black/88 via-black/46 to-transparent',
+    text: 'text-zinc-200',
+    textMuted: 'text-zinc-400',
+    textSubtle: 'text-zinc-500',
+    border: 'border-white/[0.06]',
+    borderHover: 'hover:border-white/[0.12]',
+    card: 'bg-white/[0.02]',
+    cardHover: 'hover:bg-white/[0.04]',
+    cardSolid: 'bg-[#0a0a0a]',
+    input: 'bg-white/[0.04] border-white/[0.08] text-white placeholder:text-zinc-500 focus:border-white/[0.16]',
+    veil: 'from-[#050505]/90 via-[#050505]/50 to-transparent',
+    divider: 'bg-white/[0.06]',
   },
   milky: {
-    page: 'bg-[#eef5fa] text-slate-900',
-    panel: 'bg-white/[0.5]',
-    panelSolid: 'bg-white/[0.64]',
-    border: 'border-white/[0.44]',
-    borderStrong: 'border-white/[0.62]',
-    textStrong: 'text-slate-950',
-    text: 'text-slate-900',
-    muted: 'text-slate-800/88',
-    subtle: 'text-slate-700/88',
-    field: 'bg-white/[0.66] text-slate-950 placeholder:text-slate-600/88 border-white/[0.82] focus:border-slate-300/95',
-    badge: 'bg-white/[0.6]',
-    selected: 'bg-white/[0.7]',
-    softBorder: 'border-white/[0.42]',
-    veil: 'from-[#eef5fa]/98 via-[#eef5fa]/74 to-transparent',
+    bg: 'bg-[#faf8f5]',
+    textStrong: 'text-zinc-950',
+    text: 'text-zinc-700',
+    textMuted: 'text-zinc-600',
+    textSubtle: 'text-zinc-500',
+    border: 'border-zinc-200',
+    borderHover: 'hover:border-zinc-300',
+    card: 'bg-white/90',
+    cardHover: 'hover:bg-white',
+    cardSolid: 'bg-white',
+    input: 'bg-white border-zinc-200 text-zinc-900 placeholder:text-zinc-400 focus:border-zinc-400 shadow-sm',
+    veil: 'from-[#faf8f5]/30 via-[#faf8f5]/10 to-transparent',
+    divider: 'bg-zinc-200',
   },
 } as const;
+
+/* ───────────── servers ───────────── */
 
 const SERVERS: ServerData[] = [
   {
@@ -187,7 +193,7 @@ const SERVERS: ServerData[] = [
     coords: [40.1772, 44.5035],
     basePing: 55,
     flagCode: 'am',
-    description: 'Сбалансированный маршрут для стриминга, YouTube и спокойного серфинга.',
+    description: 'Сбалансированный маршрут для стриминга и спокойного серфинга.',
   },
   {
     id: 'fi',
@@ -196,7 +202,7 @@ const SERVERS: ServerData[] = [
     coords: [60.1699, 24.9384],
     basePing: 42,
     flagCode: 'fi',
-    description: 'Быстрый северный маршрут для стабильного и защищенного соединения.',
+    description: 'Северный маршрут для стабильного и защищенного соединения.',
   },
   {
     id: 'us',
@@ -205,12 +211,14 @@ const SERVERS: ServerData[] = [
     coords: [40.7128, -74.006],
     basePing: 110,
     flagCode: 'us',
-    description: 'Подходит для глобальных сервисов, нужных гео-зон и зарубежных регистраций.',
+    description: 'Для глобальных сервисов и зарубежных регистраций.',
   },
 ];
 
 const getPingVariation = () => Math.floor(Math.random() * 10) - 5;
 const getPingProbeDelay = () => 700 + Math.random() * 1000;
+
+/* ───────────── Hero ───────────── */
 
 export default function Hero() {
   const navigate = useNavigate();
@@ -229,21 +237,6 @@ export default function Hero() {
   const t = THEMES[theme];
   const a = ACCENTS[accent];
   const globeTheme = theme === 'milky' ? 'light' : 'dark';
-  const glassPanelClass =
-    theme === 'dark' ? 'liquid-glass-panel liquid-glass-panel--dark' : 'liquid-glass-panel liquid-glass-panel--light';
-  const glassPanelStrongClass = cn(glassPanelClass, 'liquid-glass-panel--strong');
-  const glassPillClass =
-    theme === 'dark' ? 'liquid-glass-pill liquid-glass-pill--dark' : 'liquid-glass-pill liquid-glass-pill--light';
-  const glassCellClass =
-    theme === 'dark' ? 'liquid-glass-cell liquid-glass-cell--dark' : 'liquid-glass-cell liquid-glass-cell--light';
-  const glassInputClass =
-    theme === 'dark' ? 'liquid-glass-input liquid-glass-input--dark' : 'liquid-glass-input liquid-glass-input--light';
-  const secondaryTextClass = theme === 'milky' ? 'text-slate-800/88' : t.muted;
-  const subtleTextClass = theme === 'milky' ? 'text-slate-700/88' : t.subtle;
-  const eyebrowTextClass =
-    theme === 'milky'
-      ? 'text-slate-700/94 [text-shadow:0_1px_0_rgba(255,255,255,0.55)]'
-      : 'text-zinc-300/72';
 
   const selectedServerInfo = useMemo(
     () => ({
@@ -251,13 +244,13 @@ export default function Hero() {
       country: selectedServer.country,
       flagCode: selectedServer.flagCode,
     }),
-    [selectedServer.city, selectedServer.country, selectedServer.flagCode]
+    [selectedServer.city, selectedServer.country, selectedServer.flagCode],
   );
 
   const selectedPing = pings[selectedServer.id];
   const isAnyPingTesting = useMemo(
-    () => Object.values(pings).some((value) => value === 'testing'),
-    [pings]
+    () => Object.values(pings).some((v) => v === 'testing'),
+    [pings],
   );
   const selectedServerFlagClassName = useMemo(
     () =>
@@ -265,68 +258,47 @@ export default function Hero() {
         code: selectedServer.flagCode,
         countryName: selectedServer.country,
       }).className,
-    [selectedServer.country, selectedServer.flagCode]
+    [selectedServer.country, selectedServer.flagCode],
   );
+
+  /* ── lifecycle ── */
 
   useEffect(() => {
     const frameId = window.requestAnimationFrame(() => {
       const savedTheme = window.localStorage.getItem(STORAGE_THEME_KEY);
       const savedAccent = window.localStorage.getItem(STORAGE_ACCENT_KEY);
-
-      if (savedTheme === 'dark') {
-        setTheme('dark');
-      }
-
-      if (savedTheme === 'light') {
-        setTheme('milky');
-      }
-
-      if (
-        savedAccent === 'emerald' ||
-        savedAccent === 'orange' ||
-        savedAccent === 'blue' ||
-        savedAccent === 'pink'
-      ) {
+      if (savedTheme === 'dark') setTheme('dark');
+      if (savedTheme === 'light') setTheme('milky');
+      if (savedAccent === 'emerald' || savedAccent === 'orange' || savedAccent === 'blue' || savedAccent === 'pink') {
         setAccent(savedAccent);
       }
-
       setIsReady(true);
     });
-
     return () => window.cancelAnimationFrame(frameId);
   }, []);
 
   useEffect(() => {
     document.documentElement.dataset.theme = globeTheme;
-    const accentVars = globeTheme === 'dark' ? a.cssDark : a.cssLight;
-
-    document.documentElement.style.setProperty('--accent-border', accentVars.border);
-    document.documentElement.style.setProperty('--accent-ui', accentVars.ui);
-    document.documentElement.style.setProperty('--accent-ui-strong', accentVars.uiStrong);
-    document.documentElement.style.setProperty('--accent-ui-soft', accentVars.uiSoft);
-    document.documentElement.style.setProperty('--accent-glow', accentVars.glow);
-    document.documentElement.style.setProperty('--accent-text', accentVars.text);
-
-    if (!isReady) {
-      return;
-    }
-
+    const vars = globeTheme === 'dark' ? a.cssDark : a.cssLight;
+    document.documentElement.style.setProperty('--accent-border', vars.border);
+    document.documentElement.style.setProperty('--accent-ui', vars.ui);
+    document.documentElement.style.setProperty('--accent-ui-strong', vars.uiStrong);
+    document.documentElement.style.setProperty('--accent-ui-soft', vars.uiSoft);
+    document.documentElement.style.setProperty('--accent-glow', vars.glow);
+    document.documentElement.style.setProperty('--accent-text', vars.text);
+    if (!isReady) return;
     window.localStorage.setItem(STORAGE_THEME_KEY, globeTheme);
     window.localStorage.setItem(STORAGE_ACCENT_KEY, accent);
   }, [a, accent, globeTheme, isReady]);
 
   useEffect(() => {
     SERVERS.forEach((server) => {
-      setPings((current) => ({ ...current, [server.id]: 'testing' }));
+      setPings((c) => ({ ...c, [server.id]: 'testing' }));
       pingTimeoutsRef.current[server.id] = setTimeout(() => {
-        setPings((current) => ({
-          ...current,
-          [server.id]: server.basePing + getPingVariation(),
-        }));
+        setPings((c) => ({ ...c, [server.id]: server.basePing + getPingVariation() }));
         delete pingTimeoutsRef.current[server.id];
       }, getPingProbeDelay());
     });
-
     return () => {
       if (pingKickoffFrameRef.current !== null) {
         window.cancelAnimationFrame(pingKickoffFrameRef.current);
@@ -337,61 +309,54 @@ export default function Hero() {
     };
   }, []);
 
+  /* ── actions ── */
+
   const focusServer = (server: ServerData) => {
     setSelectedServer(server);
-    setGlobeFocusToken((current) => current + 1);
+    setGlobeFocusToken((c) => c + 1);
   };
 
   const simulatePing = (serverId: string) => {
-    const existingTimeout = pingTimeoutsRef.current[serverId];
-
-    if (existingTimeout) {
-      clearTimeout(existingTimeout);
-    }
-
-    setPings((current) => ({ ...current, [serverId]: 'testing' }));
-
+    const existing = pingTimeoutsRef.current[serverId];
+    if (existing) clearTimeout(existing);
+    setPings((c) => ({ ...c, [serverId]: 'testing' }));
     pingTimeoutsRef.current[serverId] = setTimeout(() => {
-      const basePing = SERVERS.find((server) => server.id === serverId)?.basePing ?? 60;
-      setPings((current) => ({
-        ...current,
-        [serverId]: basePing + getPingVariation(),
-      }));
+      const basePing = SERVERS.find((s) => s.id === serverId)?.basePing ?? 60;
+      setPings((c) => ({ ...c, [serverId]: basePing + getPingVariation() }));
       delete pingTimeoutsRef.current[serverId];
     }, getPingProbeDelay());
   };
 
   const handleServerSelect = (server: ServerData) => {
     focusServer(server);
-
-    if (pingKickoffFrameRef.current !== null) {
-      window.cancelAnimationFrame(pingKickoffFrameRef.current);
-    }
-
+    if (pingKickoffFrameRef.current !== null) window.cancelAnimationFrame(pingKickoffFrameRef.current);
     pingKickoffFrameRef.current = window.requestAnimationFrame(() => {
       pingKickoffFrameRef.current = null;
       simulatePing(server.id);
     });
   };
 
-  const runLogin = async () => {
+  const handleCredentialsSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 900));
+    await new Promise((r) => setTimeout(r, 900));
     setLoading(false);
     navigate('/dashboard');
   };
 
-  const handleCredentialsSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    await runLogin();
+  const refreshAllPings = () => SERVERS.forEach((s) => simulatePing(s.id));
+
+  const pingColor = (ping: number | 'testing' | undefined) => {
+    if (typeof ping !== 'number') return t.textSubtle;
+    if (ping < 50) return 'text-emerald-400';
+    if (ping < 100) return 'text-yellow-400';
+    return 'text-rose-400';
   };
 
-  const refreshAllPings = () => {
-    SERVERS.forEach((server) => simulatePing(server.id));
-  };
+  /* ═══════════════ render ═══════════════ */
 
   return (
-    <div className={cn('relative min-h-[100svh] overflow-hidden transition-colors duration-500', t.page)}>
+    <div className={cn('relative min-h-[100svh] font-sans transition-colors duration-500 lg:h-[100svh] lg:overflow-hidden', t.bg, t.text)}>
       <Globe
         selectedCountryId={selectedServer.id}
         selectedLocation={selectedServer.coords}
@@ -401,83 +366,58 @@ export default function Hero() {
         accentRgb={a.rgb}
       />
 
-      <div className="pointer-events-none absolute inset-0 overflow-hidden">
-        <div
-          className={cn(
-            'absolute -left-28 top-[-160px] h-[420px] w-[420px] rounded-full blur-[130px]',
-            theme === 'milky' ? a.glowLight : a.glowDark
-          )}
-        />
-        <div className={cn('absolute inset-y-0 left-0 w-full max-w-[860px] bg-gradient-to-r', t.veil)} />
-        <div
-          className={cn(
-            'absolute inset-y-0 right-0 w-[18vw] min-w-[120px] bg-gradient-to-l',
-            theme === 'dark'
-              ? 'from-black/25 via-black/5 to-transparent'
-              : 'from-[#eef5fa]/26 via-[#eef5fa]/6 to-transparent'
-          )}
-        />
-        <div
-          className={cn(
-            'absolute inset-x-0 bottom-0 h-[24vh] bg-gradient-to-t',
-            theme === 'dark'
-              ? 'from-[#050505]/26 via-[#050505]/6 to-transparent'
-              : 'from-[#eef5fa]/42 via-[#eef5fa]/8 to-transparent'
-          )}
-        />
-      </div>
-
-      <div className="pointer-events-none relative z-10 mx-auto flex min-h-[100svh] w-full max-w-[1520px] flex-col px-4 py-4 md:px-8 md:py-6">
-        <header className="mb-6 flex items-center justify-between gap-4">
+      {/* background ambient — subtle accent glow, dark theme only */}
+      {theme === 'dark' && (
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div
             className={cn(
-              'hero-brand pointer-events-auto flex items-center gap-3 rounded-[1.35rem] border px-4 py-2.5 shadow-[0_14px_32px_rgba(15,23,42,0.1)]',
-              glassPillClass,
-              t.border
+              'absolute -left-[400px] -top-[400px] h-[800px] w-[800px] rounded-full opacity-20 blur-[180px] transition-colors duration-1000',
+              a.blur1,
             )}
-          >
-            <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl shadow-lg', a.swatch)}>
+          />
+        </div>
+      )}
+
+      {/* ── content layer ── */}
+      <div className="pointer-events-none relative z-10 mx-auto flex min-h-[100svh] w-full max-w-[1520px] flex-col px-4 py-4 md:px-8 md:py-6 lg:h-[100svh] lg:min-h-0">
+
+        {/* ── header ── */}
+        <header className="pointer-events-auto mb-4 flex shrink-0 items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg shadow-[0_0_15px_rgba(0,0,0,0.2)]', a.color)}>
               <Shield className={cn('h-5 w-5', theme === 'dark' ? 'text-black' : 'text-white')} />
             </div>
-            <div className="hero-brand-copy">
-              <div className={cn('text-lg font-semibold tracking-tight', t.textStrong)}>WW.pro</div>
-              <div className={cn('text-[10px] uppercase tracking-[0.26em]', t.subtle)}>Защищенный доступ</div>
-            </div>
+            <span className={cn('text-lg font-semibold tracking-tight', t.textStrong)}>WW.pro</span>
           </div>
 
-          <div className="pointer-events-auto flex items-center gap-3">
-            <div
-              className={cn(
-                'flex items-center gap-1.5 rounded-full border p-1.5 shadow-[0_10px_26px_rgba(15,23,42,0.12)]',
-                glassPillClass,
-                t.border
-              )}
-            >
-              {(Object.keys(ACCENTS) as AccentName[]).map((accentKey) => (
+          <div className="flex items-center gap-3">
+            <div className={cn('flex items-center gap-1.5 rounded-full border p-1.5 transition-colors', t.border, t.cardSolid)}>
+              {(Object.keys(ACCENTS) as AccentName[]).map((key) => (
                 <button
-                  key={accentKey}
+                  key={key}
                   type="button"
-                  onClick={() => setAccent(accentKey)}
+                  onClick={() => setAccent(key)}
                   className={cn(
                     'h-4 w-4 rounded-full transition-all duration-300',
-                    ACCENTS[accentKey].swatch,
-                    accent === accentKey
-                      ? cn('scale-110 ring-2', theme === 'dark' ? 'ring-white/80' : 'ring-black/70')
-                      : 'scale-90 opacity-60 hover:scale-100 hover:opacity-100'
+                    ACCENTS[key].color,
+                    accent === key
+                      ? cn('scale-110 ring-2 ring-current ring-offset-2', theme === 'dark' ? 'ring-offset-[#0a0a0a]' : 'ring-offset-white')
+                      : 'scale-90 opacity-60 hover:scale-100 hover:opacity-100',
                   )}
-                  aria-label={`Выбрать акцент ${accentKey}`}
+                  aria-label={`Акцент ${key}`}
                 />
               ))}
             </div>
 
             <button
               type="button"
-              onClick={() => setTheme((current) => (current === 'dark' ? 'milky' : 'dark'))}
+              onClick={() => setTheme((c) => (c === 'dark' ? 'milky' : 'dark'))}
               className={cn(
-                'flex h-10 w-10 items-center justify-center rounded-full border transition-colors',
-                glassPillClass,
+                'rounded-full border p-2 transition-colors',
                 t.border,
-                t.muted
+                t.cardSolid,
+                t.textMuted,
+                theme === 'dark' ? 'hover:text-white' : 'hover:text-black',
               )}
               aria-label="Переключить тему"
             >
@@ -486,184 +426,262 @@ export default function Hero() {
           </div>
         </header>
 
-        <main className="grid flex-1 gap-5 lg:grid-cols-[380px_minmax(0,1fr)] xl:grid-cols-[380px_minmax(0,1fr)_290px] xl:gap-6">
+        {/* ── main: two-column layout ── */}
+        <main className="grid min-h-0 flex-1 gap-5 lg:grid-cols-[380px_minmax(0,1fr)_320px] xl:gap-6">
+
+          {/* ══════ LEFT — Auth (full height) ══════ */}
           <motion.section
             initial={{ opacity: 0, x: -16 }}
             animate={{ opacity: 1, x: 0 }}
-            className="flex min-h-0 flex-col gap-4"
+            className="pointer-events-auto flex min-h-0 flex-col"
           >
             <div
               className={cn(
-                'pointer-events-auto relative overflow-hidden rounded-[2rem] border p-6 shadow-[0_28px_90px_rgba(0,0,0,0.16)] transition-colors md:p-7',
-                glassPanelStrongClass,
-                t.borderStrong
+                'flex flex-1 flex-col rounded-2xl border p-6 transition-colors',
+                t.card,
+                t.border,
               )}
             >
-              <div
-                className={cn(
-                  'absolute -right-8 top-0 h-36 w-36 rounded-full blur-[96px]',
-                  theme === 'milky' ? a.glowLight : a.glowDark
-                )}
-              />
-
-              <div className="relative z-10">
-                <div className="mb-5 flex flex-wrap items-center gap-2">
-                  <div
-                    className={cn(
-                      'inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em]',
-                      glassPillClass,
-                      a.bgSoft,
-                      a.border,
-                      a.textSoft
-                    )}
-                  >
-                    Безопасный вход
-                  </div>
-                  <div className={cn('inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-medium', glassPillClass, t.badge, t.border, secondaryTextClass)}>
-                    <div
+              {/* auth mode tabs */}
+              <div className={cn('mb-5 flex gap-1 rounded-xl border p-1', t.border, t.cardSolid)}>
+                {(['register', 'login'] as const).map((mode) => {
+                  const active = authMode === mode;
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setAuthMode(mode)}
                       className={cn(
-                        'h-2 w-2 rounded-full',
-                        typeof selectedPing === 'number' && selectedPing < 60 ? a.swatch : 'bg-yellow-500'
+                        'relative flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-300',
+                        active ? t.textStrong : t.textMuted,
                       )}
-                    />
-                    {selectedServer.city}
-                  </div>
-                </div>
-
-                <div className="max-w-sm">
-                  <h1 className={cn('font-[var(--font-display)] text-3xl font-medium tracking-tight md:text-[2.6rem]', t.textStrong)}>
-                    {authMode === 'register' ? 'Создайте доступ' : 'Войдите в кабинет'}
-                  </h1>
-                  <p className={cn('mt-3 text-sm leading-6 md:text-[15px]', secondaryTextClass)}>
-                    Тихий первый экран без лишних блоков. Выберите маршрут и продолжите в личный кабинет.
-                  </p>
-                </div>
-
-                <div
-                  className={cn(
-                    'mt-6 grid grid-cols-2 gap-2 rounded-2xl border p-1 shadow-[0_12px_30px_rgba(15,23,42,0.08)]',
-                    glassPanelClass,
-                    t.border
-                  )}
-                >
-                  {(['register', 'login'] as const).map((mode) => {
-                    const active = authMode === mode;
-
-                    return (
-                      <button
-                        key={mode}
-                        type="button"
-                        onClick={() => setAuthMode(mode)}
-                        className={cn(
-                          'rounded-xl px-4 py-2.5 text-sm font-medium transition-all',
-                          active
-                            ? cn(glassPillClass, a.textSoft, 'shadow-[0_10px_28px_rgba(15,23,42,0.12)]')
-                            : cn(secondaryTextClass, 'opacity-92 hover:opacity-100')
-                        )}
-                      >
-                        {mode === 'register' ? 'Регистрация' : 'Вход'}
-                      </button>
-                    );
-                  })}
-                </div>
-
-                <form className="mt-6 space-y-4" onSubmit={handleCredentialsSubmit}>
-                  <label className="hero-form-field block">
-                    <span className={cn('mb-2 block text-[11px] uppercase tracking-[0.24em]', t.subtle)}>Почта</span>
-                    <input
-                      type="email"
-                      required
-                      autoComplete="email"
-                      placeholder="you@example.com"
-                      className={cn(
-                        'w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-[border-color,box-shadow,background-color] duration-200',
-                        glassInputClass,
-                        t.field
+                    >
+                      {active && (
+                        <motion.div
+                          layoutId="authTab"
+                          className={cn('absolute inset-0 rounded-lg', t.card, a.bgSoft)}
+                          transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
+                        />
                       )}
-                    />
-                  </label>
-
-                  <label className="hero-form-field block">
-                    <span className={cn('mb-2 block text-[11px] uppercase tracking-[0.24em]', t.subtle)}>Пароль</span>
-                    <input
-                      type="password"
-                      required
-                      autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
-                      placeholder={authMode === 'register' ? 'Придумайте надежный пароль' : 'Введите пароль'}
-                      className={cn(
-                        'w-full rounded-2xl border px-4 py-3 text-sm outline-none transition-[border-color,box-shadow,background-color] duration-200',
-                        glassInputClass,
-                        t.field
-                      )}
-                    />
-                  </label>
-
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className={cn(
-                      'inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-70',
-                      a.button
-                    )}
-                  >
-                    {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-                    {authMode === 'register' ? 'Создать доступ' : 'Войти в кабинет'}
-                  </button>
-                </form>
-
-                <p className={cn('mt-4 text-[13px] leading-5', subtleTextClass)}>
-                  После входа откроется личный кабинет с текущим маршрутом.
-                </p>
+                      <span className="relative z-10">{mode === 'register' ? 'Регистрация' : 'Вход'}</span>
+                    </button>
+                  );
+                })}
               </div>
+
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={authMode}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -6 }}
+                  transition={{ duration: 0.15 }}
+                  className="flex flex-1 flex-col"
+                >
+                  <h1 className={cn('mb-2 text-2xl font-medium tracking-tight', t.textStrong)}>
+                    {authMode === 'register' ? 'Создайте аккаунт' : 'С возвращением'}
+                  </h1>
+                  <p className={cn('mb-5 text-sm leading-relaxed', t.textMuted)}>
+                    {authMode === 'register'
+                      ? 'Один аккаунт — доступ ко всем серверам и устройствам.'
+                      : 'Войдите, чтобы перейти к маршрутам и настройкам.'}
+                  </p>
+
+                  <form className="space-y-3" onSubmit={handleCredentialsSubmit}>
+                    <div>
+                      <label className={cn('mb-1.5 block text-[11px] font-medium uppercase tracking-wider', t.textSubtle)}>
+                        Почта
+                      </label>
+                      <input
+                        type="email"
+                        required
+                        autoComplete="email"
+                        placeholder="you@example.com"
+                        className={cn(
+                          'w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors duration-200',
+                          t.input,
+                        )}
+                      />
+                    </div>
+
+                    <div>
+                      <label className={cn('mb-1.5 block text-[11px] font-medium uppercase tracking-wider', t.textSubtle)}>
+                        Пароль
+                      </label>
+                      <input
+                        type="password"
+                        required
+                        autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
+                        placeholder={authMode === 'register' ? 'Минимум 8 символов' : 'Введите пароль'}
+                        className={cn(
+                          'w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors duration-200',
+                          t.input,
+                        )}
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className={cn(
+                        'inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
+                        a.button,
+                      )}
+                    >
+                      {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                      {authMode === 'register' ? 'Создать аккаунт' : 'Войти'}
+                    </button>
+                  </form>
+
+                  {/* divider */}
+                  <div className="my-4 flex items-center gap-3">
+                    <div className={cn('h-px flex-1', t.divider)} />
+                    <span className={cn('text-[11px] uppercase tracking-wider', t.textSubtle)}>или</span>
+                    <div className={cn('h-px flex-1', t.divider)} />
+                  </div>
+
+                  {/* social auth */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      className={cn(
+                        'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors',
+                        t.border,
+                        t.card,
+                        t.cardHover,
+                        t.textStrong,
+                      )}
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 24 24">
+                        <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
+                        <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                        <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+                        <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+                      </svg>
+                      Google
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(
+                        'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors',
+                        t.border,
+                        t.card,
+                        t.cardHover,
+                        t.textStrong,
+                      )}
+                    >
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
+                      </svg>
+                      Telegram
+                    </button>
+                  </div>
+
+                  {/* spacer pushes footer to bottom */}
+                  <div className="flex-1" />
+
+                  {/* footer text */}
+                  <p className={cn('mt-4 text-center text-xs leading-relaxed', t.textSubtle)}>
+                    Продолжая, вы соглашаетесь с условиями использования сервиса WW.pro
+                  </p>
+                </motion.div>
+              </AnimatePresence>
+            </div>
+          </motion.section>
+
+          {/* ══════ CENTER — globe space ══════ */}
+          <section className="relative hidden min-h-0 lg:block" aria-hidden="true" />
+
+          {/* ══════ RIGHT — Active route + server list ══════ */}
+          <motion.aside
+            initial={{ opacity: 0, x: 16 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.1 }}
+            className="pointer-events-auto flex min-h-0 flex-col gap-4 lg:col-span-1"
+          >
+            {/* ── active server card (minimal) ── */}
+            <div className={cn('shrink-0 rounded-2xl border p-5 transition-colors', t.border, t.cardSolid)}>
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className={cn('mb-1 flex items-center gap-2 text-xs font-medium', a.text)}>
+                    <Zap className="h-3.5 w-3.5" />
+                    <span>Активный маршрут</span>
+                  </div>
+                  <AnimatePresence mode="wait">
+                    <motion.h2
+                      key={selectedServer.id}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -4 }}
+                      transition={{ duration: 0.12 }}
+                      className={cn('text-2xl font-light tracking-tight', t.textStrong)}
+                    >
+                      {selectedServer.city}
+                    </motion.h2>
+                  </AnimatePresence>
+                  <div className={cn('mt-1 flex items-center gap-2 text-sm', t.textMuted)}>
+                    {selectedServerFlagClassName && (
+                      <span className={cn('server-flag-icon rounded-[3px]', selectedServerFlagClassName)} aria-hidden="true" />
+                    )}
+                    <span>{selectedServer.country}</span>
+                    <span className={t.textSubtle}>·</span>
+                    <span className={cn('font-mono text-xs', pingColor(selectedPing))}>
+                      {typeof selectedPing === 'number' ? `${selectedPing} ms` : '...'}
+                    </span>
+                  </div>
+                </div>
+                <div className={cn('rounded-lg border px-2.5 py-1 text-center', t.border, t.card)}>
+                  <div className={cn('text-[10px] uppercase tracking-wider', t.textSubtle)}>Канал</div>
+                  <div className={cn('text-sm font-medium', t.textStrong)}>10 Gbps</div>
+                </div>
+              </div>
+
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={selectedServer.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.12 }}
+                  className={cn('mt-3 text-sm leading-relaxed', t.textMuted)}
+                >
+                  {selectedServer.description}
+                </motion.p>
+              </AnimatePresence>
             </div>
 
-            <motion.div
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.08 }}
+            {/* ── server list ── */}
+            <div
               className={cn(
-                'pointer-events-auto rounded-[2rem] border p-5 shadow-[0_24px_90px_rgba(0,0,0,0.14)] transition-colors',
-                glassPanelClass,
-                t.border
+                'flex min-h-0 flex-1 flex-col rounded-2xl border p-4 transition-colors',
+                t.card,
+                t.border,
               )}
             >
-              <div className="mb-4 flex items-center justify-between gap-3">
-                <div className="hero-route-panel-copy">
-                  <h2 className={cn('text-base font-medium', t.textStrong)}>Маршрут</h2>
-                  <p className={cn('mt-1 text-sm', t.muted)}>Глобус остается связанным с выбранной нодой.</p>
-                </div>
+              <div className="mb-3 flex shrink-0 items-center justify-between">
+                <h2 className={cn('text-sm font-medium', t.textStrong)}>Доступные серверы</h2>
                 <button
                   type="button"
                   onClick={refreshAllPings}
                   className={cn(
-                    'flex h-9 w-9 items-center justify-center rounded-full border transition-colors',
-                    glassPillClass,
+                    'flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[11px] transition-colors',
                     t.border,
-                    t.muted
+                    t.textMuted,
+                    t.cardHover,
                   )}
                   aria-label="Обновить пинги"
                 >
-                  <RefreshCw className={cn('h-4 w-4', isAnyPingTesting && 'refresh-spin')} />
+                  <RefreshCw className={cn('h-3 w-3', isAnyPingTesting && 'animate-spin')} />
+                  <span>Проверить пинг</span>
                 </button>
               </div>
 
-              <div className="space-y-2.5">
+              <div className="min-h-0 flex-1 space-y-1.5 overflow-y-auto scrollbar-none">
                 {SERVERS.map((server) => {
                   const ping = pings[server.id];
                   const isSelected = server.id === selectedServer.id;
-                  const flagClassName = resolveFlagMeta({
-                    code: server.flagCode,
-                    countryName: server.country,
-                  }).className;
-                  const pingText = typeof ping === 'number' ? `${ping} ms` : 'Проверка';
-                  const pingTone =
-                    typeof ping !== 'number'
-                      ? t.subtle
-                      : ping < 50
-                        ? 'text-emerald-400'
-                        : ping < 100
-                          ? 'text-yellow-400'
-                          : 'text-rose-400';
+                  const flagClassName = resolveFlagMeta({ code: server.flagCode, countryName: server.country }).className;
+                  const pingText = typeof ping === 'number' ? `${ping} ms` : '...';
 
                   return (
                     <button
@@ -671,120 +689,27 @@ export default function Hero() {
                       type="button"
                       onClick={() => handleServerSelect(server)}
                       className={cn(
-                        'relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border px-4 py-3.5 text-left transform-gpu transition-[transform,border-color,box-shadow,background-color] duration-200 ease-out',
+                        'flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-all duration-200',
                         isSelected
-                          ? cn(glassCellClass, t.selected, a.border, 'scale-[1.01] shadow-[0_18px_40px_rgba(0,0,0,0.12)]')
-                          : cn(
-                              glassCellClass,
-                              t.softBorder,
-                              'hover:-translate-y-0.5',
-                              theme === 'dark' ? 'hover:border-white/16' : 'hover:border-white/[0.82]'
-                            )
+                          ? cn(t.card, a.border)
+                          : cn(t.border, t.cardHover, t.borderHover),
                       )}
                     >
                       <span
-                        className={cn(
-                          'relative z-10 server-flag-icon rounded-[4px] shadow-[0_0_0_1px_rgba(255,255,255,0.1)]',
-                          flagClassName
-                        )}
+                        className={cn('server-flag-icon shrink-0 rounded-[3px]', flagClassName)}
                         aria-hidden="true"
                       />
-
-                      <div className="relative z-10 min-w-0 flex-1">
+                      <div className="min-w-0 flex-1">
                         <div className={cn('text-sm font-medium', t.textStrong)}>{server.country}</div>
-                        <div className={cn('mt-1 text-[11px] font-semibold uppercase tracking-[0.18em]', eyebrowTextClass)}>{server.city}</div>
+                        <div className={cn('text-xs', t.textSubtle)}>{server.city}</div>
                       </div>
-
-                      <div
-                        className={cn(
-                          'relative z-10 rounded-full px-2 py-1 text-sm font-mono transition-colors',
-                          typeof ping !== 'number' ? cn('ping-shimmer', theme === 'dark' ? 'text-zinc-200' : 'text-slate-800') : pingTone
-                        )}
-                      >
+                      <span className={cn('font-mono text-xs tabular-nums', pingColor(ping))}>
                         {pingText}
-                      </div>
+                      </span>
                     </button>
                   );
                 })}
               </div>
-            </motion.div>
-          </motion.section>
-
-          <section className="relative hidden min-h-[660px] lg:block" aria-hidden="true" />
-
-          <motion.aside
-            initial={{ opacity: 0, x: 16 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.12 }}
-            className="flex flex-col justify-end lg:col-span-2 xl:col-span-1 xl:pb-4"
-          >
-            <div
-              className={cn(
-                'pointer-events-auto relative isolate overflow-hidden rounded-[2rem] border p-5 transition-colors sm:max-w-[380px] xl:ml-auto',
-                glassPanelStrongClass,
-                'shadow-[0_20px_70px_rgba(30,58,88,0.12)]',
-                t.border
-              )}
-            >
-              <div className="relative z-10 mb-5 flex items-start justify-between gap-3">
-                <div className="hero-active-route-copy">
-                  <div className={cn('text-[11px] uppercase tracking-[0.24em]', t.subtle)}>Активный маршрут</div>
-                  <h2 className={cn('mt-2 text-xl font-medium tracking-tight', t.textStrong)}>{selectedServer.city}</h2>
-                  <div className={cn('mt-1 inline-flex items-center gap-2 text-sm', secondaryTextClass)}>
-                    {selectedServerFlagClassName ? (
-                      <span
-                        className={cn(
-                          'server-flag-icon rounded-[4px] shadow-[0_0_0_1px_rgba(255,255,255,0.1)]',
-                          selectedServerFlagClassName
-                        )}
-                        aria-hidden="true"
-                      />
-                    ) : null}
-                    <span>{selectedServer.country}</span>
-                  </div>
-                </div>
-                <div
-                  className={cn(
-                    'rounded-full border px-3 py-1 text-[11px]',
-                    glassPillClass,
-                    a.bgSoft,
-                    a.border,
-                    typeof selectedPing === 'number' ? a.textSoft : cn('ping-shimmer', theme === 'dark' ? 'text-zinc-200' : 'text-slate-800')
-                  )}
-                >
-                  {typeof selectedPing === 'number' ? `${selectedPing} ms` : 'Сканирование'}
-                </div>
-              </div>
-
-              <motion.div
-                key={selectedServer.id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.16, ease: [0.22, 1, 0.36, 1] }}
-                className="relative z-10 space-y-4"
-              >
-                  <p className={cn('text-[15px] leading-7', secondaryTextClass)}>{selectedServer.description}</p>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    {[
-                      { label: 'Протокол', value: 'VLESS' },
-                      { label: 'Щит', value: 'Reality' },
-                      { label: 'Канал', value: '10 Gbps' },
-                    ].map((item) => (
-                      <div
-                        key={item.label}
-                        className={cn(
-                          'rounded-2xl border p-3 text-center',
-                          glassCellClass,
-                          t.softBorder
-                        )}
-                      >
-                        <div className={cn('text-[11px] font-semibold uppercase tracking-[0.18em]', eyebrowTextClass)}>{item.label}</div>
-                        <div className={cn('mt-2 text-sm font-medium', t.textStrong)}>{item.value}</div>
-                      </div>
-                    ))}
-                  </div>
-                </motion.div>
             </div>
           </motion.aside>
         </main>
