@@ -870,35 +870,36 @@ function Globe({
             className="pointer-events-none absolute inset-0 transition-opacity duration-1000"
             style={{
               background: `
-                radial-gradient(circle at 14% 10%, rgba(255, 247, 230, 0.72) 0%, rgba(255, 247, 230, 0.32) 14%, rgba(255, 247, 230, 0) 34%),
-                radial-gradient(circle at 58% 48%, ${accentGlow(0.18)} 0%, ${accentGlow(0.08)} 24%, rgba(255, 255, 255, 0) 50%),
+                radial-gradient(circle at 50% 44%, rgba(255, 250, 240, 0.5) 0%, rgba(255, 250, 240, 0.18) 16%, rgba(255, 250, 240, 0) 34%),
+                radial-gradient(circle at 52% 50%, ${accentGlow(0.2)} 0%, ${accentGlow(0.1)} 22%, rgba(255, 255, 255, 0) 48%),
                 linear-gradient(180deg, #bae6fd 0%, #e0f2fe 38%, #f8fafc 100%)
               `,
             }}
           />
 
-          <div className="pointer-events-none absolute left-0 top-0 h-[50vh] w-[50vw] bg-[radial-gradient(circle_at_0%_0%,rgba(255,251,235,0.4)_0%,transparent_70%)] blur-[100px] animate-[daylightDrift_30s_ease-in-out_infinite]" />
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-[42%] bg-[linear-gradient(90deg,rgba(240,249,255,0.96)_0%,rgba(240,249,255,0.72)_48%,rgba(240,249,255,0.12)_86%,transparent_100%)]" />
           <div
             className="pointer-events-none absolute inset-0 transition-opacity duration-700"
             style={{
-              background: `radial-gradient(circle at 58% 48%, ${accentGlow(0.2)} 0%, ${accentGlow(0.08)} 28%, rgba(255,255,255,0) 54%)`,
+              background: `radial-gradient(circle at 52% 50%, ${accentGlow(0.18)} 0%, ${accentGlow(0.08)} 30%, rgba(255,255,255,0) 56%)`,
             }}
           />
-          <div className="pointer-events-none absolute left-[15%] top-[20%] h-[18rem] w-[32rem] rounded-full bg-white/20 blur-[120px] animate-[atmosphereFloat_24s_ease-in-out_infinite]" />
+          <div className="pointer-events-none absolute left-1/2 top-1/2 h-[34rem] w-[34rem] -translate-x-1/2 -translate-y-1/2 rounded-full blur-[150px] animate-[atmospherePulse_24s_ease-in-out_infinite]"
+            style={{ background: `radial-gradient(circle, ${accentGlow(0.14)} 0%, rgba(255,255,255,0) 68%)` }}
+          />
+          <div className="pointer-events-none absolute left-[12%] top-[18%] h-[16rem] w-[24rem] rounded-full bg-white/18 blur-[120px] animate-[atmosphereFloat_26s_ease-in-out_infinite]" />
           <div
-            className="pointer-events-none absolute right-[10%] bottom-[15%] h-[24rem] w-[40rem] rounded-full blur-[140px] animate-[atmospherePulse_22s_ease-in-out_infinite]"
-            style={{ background: `radial-gradient(circle, ${accentGlow(0.12)} 0%, rgba(255,255,255,0) 70%)` }}
+            className="pointer-events-none absolute right-[12%] top-[22%] h-[16rem] w-[24rem] rounded-full blur-[120px] animate-[atmosphereFloat_28s_ease-in-out_infinite]"
+            style={{ background: `radial-gradient(circle, rgba(255,255,255,0.18) 0%, rgba(255,255,255,0) 72%)` }}
           />
           <div
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-[42vh]"
+            className="pointer-events-none absolute inset-x-[10%] bottom-[8%] h-[24vh] rounded-full blur-[120px]"
             style={{
-              background: `linear-gradient(180deg, rgba(224,242,254,0) 0%, ${accentGlow(0.08)} 35%, ${accentGlow(0.2)} 100%)`,
+              background: `radial-gradient(ellipse at center, ${accentGlow(0.08)} 0%, rgba(255,255,255,0) 72%)`,
             }}
           />
           <div
-            className="pointer-events-none absolute right-[-6%] top-[12%] h-[26rem] w-[26rem] rounded-full opacity-60 [mask-image:linear-gradient(180deg,black,transparent)]"
-            style={{ border: `1px solid ${accentGlow(0.14)}` }}
+            className="pointer-events-none absolute left-1/2 top-1/2 h-[28rem] w-[28rem] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-45"
+            style={{ border: `1px solid ${accentGlow(0.12)}` }}
           />
           <div className="pointer-events-none absolute inset-0 shadow-[inset_0_0_240px_rgba(30,58,88,0.08)]" />
         </>

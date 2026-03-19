@@ -1,8 +1,8 @@
 'use client';
 
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, Moon, RefreshCw, Shield, Sun, Zap } from 'lucide-react';
+import { ArrowRight, Check, Eye, EyeOff, Mail, Moon, RefreshCw, Shield, Sun, Zap } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import Globe from './Globe';
 import { resolveFlagMeta } from '@/lib/flags';
@@ -231,9 +231,19 @@ export default function Hero() {
   const [selectedServer, setSelectedServer] = useState<ServerData>(SERVERS[0]);
   const [pings, setPings] = useState<Record<string, number | 'testing'>>({});
   const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
+  const [regStep, setRegStep] = useState<1 | 2 | 3>(1);
   const [loading, setLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [globeFocusToken, setGlobeFocusToken] = useState(0);
+
+  /* form fields */
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [verifyCode, setVerifyCode] = useState('');
+  const [formError, setFormError] = useState('');
 
   const t = THEMES[theme];
   const a = ACCENTS[accent];
@@ -339,20 +349,93 @@ export default function Hero() {
 
   const handleCredentialsSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setFormError('');
+
+    if (authMode === 'register') {
+      if (regStep === 1) {
+        if (password.length < 8) {
+          setFormError('Пароль должен быть не менее 8 символов');
+          return;
+        }
+        if (password !== confirmPassword) {
+          setFormError('Пароли не совпадают');
+          return;
+        }
+        if (!termsAccepted) {
+          setFormError('Необходимо принять условия');
+          return;
+        }
+        setLoading(true);
+        await new Promise((r) => setTimeout(r, 800));
+        setLoading(false);
+        setRegStep(2);
+        return;
+      }
+      if (regStep === 2) {
+        if (verifyCode.length !== 6) {
+          setFormError('Введите 6-значный код');
+          return;
+        }
+        setLoading(true);
+        await new Promise((r) => setTimeout(r, 1000));
+        setLoading(false);
+        setRegStep(3);
+        setTimeout(() => navigate('/dashboard'), 1500);
+        return;
+      }
+    }
+
+    /* login */
+    if (!email || !password) {
+      setFormError('Заполните все поля');
+      return;
+    }
     setLoading(true);
     await new Promise((r) => setTimeout(r, 900));
     setLoading(false);
     navigate('/dashboard');
   };
 
+  const switchAuthMode = useCallback((mode: 'register' | 'login') => {
+    setAuthMode(mode);
+    setRegStep(1);
+    setFormError('');
+    setVerifyCode('');
+    setPassword('');
+    setConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  }, []);
+
+  const passwordStrength = useMemo(() => {
+    if (password.length === 0) return { level: 0, label: '', color: '' };
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    if (score <= 1) return { level: 1, label: 'Слабый', color: 'bg-red-500' };
+    if (score <= 2) return { level: 2, label: 'Средний', color: 'bg-yellow-500' };
+    if (score <= 3) return { level: 3, label: 'Хороший', color: 'bg-emerald-400' };
+    return { level: 4, label: 'Надёжный', color: 'bg-emerald-500' };
+  }, [password]);
+
   const refreshAllPings = () => SERVERS.forEach((s) => simulatePing(s.id));
 
   const pingColor = (ping: number | 'testing' | undefined) => {
     if (typeof ping !== 'number') return t.textSubtle;
-    if (ping < 50) return 'text-emerald-400';
-    if (ping < 100) return 'text-yellow-400';
-    return 'text-rose-400';
+    if (theme === 'milky') {
+      if (ping < 50) return 'text-emerald-700';
+      if (ping < 100) return 'text-amber-700';
+      return 'text-rose-700';
+    }
+    if (ping < 50) return 'text-emerald-300';
+    if (ping < 100) return 'text-amber-300';
+    return 'text-rose-300';
   };
+
+  const pingValueClassName = 'font-mono text-sm font-semibold tabular-nums tracking-tight';
 
   /* ═══════════════ render ═══════════════ */
 
@@ -451,7 +534,7 @@ export default function Hero() {
                     <button
                       key={mode}
                       type="button"
-                      onClick={() => setAuthMode(mode)}
+                      onClick={() => switchAuthMode(mode)}
                       className={cn(
                         'relative flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-300',
                         active ? t.textStrong : t.textMuted,
@@ -472,135 +555,264 @@ export default function Hero() {
 
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={authMode}
+                  key={`${authMode}-${regStep}`}
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -6 }}
                   transition={{ duration: 0.15 }}
                   className="flex flex-1 flex-col"
                 >
-                  <h1 className={cn('mb-2 text-2xl font-medium tracking-tight', t.textStrong)}>
-                    {authMode === 'register' ? 'Создайте аккаунт' : 'С возвращением'}
-                  </h1>
-                  <p className={cn('mb-5 text-sm leading-relaxed', t.textMuted)}>
-                    {authMode === 'register'
-                      ? 'Один аккаунт — доступ ко всем серверам и устройствам.'
-                      : 'Войдите, чтобы перейти к маршрутам и настройкам.'}
-                  </p>
+                  {/* ── REGISTER STEP 1 ── */}
+                  {authMode === 'register' && regStep === 1 && (
+                    <>
+                      <h1 className={cn('mb-2 text-2xl font-medium tracking-tight', t.textStrong)}>Создайте аккаунт</h1>
+                      <p className={cn('mb-5 text-sm leading-relaxed', t.textMuted)}>Один аккаунт — доступ ко всем серверам и устройствам.</p>
 
-                  <form className="space-y-3" onSubmit={handleCredentialsSubmit}>
-                    <div>
-                      <label className={cn('mb-1.5 block text-[11px] font-medium uppercase tracking-wider', t.textSubtle)}>
-                        Почта
-                      </label>
-                      <input
-                        type="email"
-                        required
-                        autoComplete="email"
-                        placeholder="you@example.com"
-                        className={cn(
-                          'w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors duration-200',
-                          t.input,
-                        )}
-                      />
+                      <form className="space-y-3" onSubmit={handleCredentialsSubmit}>
+                        <div>
+                          <label className={cn('mb-1.5 block text-[11px] font-medium uppercase tracking-wider', t.textSubtle)}>Почта</label>
+                          <input
+                            type="email"
+                            required
+                            autoComplete="email"
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => { setEmail(e.target.value); setFormError(''); }}
+                            className={cn('w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors duration-200', t.input)}
+                          />
+                        </div>
+
+                        <div>
+                          <label className={cn('mb-1.5 block text-[11px] font-medium uppercase tracking-wider', t.textSubtle)}>Пароль</label>
+                          <div className="relative">
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              required
+                              autoComplete="new-password"
+                              placeholder="Минимум 8 символов"
+                              value={password}
+                              onChange={(e) => { setPassword(e.target.value); setFormError(''); }}
+                              className={cn('w-full rounded-xl border px-4 py-2.5 pr-10 text-sm outline-none transition-colors duration-200', t.input)}
+                            />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className={cn('absolute right-3 top-1/2 -translate-y-1/2', t.textSubtle)}>
+                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          {password.length > 0 && (
+                            <div className="mt-2 flex items-center gap-2">
+                              <div className="flex flex-1 gap-1">
+                                {[1, 2, 3, 4].map((i) => (
+                                  <div key={i} className={cn('h-1 flex-1 rounded-full transition-colors', i <= passwordStrength.level ? passwordStrength.color : t.divider)} />
+                                ))}
+                              </div>
+                              <span className={cn('text-[11px]', t.textSubtle)}>{passwordStrength.label}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        <div>
+                          <label className={cn('mb-1.5 block text-[11px] font-medium uppercase tracking-wider', t.textSubtle)}>Повторите пароль</label>
+                          <div className="relative">
+                            <input
+                              type={showConfirmPassword ? 'text' : 'password'}
+                              required
+                              autoComplete="new-password"
+                              placeholder="Ещё раз"
+                              value={confirmPassword}
+                              onChange={(e) => { setConfirmPassword(e.target.value); setFormError(''); }}
+                              className={cn(
+                                'w-full rounded-xl border px-4 py-2.5 pr-10 text-sm outline-none transition-colors duration-200',
+                                t.input,
+                                confirmPassword.length > 0 && password !== confirmPassword && 'border-red-500/50',
+                              )}
+                            />
+                            <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className={cn('absolute right-3 top-1/2 -translate-y-1/2', t.textSubtle)}>
+                              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                          {confirmPassword.length > 0 && password === confirmPassword && (
+                            <div className="mt-1.5 flex items-center gap-1.5">
+                              <Check className="h-3.5 w-3.5 text-emerald-500" />
+                              <span className="text-[11px] text-emerald-500">Пароли совпадают</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {formError && <p className="text-sm text-red-500">{formError}</p>}
+
+                        <label className="flex cursor-pointer items-start gap-2.5">
+                          <input
+                            type="checkbox"
+                            checked={termsAccepted}
+                            onChange={(e) => setTermsAccepted(e.target.checked)}
+                            className="mt-0.5 h-4 w-4 shrink-0 rounded accent-current"
+                          />
+                          <span className={cn('text-xs leading-relaxed', t.textMuted)}>
+                            Я принимаю{' '}
+                            <Link to="/terms" className="underline underline-offset-2">Пользовательское соглашение</Link>,{' '}
+                            <Link to="/privacy" className="underline underline-offset-2">Политику обработки ПД</Link>{' '}
+                            и даю согласие на обработку персональных данных
+                          </span>
+                        </label>
+
+                        <button
+                          type="submit"
+                          disabled={loading || !termsAccepted || !email || password.length < 8 || password !== confirmPassword}
+                          className={cn('inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60', a.button)}
+                        >
+                          {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                          Продолжить
+                        </button>
+                      </form>
+
+                      <div className="my-4 flex items-center gap-3">
+                        <div className={cn('h-px flex-1', t.divider)} />
+                        <span className={cn('text-[11px] uppercase tracking-wider', t.textSubtle)}>или</span>
+                        <div className={cn('h-px flex-1', t.divider)} />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <button type="button" className={cn('inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors', t.border, t.card, t.cardHover, t.textStrong)}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" /><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" /><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg>
+                          Google
+                        </button>
+                        <button type="button" className={cn('inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors', t.border, t.card, t.cardHover, t.textStrong)}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
+                          Telegram
+                        </button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* ── REGISTER STEP 2: verify email ── */}
+                  {authMode === 'register' && regStep === 2 && (
+                    <>
+                      <div className={cn('mb-4 flex h-12 w-12 items-center justify-center rounded-2xl', a.bgSoft)}>
+                        <Mail className={cn('h-6 w-6', a.text)} />
+                      </div>
+                      <h1 className={cn('mb-2 text-2xl font-medium tracking-tight', t.textStrong)}>Проверьте почту</h1>
+                      <p className={cn('mb-5 text-sm leading-relaxed', t.textMuted)}>
+                        Мы отправили 6-значный код на <span className={cn('font-medium', t.textStrong)}>{email}</span>. Введите его ниже.
+                      </p>
+
+                      <form className="space-y-3" onSubmit={handleCredentialsSubmit}>
+                        <div>
+                          <label className={cn('mb-1.5 block text-[11px] font-medium uppercase tracking-wider', t.textSubtle)}>Код подтверждения</label>
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            required
+                            autoFocus
+                            placeholder="000000"
+                            value={verifyCode}
+                            onChange={(e) => { setVerifyCode(e.target.value.replace(/\D/g, '').slice(0, 6)); setFormError(''); }}
+                            className={cn('w-full rounded-xl border px-4 py-2.5 text-center font-mono text-lg tracking-[0.3em] outline-none transition-colors duration-200', t.input)}
+                          />
+                        </div>
+
+                        {formError && <p className="text-sm text-red-500">{formError}</p>}
+
+                        <button
+                          type="submit"
+                          disabled={loading || verifyCode.length !== 6}
+                          className={cn('inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60', a.button)}
+                        >
+                          {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                          Подтвердить
+                        </button>
+                      </form>
+
+                      <div className="mt-4 flex items-center justify-between">
+                        <button type="button" onClick={() => setRegStep(1)} className={cn('text-sm transition-colors hover:underline', t.textMuted)}>← Назад</button>
+                        <button type="button" className={cn('text-sm transition-colors hover:underline', a.text)}>Отправить повторно</button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* ── REGISTER STEP 3: success ── */}
+                  {authMode === 'register' && regStep === 3 && (
+                    <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+                      <div className={cn('mb-4 flex h-14 w-14 items-center justify-center rounded-full', a.bgSoft)}>
+                        <Check className={cn('h-7 w-7', a.text)} />
+                      </div>
+                      <h1 className={cn('mb-2 text-2xl font-medium tracking-tight', t.textStrong)}>Аккаунт создан</h1>
+                      <p className={cn('text-sm', t.textMuted)}>Перенаправляем в личный кабинет...</p>
                     </div>
+                  )}
 
-                    <div>
-                      <label className={cn('mb-1.5 block text-[11px] font-medium uppercase tracking-wider', t.textSubtle)}>
-                        Пароль
-                      </label>
-                      <input
-                        type="password"
-                        required
-                        autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
-                        placeholder={authMode === 'register' ? 'Минимум 8 символов' : 'Введите пароль'}
-                        className={cn(
-                          'w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors duration-200',
-                          t.input,
-                        )}
-                      />
-                    </div>
+                  {/* ── LOGIN ── */}
+                  {authMode === 'login' && (
+                    <>
+                      <h1 className={cn('mb-2 text-2xl font-medium tracking-tight', t.textStrong)}>С возвращением</h1>
+                      <p className={cn('mb-5 text-sm leading-relaxed', t.textMuted)}>Войдите, чтобы перейти к маршрутам и настройкам.</p>
 
-                    <button
-                      type="submit"
-                      disabled={loading || (authMode === 'register' && !termsAccepted)}
-                      className={cn(
-                        'inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60',
-                        a.button,
-                      )}
-                    >
-                      {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
-                      {authMode === 'register' ? 'Создать аккаунт' : 'Войти'}
-                    </button>
-                  </form>
+                      <form className="space-y-3" onSubmit={handleCredentialsSubmit}>
+                        <div>
+                          <label className={cn('mb-1.5 block text-[11px] font-medium uppercase tracking-wider', t.textSubtle)}>Почта</label>
+                          <input
+                            type="email"
+                            required
+                            autoComplete="email"
+                            placeholder="you@example.com"
+                            value={email}
+                            onChange={(e) => { setEmail(e.target.value); setFormError(''); }}
+                            className={cn('w-full rounded-xl border px-4 py-2.5 text-sm outline-none transition-colors duration-200', t.input)}
+                          />
+                        </div>
 
-                    {/* consent checkbox — only for register */}
-                    {authMode === 'register' && (
-                      <label className="mt-3 flex cursor-pointer items-start gap-2.5">
-                        <input
-                          type="checkbox"
-                          checked={termsAccepted}
-                          onChange={(e) => setTermsAccepted(e.target.checked)}
-                          className="mt-0.5 h-4 w-4 shrink-0 rounded accent-current"
-                        />
-                        <span className={cn('text-xs leading-relaxed', t.textMuted)}>
-                          Я принимаю{' '}
-                          <Link to="/terms" className="underline underline-offset-2">
-                            Пользовательское соглашение
-                          </Link>
-                          ,{' '}
-                          <Link to="/privacy" className="underline underline-offset-2">
-                            Политику обработки ПД
-                          </Link>{' '}
-                          и даю согласие на обработку персональных данных
-                        </span>
-                      </label>
-                    )}
-                  {/* divider */}
-                  <div className="my-4 flex items-center gap-3">
-                    <div className={cn('h-px flex-1', t.divider)} />
-                    <span className={cn('text-[11px] uppercase tracking-wider', t.textSubtle)}>или</span>
-                    <div className={cn('h-px flex-1', t.divider)} />
-                  </div>
+                        <div>
+                          <div className="mb-1.5 flex items-center justify-between">
+                            <label className={cn('text-[11px] font-medium uppercase tracking-wider', t.textSubtle)}>Пароль</label>
+                            <button type="button" className={cn('text-[11px] transition-colors hover:underline', a.text)}>Забыли пароль?</button>
+                          </div>
+                          <div className="relative">
+                            <input
+                              type={showPassword ? 'text' : 'password'}
+                              required
+                              autoComplete="current-password"
+                              placeholder="Введите пароль"
+                              value={password}
+                              onChange={(e) => { setPassword(e.target.value); setFormError(''); }}
+                              className={cn('w-full rounded-xl border px-4 py-2.5 pr-10 text-sm outline-none transition-colors duration-200', t.input)}
+                            />
+                            <button type="button" onClick={() => setShowPassword(!showPassword)} className={cn('absolute right-3 top-1/2 -translate-y-1/2', t.textSubtle)}>
+                              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                            </button>
+                          </div>
+                        </div>
 
-                  {/* social auth */}
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      className={cn(
-                        'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors',
-                        t.border,
-                        t.card,
-                        t.cardHover,
-                        t.textStrong,
-                      )}
-                    >
-                      <svg className="h-4 w-4" viewBox="0 0 24 24">
-                        <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" />
-                        <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                        <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
-                        <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-                      </svg>
-                      Google
-                    </button>
-                    <button
-                      type="button"
-                      className={cn(
-                        'inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors',
-                        t.border,
-                        t.card,
-                        t.cardHover,
-                        t.textStrong,
-                      )}
-                    >
-                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" />
-                      </svg>
-                      Telegram
-                    </button>
-                  </div>
+                        {formError && <p className="text-sm text-red-500">{formError}</p>}
 
-                  {/* spacer pushes footer to bottom */}
+                        <button
+                          type="submit"
+                          disabled={loading || !email || !password}
+                          className={cn('inline-flex w-full items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all disabled:cursor-not-allowed disabled:opacity-60', a.button)}
+                        >
+                          {loading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
+                          Войти
+                        </button>
+                      </form>
+
+                      <div className="my-4 flex items-center gap-3">
+                        <div className={cn('h-px flex-1', t.divider)} />
+                        <span className={cn('text-[11px] uppercase tracking-wider', t.textSubtle)}>или</span>
+                        <div className={cn('h-px flex-1', t.divider)} />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <button type="button" className={cn('inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors', t.border, t.card, t.cardHover, t.textStrong)}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24"><path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" /><path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" /><path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" /><path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" /></svg>
+                          Google
+                        </button>
+                        <button type="button" className={cn('inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors', t.border, t.card, t.cardHover, t.textStrong)}>
+                          <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0h-.056zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z" /></svg>
+                          Telegram
+                        </button>
+                      </div>
+                    </>
+                  )}
+
                   <div className="flex-1" />
 
                   {/* footer text */}
@@ -630,8 +842,7 @@ export default function Hero() {
             <div className={cn('shrink-0 rounded-2xl border p-5 transition-colors', t.border, t.cardSolid)}>
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className={cn('mb-1 flex items-center gap-2 text-xs font-medium', a.text)}>
-                    <Zap className="h-3.5 w-3.5" />
+                  <div className={cn('mb-1 flex items-center text-xs font-medium', a.text)}>
                     <span>Активный маршрут</span>
                   </div>
                   <AnimatePresence mode="wait">
@@ -652,7 +863,7 @@ export default function Hero() {
                     )}
                     <span>{selectedServer.country}</span>
                     <span className={t.textSubtle}>·</span>
-                    <span className={cn('font-mono text-xs', pingColor(selectedPing))}>
+                    <span className={cn(pingValueClassName, pingColor(selectedPing))}>
                       {typeof selectedPing === 'number' ? `${selectedPing} ms` : '...'}
                     </span>
                   </div>
@@ -730,7 +941,7 @@ export default function Hero() {
                         <div className={cn('text-sm font-medium', t.textStrong)}>{server.country}</div>
                         <div className={cn('text-xs', t.textSubtle)}>{server.city}</div>
                       </div>
-                      <span className={cn('font-mono text-xs tabular-nums', pingColor(ping))}>
+                      <span className={cn(pingValueClassName, pingColor(ping))}>
                         {pingText}
                       </span>
                     </button>
