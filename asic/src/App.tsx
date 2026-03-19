@@ -567,6 +567,15 @@ export default function App() {
               </div>
             </div>
           </div>
+
+          <div className={cn('shrink-0 border-t px-6 py-4', t.border)}>
+            <div className={cn('flex flex-wrap gap-x-3 gap-y-1 text-[11px]', t.textSubtle)}>
+              <a href="/terms" className="transition-colors hover:underline">Условия</a>
+              <a href="/privacy" className="transition-colors hover:underline">Конфиденциальность</a>
+              <a href="/refund" className="transition-colors hover:underline">Возврат</a>
+            </div>
+            <div className={cn('mt-1.5 text-[10px]', t.textSubtle)}>© 2026 WW.pro</div>
+          </div>
         </div>
 
         <div className="relative z-10 flex flex-1 flex-col overflow-hidden">
