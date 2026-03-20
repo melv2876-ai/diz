@@ -1,12 +1,18 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { Logo } from '../../components/Logo';
 import {
+  AppleLogo,
   Bell,
+  CalendarBlank,
   CaretDown,
   CaretRight,
+  CellSignalFull,
   CheckCircle,
   Clock,
   CreditCard,
+  Crown,
+  Desktop,
+  DeviceMobile,
   DownloadSimple,
   Envelope,
   FileCode,
@@ -19,14 +25,18 @@ import {
   Megaphone,
   Moon,
   GearSix,
+  Plugs,
   RocketLaunch,
   ShieldCheck,
+  ShoppingCartSimple,
   SignOut,
   Sun,
   TelegramLogo,
+  Television,
   User,
   Wallet,
   WarningCircle,
+  WifiSlash,
   X,
 } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
@@ -439,8 +449,10 @@ type ThemeContextValue = {
   t: (typeof THEMES)[ThemeType];
   a: (typeof ACCENTS)[AccentType];
   hasSubscription: boolean;
+  setHasSubscription: (v: boolean) => void;
   setTheme: (theme: ThemeType) => void;
   setAccent: (accent: AccentType) => void;
+  navigateTab: (tab: TabType, scrollTo?: string) => void;
 };
 
 const ThemeContext = createContext<ThemeContextValue>({
@@ -449,8 +461,10 @@ const ThemeContext = createContext<ThemeContextValue>({
   t: THEMES.dark,
   a: ACCENTS.emerald,
   hasSubscription: false,
+  setHasSubscription: () => {},
   setTheme: (_theme: ThemeType) => { },
   setAccent: (_accent: AccentType) => { },
+  navigateTab: () => {},
 });
 
 const DEVICES = [
@@ -509,7 +523,7 @@ const SERVERS = [
 
 const TAB_LABELS = {
   overview: 'Личный кабинет',
-  billing: 'Оплата и тарифы',
+  billing: 'Настройка VPN',
   devices: 'Устройства',
   preferences: 'Параметры',
   support: 'Поддержка',
@@ -556,14 +570,17 @@ const NavItem = ({
 const GlowCard = ({
   children,
   className,
+  id,
 }: {
   children: React.ReactNode;
   className?: string;
+  id?: string;
 }) => {
   const { t, a } = useContext(ThemeContext);
 
   return (
     <div
+      id={id}
       className={cn(
         'group relative overflow-hidden rounded-2xl border transition-all duration-500',
         t.card,
@@ -584,7 +601,7 @@ const GlowCard = ({
 };
 
 const OverviewTab = () => {
-  const { t, a, hasSubscription, theme } = useContext(ThemeContext);
+  const { t, a, hasSubscription, theme, navigateTab } = useContext(ThemeContext);
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const paymentRef = useRef<HTMLDivElement>(null);
@@ -696,9 +713,7 @@ const OverviewTab = () => {
                     'group relative flex flex-col items-start overflow-hidden rounded-2xl border p-6 text-left transition-all duration-500',
                     isSelected
                       ? cn(t.cardSolid, a.border, 'shadow-[0_0_30px_rgba(0,0,0,0.12)]')
-                      : hasBorder
-                        ? cn(t.card, plan.badge === 'best' ? 'border-amber-500/30' : a.border)
-                        : cn(t.card, t.border, t.borderHover)
+                      : cn(t.card, t.border, t.borderHover)
                   )}
                 >
                   {/* GlowCard hover effect */}
@@ -899,9 +914,13 @@ const OverviewTab = () => {
                 transition={{ duration: 0.25, delay: 0.1 }}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
-                className={cn('w-full rounded-2xl py-4 text-center text-sm font-semibold tracking-wide transition-all', a.button)}
+                className={cn(
+                  'group flex w-full items-center justify-between rounded-2xl border px-5 py-4 transition-all duration-300',
+                  a.border, a.bgSoft, 'hover:shadow-lg'
+                )}
               >
-                Перейти к оплате →
+                <span className={cn('text-sm font-semibold', a.text)}>Перейти к оплате</span>
+                <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', a.text)} />
               </motion.button>
 
               <motion.button
@@ -924,7 +943,28 @@ const OverviewTab = () => {
     );
   }
 
-  /* ── Active subscription view (original) ── */
+  /* ── Active subscription view ── */
+  const [activeSubIdx, setActiveSubIdx] = useState(0);
+  const [showBuyGb, setShowBuyGb] = useState(false);
+  const [selectedGb, setSelectedGb] = useState<number | null>(null);
+  const [customGb, setCustomGb] = useState('');
+
+  const USER_SUBS = [
+    { id: 'main', label: 'Основная', plan: 'Pro', daysLeft: 243, startDate: '22.06.2025', endDate: '18.02.2026', price: '249 ₽', period: '3 мес', devices: 5, usedDevices: 3 },
+  ];
+
+  const activeSub = USER_SUBS[activeSubIdx];
+
+  /* White list mock data */
+  const whitelistActive = true;
+  const wlUsed = 29.83;
+  const wlTotal = 70.50;
+  const wlPercent = Math.round((wlUsed / wlTotal) * 100);
+  const GB_QUICK = [5, 10, 20, 50] as const;
+  const pricePerGb = 19; // ₽ per GB
+
+  const strokeColor = a.color === 'bg-emerald-500' ? 'stroke-emerald-500' : a.color === 'bg-orange-500' ? 'stroke-orange-500' : a.color === 'bg-blue-500' ? 'stroke-blue-500' : 'stroke-pink-500';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -932,34 +972,310 @@ const OverviewTab = () => {
       exit={{ opacity: 0, y: -10 }}
       className="space-y-6"
     >
-      <div className={cn('relative overflow-hidden rounded-3xl border p-8', t.cardSolid, t.border)}>
-        <div className={cn('pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full opacity-20 blur-[100px]', a.blur1)} />
+      {/* ── Profile row ── */}
+      <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
+        <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
+        <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
 
-        <div className="relative z-10 flex flex-col items-start justify-between gap-6 md:flex-row md:items-end">
-          <div>
-            <div className={cn('mb-4 flex items-center gap-2 text-sm font-medium', a.text)}>
-              <ShieldCheck weight={ICON_WEIGHT} className="h-4 w-4" />
-              <span>Подписка активна</span>
-            </div>
-            <h2 className={cn('mb-2 text-6xl font-light tracking-tight', t.textStrong)}>243</h2>
-            <p className={t.textMuted}>
-              Дней осталось по <span className={t.textStrong}>тарифу Pro</span>
-            </p>
+        <div className={cn('relative z-10 flex items-center gap-4 px-8 py-5')}>
+          <div className={cn('flex h-12 w-12 items-center justify-center rounded-full border-2', a.border)}>
+            <span className={cn('text-lg font-semibold', t.textStrong)}>В</span>
           </div>
-          <button className={cn('rounded-xl px-6 py-3 font-medium transition-all', a.button)}>
-            Продлить подписку
-          </button>
+          <div className="flex-1">
+            <div className={cn('text-sm font-medium', t.textStrong)}>Влад</div>
+            <div className={cn('mt-0.5 flex items-center gap-3 text-xs', t.textMuted)}>
+              <span className="flex items-center gap-1">
+                <TelegramLogo weight={ICON_WEIGHT} className="h-3 w-3" />
+                @vlad_dev
+              </span>
+              <span className="flex items-center gap-1">
+                <span className="font-mono text-[11px]">ID: 865413405</span>
+              </span>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* ── Subscription + White Lists (single card) ── */}
+      <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
+        <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
+        <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
+
+        <div className="relative z-10 flex flex-col lg:flex-row">
+          {/* ─ Left: Main subscription ─ */}
+          <div className="flex-1 p-6 space-y-5">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className={cn('flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
+                <Crown weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+                <span>Тариф {activeSub.plan}</span>
+              </div>
+              <div className={cn('flex items-center gap-1.5 rounded-full border px-3 py-1', a.border, a.bgSoft)}>
+                <div className={cn('h-1.5 w-1.5 rounded-full', a.color)} />
+                <span className={cn('text-[11px] font-semibold', a.text)}>Активна</span>
+              </div>
+            </div>
+
+            {/* Days hero */}
+            <div>
+              <div className="flex items-baseline gap-2">
+                <h2 className={cn('text-6xl font-light tracking-tighter', t.textStrong)}>{activeSub.daysLeft}</h2>
+                <span className={cn('text-lg font-light', t.textMuted)}>дней</span>
+              </div>
+            </div>
+
+            {/* Date info */}
+            <div className="grid grid-cols-2 gap-3">
+              {[
+                { label: 'Начало', value: activeSub.startDate, icon: CalendarBlank },
+                { label: 'Окончание', value: activeSub.endDate, icon: Clock },
+                { label: 'Стоимость', value: activeSub.price, icon: Wallet },
+                { label: 'Устройства', value: `${activeSub.usedDevices} из ${activeSub.devices}`, icon: Laptop },
+              ].map((item) => (
+                <div key={item.label} className={cn('rounded-xl border p-3', t.card, t.border)}>
+                  <div className={cn('mb-1 flex items-center gap-1.5 text-[10px] uppercase tracking-wider', t.textSubtle)}>
+                    <item.icon weight={ICON_WEIGHT} className="h-3 w-3" />
+                    {item.label}
+                  </div>
+                  <div className={cn('text-sm font-medium', t.textStrong)}>{item.value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-3">
+              <button className={cn(
+                'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 transition-all duration-300',
+                a.border, a.bgSoft, 'hover:shadow-lg'
+              )}>
+                <span className={cn('text-sm font-semibold', a.text)}>Продлить подписку</span>
+                <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', a.text)} />
+              </button>
+              <button
+                onClick={() => navigateTab('billing')}
+                className={cn(
+                  'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 transition-all duration-300',
+                  t.border, t.textMuted, t.cardHover, 'hover:shadow-lg'
+                )}
+              >
+                <span className="text-sm font-medium">Настроить VPN</span>
+                <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', t.textSubtle)} />
+              </button>
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="hidden lg:flex items-center self-stretch py-8">
+            <div className={cn('w-px h-full rounded-full', theme === 'dark' ? 'bg-gradient-to-b from-transparent via-white/50 to-transparent' : 'bg-gradient-to-b from-transparent via-black/30 to-transparent')} />
+          </div>
+          <div className={cn('mx-6 h-px lg:hidden', theme === 'dark' ? 'bg-gradient-to-r from-transparent via-white/50 to-transparent' : 'bg-gradient-to-r from-transparent via-black/30 to-transparent')} />
+
+          {/* ─ Right: White Lists ─ */}
+          <div className="flex-1 p-6 space-y-5">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Globe weight={ICON_WEIGHT} className="h-5 w-5 text-blue-400" />
+                <span className={cn('text-sm font-medium', t.textStrong)}>Белые списки</span>
+              </div>
+              <div className={cn('flex items-center gap-1.5 rounded-full border px-3 py-1', whitelistActive ? cn(a.border, a.bgSoft) : cn(t.border, 'bg-white/[0.04]'))}>
+                <div className={cn('h-1.5 w-1.5 rounded-full', whitelistActive ? a.color : 'bg-zinc-500')} />
+                <span className={cn('text-[11px] font-semibold', whitelistActive ? a.text : t.textSubtle)}>{whitelistActive ? 'Активны' : 'Неактивны'}</span>
+              </div>
+            </div>
+
+            {/* Ring + traffic stats */}
+            <div className="flex items-center gap-6">
+              <div className="relative flex h-24 w-24 shrink-0 items-center justify-center">
+                <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90">
+                  <circle cx="18" cy="18" r="15.5" fill="none" className={theme === 'dark' ? 'stroke-white/[0.06]' : 'stroke-black/[0.06]'} strokeWidth="2.5" />
+                  <circle
+                    cx="18" cy="18" r="15.5" fill="none"
+                    className={strokeColor}
+                    strokeWidth="2.5" strokeLinecap="round"
+                    strokeDasharray="97.4" strokeDashoffset={97.4 * (wlPercent / 100)}
+                  />
+                </svg>
+                <div className="absolute flex flex-col items-center">
+                  <span className={cn('text-sm font-semibold', a.text)}>{(wlTotal - wlUsed).toFixed(0)}</span>
+                  <span className={cn('text-[9px] uppercase', t.textSubtle)}>GB</span>
+                </div>
+              </div>
+
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className={cn('text-xs', t.textMuted)}>Использовано</span>
+                  <span className={cn('text-xs font-medium', t.textStrong)}>{wlUsed} GB</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${wlPercent}%` }}
+                    transition={{ duration: 0.8, ease: 'easeOut' }}
+                    className={cn('h-full rounded-full', a.color)}
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={cn('text-xs', t.textMuted)}>Всего</span>
+                  <span className={cn('text-xs font-medium', t.textStrong)}>{wlTotal} GB</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <p className={cn('text-xs leading-relaxed', t.textMuted)}>
+              Доступ к ресурсам при полном отключении интернета (шатдаун).
+              Трафик идёт через зашифрованный канал по мобильной сети (LTE).
+            </p>
+
+            {/* Features */}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2.5">
+                <CellSignalFull weight={ICON_WEIGHT} className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                <span className={cn('text-xs', t.text)}>Работает через LTE / мобильную сеть</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <WifiSlash weight={ICON_WEIGHT} className="h-3.5 w-3.5 shrink-0 text-orange-400" />
+                <span className={cn('text-xs', t.text)}>Через Wi-Fi не используется</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2.5">
+              <button
+                onClick={() => { setShowBuyGb(!showBuyGb); setSelectedGb(null); setCustomGb(''); }}
+                className={cn(
+                  'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 transition-all duration-300',
+                  a.border, a.bgSoft, 'hover:shadow-lg'
+                )}
+              >
+                <div className="flex items-center gap-2.5">
+                  <ShoppingCartSimple weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
+                  <span className={cn('text-sm font-semibold', a.text)}>Купить гигабайты</span>
+                </div>
+                <CaretDown weight="bold" className={cn('h-4 w-4 transition-transform duration-300', a.text, showBuyGb && 'rotate-180')} />
+              </button>
+              <button
+                onClick={() => navigateTab('billing', 'whitelist-section')}
+                className={cn(
+                  'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 transition-all duration-300',
+                  t.border, t.textMuted, t.cardHover, 'hover:shadow-lg'
+                )}
+              >
+                <span className="text-sm font-medium">Настроить белые списки</span>
+                <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', t.textSubtle)} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Buy GB panel (expands below) ── */}
+      <AnimatePresence>
+        {showBuyGb ? (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3 }}
+            className="overflow-hidden"
+          >
+            <div className={cn('rounded-2xl border p-6 space-y-5', t.cardSolid, t.border)}>
+              <div className="flex items-center justify-between">
+                <h3 className={cn('text-lg font-medium', t.textStrong)}>Покупка трафика</h3>
+                <span className={cn('text-xs', t.textMuted)}>19 ₽ / GB</span>
+              </div>
+
+              {/* Quick amounts */}
+              <div className="grid grid-cols-4 gap-3">
+                {GB_QUICK.map((gb) => {
+                  const isActive = selectedGb === gb && customGb === '';
+                  return (
+                    <button
+                      key={gb}
+                      onClick={() => { setSelectedGb(gb); setCustomGb(''); }}
+                      className={cn(
+                        'flex flex-col items-center gap-1.5 rounded-xl border p-4 transition-all duration-200',
+                        isActive
+                          ? cn(a.border, a.bgSoft, 'shadow-sm')
+                          : cn(t.border, t.card, t.borderHover)
+                      )}
+                    >
+                      <span className={cn('text-lg font-semibold', isActive ? a.text : t.textStrong)}>{gb}</span>
+                      <span className={cn('text-[11px]', isActive ? a.text : t.textMuted)}>GB</span>
+                      <span className={cn('text-xs font-medium', isActive ? a.text : t.textSubtle)}>{gb * pricePerGb} ₽</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Custom amount */}
+              <div>
+                <span className={cn('text-xs font-medium uppercase tracking-wider', t.textSubtle)}>Своё количество</span>
+                <div className="mt-3 flex items-center gap-3">
+                  <div className={cn('flex flex-1 items-center overflow-hidden rounded-xl border transition-colors', customGb ? cn(a.border) : t.border, t.card)}>
+                    <input
+                      type="number"
+                      min="1"
+                      max="500"
+                      placeholder="Введите GB"
+                      value={customGb}
+                      onChange={(e) => {
+                        const v = e.target.value;
+                        if (v === '' || (Number(v) >= 0 && Number(v) <= 500)) {
+                          setCustomGb(v);
+                          setSelectedGb(null);
+                        }
+                      }}
+                      className={cn(
+                        'w-full bg-transparent px-4 py-3 text-sm font-medium outline-none placeholder:opacity-40',
+                        t.textStrong
+                      )}
+                    />
+                    <span className={cn('pr-4 text-sm', t.textMuted)}>GB</span>
+                  </div>
+                  {customGb && Number(customGb) > 0 ? (
+                    <span className={cn('whitespace-nowrap text-sm font-medium', a.text)}>
+                      {Number(customGb) * pricePerGb} ₽
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+
+              {/* Proceed button */}
+              <AnimatePresence>
+                {(selectedGb || (customGb && Number(customGb) > 0)) ? (
+                  <motion.button
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.2 }}
+                    className={cn(
+                      'group flex w-full items-center justify-between rounded-xl border px-5 py-4 transition-all duration-300',
+                      a.border, a.bgSoft, 'hover:shadow-lg'
+                    )}
+                  >
+                    <span className={cn('text-sm font-semibold', a.text)}>
+                      Оформить {customGb && Number(customGb) > 0 ? customGb : selectedGb} GB за {((customGb && Number(customGb) > 0 ? Number(customGb) : selectedGb!) * pricePerGb)} ₽
+                    </span>
+                    <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', a.text)} />
+                  </motion.button>
+                ) : null}
+              </AnimatePresence>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      {/* ── Bottom grid ── */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <GlowCard className="p-6 lg:col-span-2">
           <div className="mb-6 flex items-center justify-between">
             <h3 className={cn('text-lg font-medium', t.textStrong)}>Активные устройства</h3>
-            <span className={cn('rounded-full border px-2 py-1 text-xs', t.border, t.textMuted)}>3 из 5</span>
+            <span className={cn('rounded-full border px-2 py-1 text-xs', t.border, t.textMuted)}>{activeSub.usedDevices} из {activeSub.devices}</span>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {DEVICES.map((device) => (
               <div
                 key={device.id}
@@ -975,7 +1291,7 @@ const OverviewTab = () => {
                     {device.os.includes('mac') || device.os.includes('Windows') ? (
                       <Laptop weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
                     ) : (
-                      <Globe weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
+                      <DeviceMobile weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
                     )}
                   </div>
                   <div>
@@ -991,13 +1307,12 @@ const OverviewTab = () => {
                 <div className="flex items-center gap-4">
                   {device.status === 'active' ? (
                     <div className="flex items-center gap-1.5">
-                      <div className={cn('h-2 w-2 rounded-full', a.color, a.iconGlow)} />
+                      <div className={cn('h-2 w-2 rounded-full', a.color)} />
                       <span className={cn('text-xs font-medium', a.text)}>Активно</span>
                     </div>
-                  ) : null}
-                  <button className={cn('rounded-lg border px-3 py-1.5 text-xs transition-colors', t.border, t.textMuted, t.cardHover)}>
-                    Отключить
-                  </button>
+                  ) : (
+                    <span className={cn('text-xs', t.textSubtle)}>{device.lastActive}</span>
+                  )}
                 </div>
               </div>
             ))}
@@ -1010,14 +1325,14 @@ const OverviewTab = () => {
             <div className="space-y-3">
               <button className={cn('group flex w-full items-center justify-between rounded-xl border p-3 transition-colors', t.card, t.border, t.borderHover)}>
                 <div className="flex items-center gap-3">
-                  <DownloadSimple weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted, `group-hover:${a.text}`)} />
+                  <DownloadSimple weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
                   <span className={cn('text-sm font-medium', t.textStrong)}>Скачать приложение</span>
                 </div>
                 <CaretRight weight="bold" className={cn('h-4 w-4', t.textSubtle)} />
               </button>
               <button className={cn('group flex w-full items-center justify-between rounded-xl border p-3 transition-colors', t.card, t.border, t.borderHover)}>
                 <div className="flex items-center gap-3">
-                  <FileCode weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted, `group-hover:${a.text}`)} />
+                  <FileCode weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
                   <span className={cn('text-sm font-medium', t.textStrong)}>Конфиги WireGuard</span>
                 </div>
                 <CaretRight weight="bold" className={cn('h-4 w-4', t.textSubtle)} />
@@ -1026,14 +1341,12 @@ const OverviewTab = () => {
           </GlowCard>
 
           <GlowCard className="p-6">
-            <div className="flex items-start gap-4">
-              <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full', a.bgSoft, a.text)}>
-                <Lightning weight={ICON_WEIGHT} className="h-5 w-5" />
-              </div>
+            <div className="flex items-start gap-3">
+              <Lightning weight={ICON_WEIGHT} className={cn('mt-0.5 h-5 w-5 shrink-0', a.text)} />
               <div>
-                <h4 className={cn('mb-1 text-sm font-medium', t.textStrong)}>Автопродление включено</h4>
-                <p className={cn('text-xs leading-relaxed', t.textMuted)}>
-                  Подписка автоматически продлится 15 октября 2025.
+                <h4 className={cn('text-sm font-medium', t.textStrong)}>Автопродление</h4>
+                <p className={cn('mt-1 text-xs leading-relaxed', t.textMuted)}>
+                  Подписка автоматически продлится {activeSub.endDate}
                 </p>
               </div>
             </div>
@@ -1044,8 +1357,17 @@ const OverviewTab = () => {
   );
 };
 
-const BillingTab = () => {
+const VPN_DEVICES = [
+  { id: 'ios', label: 'iPhone', icon: DeviceMobile },
+  { id: 'macos', label: 'macOS', icon: Laptop },
+  { id: 'android', label: 'Android', icon: DeviceMobile },
+  { id: 'windows', label: 'Windows', icon: Desktop },
+  { id: 'tv', label: 'TV', icon: Television },
+];
+
+const VpnSetupTab = () => {
   const { t, a } = useContext(ThemeContext);
+  const [selectedDevice, setSelectedDevice] = useState('ios');
 
   return (
     <motion.div
@@ -1054,96 +1376,197 @@ const BillingTab = () => {
       exit={{ opacity: 0, y: -10 }}
       className="space-y-6"
     >
+      {/* ── 1. Device Selection ── */}
       <div>
-        <h3 className={cn('mb-6 text-xl font-medium', t.textStrong)}>Доступные тарифы</h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {SUB_PLANS.map((plan) => (
-            <div
-              key={plan.id}
-              className={cn(
-                'relative flex flex-col rounded-2xl border p-6 transition-all duration-300',
-                plan.highlighted ? t.cardSolid : t.card,
-                plan.highlighted ? a.border : t.border,
-                plan.highlighted ? 'shadow-[0_0_30px_rgba(0,0,0,0.1)]' : t.borderHover
-              )}
-            >
-              {plan.badge === 'optimal' ? (
-                <div
-                  className={cn(
-                    'absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border px-2 py-0.5 text-[10px] font-medium',
-                    a.bgSoft, a.text, a.border
-                  )}
-                >
-                  Оптимальный
-                </div>
-              ) : plan.badge === 'best' ? (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-500">
-                  Лучшее предложение
-                </div>
-              ) : null}
-
-              <div className="mb-4">
-                <h4 className={cn('mb-2 text-lg font-medium', t.textStrong)}>{plan.label}</h4>
-                <span className={cn('text-sm line-through', t.textSubtle)}>{plan.oldPrice}₽</span>
-                <div className="flex items-baseline gap-1">
-                  <span className={cn('text-4xl font-light tracking-tight', t.textStrong)}>{plan.price}₽</span>
-                </div>
-                <span className={cn('mt-1 text-xs', t.textMuted)}>{plan.perMonth}₽ / мес</span>
-              </div>
-
-              <div className={cn('mb-4 h-px w-full', plan.highlighted ? `bg-gradient-to-r from-transparent ${a.planDivider} to-transparent opacity-20` : t.divider)} />
-
+        <h3 className={cn('mb-4 text-sm font-medium', t.textMuted)}>Шаг 1 — Выберите устройство</h3>
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+          {VPN_DEVICES.map((device) => {
+            const isActive = selectedDevice === device.id;
+            const Icon = device.icon;
+            return (
               <button
+                key={device.id}
+                onClick={() => setSelectedDevice(device.id)}
                 className={cn(
-                  'w-full rounded-xl py-3 font-medium transition-all',
-                  plan.highlighted ? a.button : cn('border', t.border, t.textStrong, t.cardHover)
+                  'group relative flex flex-col items-center gap-2.5 overflow-hidden rounded-2xl border p-5 transition-all duration-300',
+                  isActive
+                    ? cn(t.cardSolid, a.border, 'shadow-[0_0_20px_rgba(0,0,0,0.1)]')
+                    : cn(t.card, t.border, t.borderHover)
                 )}
               >
-                Выбрать тариф
+                <Icon weight={ICON_WEIGHT} className={cn('h-6 w-6 transition-colors', isActive ? a.text : t.textMuted)} />
+                <span className={cn('text-xs font-medium', isActive ? t.textStrong : t.textMuted)}>{device.label}</span>
+                <AnimatePresence>
+                  {isActive ? (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      exit={{ scale: 0 }}
+                      className={cn('absolute right-2.5 top-2.5 h-2 w-2 rounded-full', a.color)}
+                    />
+                  ) : null}
+                </AnimatePresence>
               </button>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
-      <GlowCard className="p-0">
-        <div className={cn('border-b p-6', t.border)}>
-          <h3 className={cn('text-lg font-medium', t.textStrong)}>Последние счета</h3>
+      {/* ── 2. App Selection ── */}
+      <div>
+        <h3 className={cn('mb-4 text-sm font-medium', t.textMuted)}>Шаг 2 — Выберите приложение</h3>
+        <div
+          className={cn(
+            'group relative flex items-center gap-4 overflow-hidden rounded-2xl border p-5 transition-all duration-300',
+            t.cardSolid, a.border, 'shadow-[0_0_20px_rgba(0,0,0,0.1)]'
+          )}
+        >
+          <div className={cn('pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-transparent opacity-100', a.glowCard)} />
+          <img src="/happ-icon.webp" alt="Happ" className="relative z-10 h-14 w-14 shrink-0" />
+          <div className="relative z-10 flex-1">
+            <div className={cn('text-sm font-medium', t.textStrong)}>Happ</div>
+            <div className={cn('text-xs', t.textMuted)}>Рекомендуемое VPN-приложение</div>
+          </div>
+          <div className={cn('relative z-10 rounded-full px-2.5 py-0.5 text-[10px] font-medium', a.bgSoft, a.text)}>Доступно</div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead className={cn('text-xs uppercase', t.textSubtle, t.tableHeader)}>
-              <tr>
-                <th className="px-6 py-4 font-medium">Счет</th>
-                <th className="px-6 py-4 font-medium">Дата</th>
-                <th className="px-6 py-4 font-medium">Тариф</th>
-                <th className="px-6 py-4 font-medium">Сумма</th>
-                <th className="px-6 py-4 font-medium">Статус</th>
-              </tr>
-            </thead>
-            <tbody className={cn('divide-y', t.divide)}>
-              {BILLING_HISTORY.map((invoice) => (
-                <tr key={invoice.id} className={cn('transition-colors', t.cardHover)}>
-                  <td className={cn('px-6 py-4 font-mono', t.textStrong)}>{invoice.id}</td>
-                  <td className={cn('px-6 py-4', t.textMuted)}>{invoice.date}</td>
-                  <td className={cn('px-6 py-4', t.text)}>{invoice.plan}</td>
-                  <td className={cn('px-6 py-4 font-medium', t.textStrong)}>{invoice.amount}</td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={cn(
-                        'rounded-full border px-2.5 py-1 text-xs font-medium',
-                        invoice.status === 'paid'
-                          ? cn(a.bgSoft, a.text, a.border)
-                          : 'border-yellow-500/20 bg-yellow-500/10 text-yellow-500'
-                      )}
-                    >
-                      {invoice.status === 'paid' ? 'Оплачен' : 'Ожидает'}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      </div>
+
+      {/* ── 3. Installation Instructions ── */}
+      <GlowCard className="p-6">
+        <h3 className={cn('mb-5 text-lg font-medium', t.textStrong)}>Установка приложения</h3>
+        <div className="space-y-4">
+          {[
+            { step: '1', text: 'Откройте страницу в App Store и установите приложение' },
+            { step: '2', text: 'Запустите приложение' },
+            { step: '3', text: 'В окне «Разрешение VPN-конфигурации» нажмите «Разрешить» и введите свой пароль' },
+          ].map((item) => (
+            <div key={item.step} className="flex items-start gap-3">
+              <span className={cn('flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold', a.bgSoft, a.text)}>
+                {item.step}
+              </span>
+              <p className={cn('text-sm leading-relaxed', t.text)}>{item.text}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className={cn('my-5 h-px w-full', t.divider)} />
+
+        <div className="flex flex-col gap-3 sm:flex-row">
+          <a
+            href="#"
+            className={cn(
+              'flex flex-1 items-center justify-center gap-2 rounded-xl border py-3 text-sm font-medium transition-all',
+              t.border, t.textStrong, t.cardHover, 'hover:shadow-lg'
+            )}
+          >
+            <AppleLogo weight="fill" className="h-4 w-4" />
+            App Store RU
+          </a>
+          <a
+            href="#"
+            className={cn(
+              'flex flex-1 items-center justify-center gap-2 rounded-xl border py-3 text-sm font-medium transition-all',
+              t.border, t.textStrong, t.cardHover, 'hover:shadow-lg'
+            )}
+          >
+            <AppleLogo weight="fill" className="h-4 w-4" />
+            App Store Global
+          </a>
+        </div>
+      </GlowCard>
+
+      {/* ── 4. Main Subscription ── */}
+      <GlowCard className="p-6">
+        <div className="flex items-start gap-4">
+          <ShieldCheck weight={ICON_WEIGHT} className={cn('h-7 w-7 shrink-0 mt-0.5', a.text)} />
+          <div className="flex-1">
+            <h3 className={cn('text-lg font-medium', t.textStrong)}>Основная подписка</h3>
+            <p className={cn('mt-1.5 text-sm leading-relaxed', t.textMuted)}>
+              Нажмите кнопку ниже — ссылка откроется и добавит вашу безлимитную подписку автоматически.
+            </p>
+          </div>
+        </div>
+        <button className={cn(
+          'group mt-5 flex w-full items-center justify-between rounded-xl border px-5 py-4 transition-all duration-300',
+          a.border, a.bgSoft, 'hover:shadow-lg'
+        )}>
+          <span className={cn('text-sm font-semibold', a.text)}>Добавить основную подписку</span>
+          <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', a.text)} />
+        </button>
+      </GlowCard>
+
+      {/* ── 5. White List Subscription ── */}
+      <GlowCard className="p-6" id="whitelist-section">
+        <div className="flex items-start gap-4">
+          <Globe weight={ICON_WEIGHT} className="h-7 w-7 shrink-0 mt-0.5 text-blue-400" />
+          <div className="flex-1">
+            <h3 className={cn('text-lg font-medium', t.textStrong)}>Подписка белых списков</h3>
+            <div className="mt-1.5 w-fit rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
+              БС активны
+            </div>
+          </div>
+        </div>
+
+        <p className={cn('mt-4 text-sm leading-relaxed', t.textMuted)}>
+          Отдельная подписка для полного шатдауна: используйте через мобильную сеть (LTE), не через Wi-Fi.
+        </p>
+
+        {/* Traffic usage */}
+        <div className={cn('mt-5 rounded-xl border p-4', t.card, t.border)}>
+          <div className="flex items-center justify-between">
+            <span className={cn('text-sm', t.text)}>Трафик белых списков</span>
+            <span className={cn('text-sm font-medium', a.text)}>40.67 GB</span>
+          </div>
+          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
+            <div className={cn('h-full rounded-full', a.color)} style={{ width: '42%' }} />
+          </div>
+          <div className="mt-2.5 space-y-0.5">
+            <div className={cn('text-xs', t.textMuted)}>Использовано: 29.83 GB</div>
+            <div className={cn('text-xs', t.textMuted)}>Всего: 70.50 GB</div>
+          </div>
+        </div>
+
+        {/* Warnings */}
+        <div className="mt-5 space-y-3">
+          <div className="flex items-center gap-3">
+            <WifiSlash weight={ICON_WEIGHT} className="h-5 w-5 shrink-0 text-orange-400" />
+            <span className={cn('text-sm', t.text)}>Через Wi-Fi не используйте</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <CellSignalFull weight={ICON_WEIGHT} className="h-5 w-5 shrink-0 text-emerald-400" />
+            <span className={cn('text-sm', t.text)}>Работает через LTE/мобильную сеть</span>
+          </div>
+        </div>
+
+        {/* Buttons */}
+        <div className="mt-5 flex flex-col gap-3">
+          <button className={cn(
+            'group flex w-full items-center justify-between rounded-xl border px-5 py-4 transition-all duration-300',
+            a.border, a.bgSoft, 'hover:shadow-lg'
+          )}>
+            <span className={cn('text-sm font-semibold', a.text)}>Добавить белые списки</span>
+            <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', a.text)} />
+          </button>
+          <button className={cn(
+            'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 transition-all duration-300',
+            t.border, t.textStrong, t.cardHover, 'hover:shadow-lg'
+          )}>
+            <span className="text-sm font-medium">Купить GB</span>
+            <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', t.textSubtle)} />
+          </button>
+        </div>
+      </GlowCard>
+
+      {/* ── 6. Connection ── */}
+      <GlowCard className="p-6">
+        <div className="flex items-start gap-4">
+          <Plugs weight={ICON_WEIGHT} className={cn('h-7 w-7 shrink-0 mt-0.5', a.text)} />
+          <div className="flex-1">
+            <h3 className={cn('text-lg font-medium', t.textStrong)}>Подключение</h3>
+            <p className={cn('mt-1.5 text-sm leading-relaxed', t.textMuted)}>
+              После добавления подписок вернитесь в приложение Hub. Подключение произойдёт автоматически — просто нажмите кнопку «Подключить».
+            </p>
+          </div>
         </div>
       </GlowCard>
     </motion.div>
@@ -1288,13 +1711,32 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>('overview');
   const [theme, setTheme] = useState<ThemeType>('dark');
   const [accent, setAccent] = useState<AccentType>('emerald');
-  const [hasSubscription] = useState(false);
+  const [hasSubscription, setHasSubscription] = useState(false);
+  const [scrollTarget, setScrollTarget] = useState<string | null>(null);
 
   const t = THEMES[theme];
   const a = ACCENTS[accent];
 
+  const navigateTab = (tab: TabType, scrollTo?: string) => {
+    setActiveTab(tab);
+    if (scrollTo) {
+      setScrollTarget(scrollTo);
+    }
+  };
+
+  /* Scroll to target after tab switch */
+  useEffect(() => {
+    if (!scrollTarget) return;
+    const timer = setTimeout(() => {
+      const el = document.getElementById(scrollTarget);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setScrollTarget(null);
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [scrollTarget, activeTab]);
+
   return (
-    <ThemeContext.Provider value={{ theme, accent, t, a, hasSubscription, setTheme, setAccent }}>
+    <ThemeContext.Provider value={{ theme, accent, t, a, hasSubscription, setTheme, setAccent, setHasSubscription, navigateTab }}>
       <NotificationProvider>
       <div className={cn('relative flex h-screen overflow-hidden font-sans transition-colors duration-500', t.bg, t.text, a.selection)}>
         <div
@@ -1314,7 +1756,7 @@ export default function App() {
               <div className={cn('mb-3 px-4 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Управление</div>
               <div className="space-y-1">
                 <NavItem icon={Globe} label="Личный кабинет" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
-                <NavItem icon={CreditCard} label="Оплата и тарифы" active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} />
+                <NavItem icon={ShieldCheck} label="Настройка VPN" active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} />
                 <NavItem icon={Laptop} label="Устройства" active={activeTab === 'devices'} onClick={() => setActiveTab('devices')} />
               </div>
             </div>
@@ -1329,6 +1771,16 @@ export default function App() {
           </div>
 
           <div className={cn('shrink-0 border-t px-6 py-4', t.border)}>
+            {/* Dev toggle */}
+            <button
+              onClick={() => setHasSubscription(!hasSubscription)}
+              className={cn('mb-3 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-[11px] font-medium transition-all', t.border, t.card, t.textMuted, t.borderHover)}
+            >
+              <span>Подписка</span>
+              <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-semibold', hasSubscription ? cn(a.bgSoft, a.text) : cn('bg-white/[0.06]', t.textSubtle))}>
+                {hasSubscription ? 'Активна' : 'Нет'}
+              </span>
+            </button>
             <div className={cn('flex flex-wrap gap-x-3 gap-y-1 text-[11px]', t.textSubtle)}>
               <a href="/terms" className="transition-colors hover:underline">Условия</a>
               <a href="/privacy" className="transition-colors hover:underline">Конфиденциальность</a>
@@ -1399,7 +1851,7 @@ export default function App() {
             <div className="mx-auto max-w-5xl">
               <AnimatePresence mode="wait">
                 {activeTab === 'overview' ? <OverviewTab key="overview" /> : null}
-                {activeTab === 'billing' ? <BillingTab key="billing" /> : null}
+                {activeTab === 'billing' ? <VpnSetupTab key="billing" /> : null}
                 {['devices', 'preferences', 'support'].includes(activeTab) ? (
                   <motion.div
                     key={activeTab}
