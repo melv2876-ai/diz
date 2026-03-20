@@ -2,17 +2,18 @@
 
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, Check, Eye, EyeOff, Mail, Moon, RefreshCw, Sun, Zap } from 'lucide-react';
+import { ArrowRight, Check, Eye, EyeOff, Mail, Moon, RefreshCw, Sparkles, Sun, Zap } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import Globe from './Globe';
 import { Logo } from './Logo';
+
 import { resolveFlagMeta } from '@/lib/flags';
 import { cn } from '@/lib/utils';
 
 /* ───────────── types ───────────── */
 
-type ThemeName = 'dark' | 'milky';
-type AccentName = 'emerald' | 'orange' | 'blue' | 'pink';
+export type ThemeName = 'dark' | 'milky';
+export type AccentName = 'emerald' | 'orange' | 'blue' | 'pink';
 
 interface ServerData {
   id: string;
@@ -31,7 +32,7 @@ const STORAGE_ACCENT_KEY = 'wwpro-accent';
 
 /* ───────────── design tokens (aligned with ASIC) ───────────── */
 
-const ACCENTS = {
+export const ACCENTS = {
   emerald: {
     color: 'bg-emerald-500',
     text: 'text-emerald-500',
@@ -142,7 +143,7 @@ const ACCENTS = {
   },
 } as const;
 
-const THEMES = {
+export const THEMES = {
   dark: {
     bg: 'bg-[#050505]',
     textStrong: 'text-white',
@@ -236,6 +237,7 @@ export default function Hero() {
   const [loading, setLoading] = useState(false);
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [globeFocusToken, setGlobeFocusToken] = useState(0);
+
 
   /* form fields */
   const [email, setEmail] = useState('');
@@ -947,6 +949,29 @@ export default function Hero() {
             </div>
           </motion.aside>
         </main>
+
+        {/* ── floating CTA — "Почему выбирают нас?" ── */}
+        <motion.div
+          className="pointer-events-auto fixed bottom-6 left-1/2 z-20 -translate-x-1/2"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.6 }}
+        >
+          <Link
+            to="/why-us"
+            className={cn(
+              'flex items-center gap-2 rounded-full border px-5 py-2.5 text-sm font-medium transition-all duration-300',
+              t.border,
+              theme === 'dark'
+                ? 'bg-white/[0.05] backdrop-blur-lg hover:bg-white/[0.1]'
+                : 'bg-white/80 shadow-sm backdrop-blur-lg hover:bg-white',
+              t.textStrong,
+            )}
+          >
+            <Sparkles className={cn('h-4 w-4', a.text)} />
+            Почему выбирают нас?
+          </Link>
+        </motion.div>
       </div>
     </div>
   );

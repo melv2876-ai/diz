@@ -4,6 +4,7 @@ import CookieBanner from '@/components/CookieBanner';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
+const WhyUsPage = lazy(() => import('./pages/WhyUsPage'));
 const LegalPage = lazy(() => import('./pages/LegalPage'));
 
 export default function App() {
@@ -19,6 +20,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+          <Route path="/why-us" element={<WhyUsPage />} />
           <Route path="/terms" element={<LegalPage />} />
           <Route path="/privacy" element={<LegalPage />} />
           <Route path="/refund" element={<LegalPage />} />
