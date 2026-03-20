@@ -2,9 +2,10 @@
 
 import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { ArrowRight, Check, Eye, EyeOff, Mail, Moon, RefreshCw, Shield, Sun, Zap } from 'lucide-react';
+import { ArrowRight, Check, Eye, EyeOff, Mail, Moon, RefreshCw, Sun, Zap } from 'lucide-react';
 import { useNavigate, Link } from 'react-router-dom';
 import Globe from './Globe';
+import { Logo } from './Logo';
 import { resolveFlagMeta } from '@/lib/flags';
 import { cn } from '@/lib/utils';
 
@@ -184,7 +185,7 @@ const SERVERS: ServerData[] = [
     coords: [50.1109, 8.6821],
     basePing: 35,
     flagCode: 'de',
-    description: 'Минимальная задержка для работы, звонков и повседневного трафика.',
+    description: 'Самый оптимальный маршрут. Минимальная задержка, максимальная стабильность и качество трафика. Идеален для работы, звонков и повседневного использования.',
   },
   {
     id: 'am',
@@ -193,7 +194,7 @@ const SERVERS: ServerData[] = [
     coords: [40.1772, 44.5035],
     basePing: 55,
     flagCode: 'am',
-    description: 'Сбалансированный маршрут для стриминга и спокойного серфинга.',
+    description: 'Сбалансированный маршрут с полным отсутствием рекламы в YouTube. Пинг чуть выше, но качество соединения стабильно высокое.',
   },
   {
     id: 'fi',
@@ -202,7 +203,7 @@ const SERVERS: ServerData[] = [
     coords: [60.1699, 24.9384],
     basePing: 42,
     flagCode: 'fi',
-    description: 'Северный маршрут для стабильного и защищенного соединения.',
+    description: 'Быстрый северный маршрут без рекламы в YouTube. Отличный вариант для повседневного серфинга, стриминга и комфортной работы.',
   },
   {
     id: 'us',
@@ -211,7 +212,7 @@ const SERVERS: ServerData[] = [
     coords: [40.7128, -74.006],
     basePing: 110,
     flagCode: 'us',
-    description: 'Для глобальных сервисов и зарубежных регистраций.',
+    description: 'Для регистрации в глобальных сервисах и доступа к зарубежным платформам. Полноценный выход в американский интернет.',
   },
 ];
 
@@ -467,12 +468,7 @@ export default function Hero() {
 
         {/* ── header ── */}
         <header className="pointer-events-auto mb-4 flex shrink-0 items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg shadow-[0_0_15px_rgba(0,0,0,0.2)]', a.color)}>
-              <Shield className={cn('h-5 w-5', theme === 'dark' ? 'text-black' : 'text-white')} />
-            </div>
-            <span className={cn('text-lg font-semibold tracking-tight', t.textStrong)}>WW.pro</span>
-          </div>
+          <Logo theme={theme} accent={accent} className="h-9 w-auto md:h-10" />
 
           <div className="flex items-center gap-3">
             <div className={cn('flex items-center gap-1.5 rounded-full border p-1.5 transition-colors', t.border, t.cardSolid)}>
@@ -839,7 +835,7 @@ export default function Hero() {
             className="pointer-events-auto flex min-h-0 flex-col gap-4 lg:col-span-1"
           >
             {/* ── active server card (minimal) ── */}
-            <div className={cn('shrink-0 rounded-2xl border p-5 transition-colors', t.border, t.cardSolid)}>
+            <div className={cn('h-[15rem] shrink-0 rounded-2xl border p-5 transition-colors', t.border, t.cardSolid)}>
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className={cn('mb-1 flex items-center text-xs font-medium', a.text)}>
@@ -881,7 +877,7 @@ export default function Hero() {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.12 }}
-                  className={cn('mt-3 text-sm leading-relaxed', t.textMuted)}
+                  className={cn('mt-3 min-h-[6rem] text-sm leading-relaxed', t.textMuted)}
                 >
                   {selectedServer.description}
                 </motion.p>

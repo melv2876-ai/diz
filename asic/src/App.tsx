@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { Logo } from '../../components/Logo';
 import {
   AlertCircle,
   CheckCircle2,
@@ -11,7 +12,6 @@ import {
   LifeBuoy,
   Moon,
   Settings,
-  Shield,
   ShieldCheck,
   Sun,
   Zap,
@@ -145,8 +145,8 @@ const ThemeContext = createContext<ThemeContextValue>({
   accent: 'emerald' as AccentType,
   t: THEMES.dark,
   a: ACCENTS.emerald,
-  setTheme: (_theme: ThemeType) => {},
-  setAccent: (_accent: AccentType) => {},
+  setTheme: (_theme: ThemeType) => { },
+  setAccent: (_accent: AccentType) => { },
 });
 
 const DEVICES = [
@@ -540,13 +540,8 @@ export default function App() {
             theme === 'dark' ? 'backdrop-blur-xl' : 'backdrop-blur-md'
           )}
         >
-          <div className="flex items-center gap-3 p-6">
-            <div className={cn('flex h-8 w-8 items-center justify-center rounded-lg shadow-[0_0_15px_rgba(0,0,0,0.2)]', a.color)}>
-              <Shield className={cn('h-5 w-5', theme === 'dark' ? 'text-black' : 'text-white')} />
-            </div>
-            <span className={cn('text-lg font-semibold tracking-tight font-[var(--font-display)]', t.textStrong)}>
-              WW.pro
-            </span>
+          <div className="flex items-center p-6">
+            <Logo theme={theme} accent={accent} className="h-8 w-auto" />
           </div>
 
           <div className="flex-1 space-y-8 overflow-y-auto px-4 py-6">
