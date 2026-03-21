@@ -8,6 +8,38 @@
   }
 }
 
+/* Mobile touch UX */
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button, a, [role="button"] {
+  touch-action: manipulation;
+}
+
+/* Safe area support for notch devices */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* PWA standalone mode adjustments */
+@media (display-mode: standalone) {
+  body {
+    padding-top: var(--safe-top);
+    overscroll-behavior-y: contain;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  /* Allow text selection in content areas */
+  main, article, p, span, h1, h2, h3, h4, h5, h6, input, textarea {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
 @theme {
   --font-sans: "Golos Text", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;

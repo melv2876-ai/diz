@@ -82,10 +82,12 @@ import {
   Hexagon,
   Flower,
   HandPeace,
+  List,
 } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { useIsMobile, useDeviceOverride, MobileProvider } from '../../hooks/use-mobile';
 
 const ICON_WEIGHT = 'duotone' as const;
 
@@ -243,9 +245,13 @@ const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
 /* ── Toast Stack ── */
 const ToastStack = ({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: string) => void }) => {
   const { t, a } = useContext(ThemeContext);
+  const isMobile = useIsMobile();
 
   return (
-    <div className="pointer-events-none fixed bottom-6 right-6 z-[100] flex flex-col-reverse gap-2">
+    <div
+      className={cn('pointer-events-none fixed z-[100] flex flex-col-reverse gap-2', isMobile ? 'left-4 right-4' : 'right-6 w-80')}
+      style={{ bottom: isMobile ? 'calc(24px + var(--safe-bottom, 0px))' : '24px' }}
+    >
       <AnimatePresence>
         {toasts.slice(-3).map((toast) => {
           const IconComp = NOTIFICATION_ICONS[toast.type];
@@ -257,7 +263,8 @@ const ToastStack = ({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: st
               exit={{ opacity: 0, x: 80, scale: 0.95 }}
               transition={{ type: 'spring', bounce: 0.25, duration: 0.5 }}
               className={cn(
-                'pointer-events-auto flex w-80 items-start gap-3 rounded-2xl border p-4 shadow-2xl backdrop-blur-xl',
+                'pointer-events-auto flex items-start gap-3 rounded-2xl border p-4 shadow-2xl backdrop-blur-xl',
+                isMobile ? 'w-full' : 'w-80',
                 t.cardSolid, a.border
               )}
             >
@@ -270,9 +277,9 @@ const ToastStack = ({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: st
               </div>
               <button
                 onClick={() => onDismiss(toast.id)}
-                className={cn('shrink-0 rounded-full p-0.5 transition-colors', t.textSubtle, 'hover:bg-white/10')}
+                className={cn('shrink-0 rounded-full p-2 transition-colors', t.textSubtle, 'hover:bg-white/10')}
               >
-                <X weight="bold" className="h-3 w-3" />
+                <X weight="bold" className="h-3.5 w-3.5" />
               </button>
             </motion.div>
           );
@@ -286,16 +293,151 @@ const ToastStack = ({ toasts, onDismiss }: { toasts: Toast[]; onDismiss: (id: st
 const NotificationPanel = () => {
   const { t, a } = useContext(ThemeContext);
   const { notifications, unreadCount, dismiss, markAllRead } = useNotifications();
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
+  /* Close on outside click/tap */
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    const handler = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (ref.current?.contains(target)) return;
+      if (panelRef.current?.contains(target)) return;
+      setOpen(false);
     };
-    if (open) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+    if (open && !isMobile) {
+      document.addEventListener('mousedown', handler);
+      document.addEventListener('touchstart', handler);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [open, isMobile]);
+
+  /* Lock body scroll on mobile */
+  useEffect(() => {
+    if (open && isMobile) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [open, isMobile]);
+
+  const dropdown = (
+    <AnimatePresence>
+      {open ? (
+        <>
+          {isMobile ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
+              onClick={() => setOpen(false)}
+            />
+          ) : null}
+          <motion.div
+            ref={panelRef}
+            initial={isMobile ? { opacity: 0, y: '100%' } : { opacity: 0, y: 8, scale: 0.96 }}
+            animate={isMobile ? { opacity: 1, y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isMobile ? { opacity: 0, y: '100%' } : { opacity: 0, y: 8, scale: 0.96 }}
+            transition={isMobile ? { type: 'spring', bounce: 0.15, duration: 0.4 } : { duration: 0.2 }}
+            className={cn(
+              isMobile
+                ? 'fixed inset-x-0 bottom-0 z-[61] overflow-hidden rounded-t-2xl border-t shadow-2xl'
+                : 'absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border shadow-2xl',
+              a.border, t.panel, 'backdrop-blur-xl'
+            )}
+            style={isMobile ? { maxHeight: 'calc(85vh - var(--safe-top, 0px))', paddingBottom: 'var(--safe-bottom, 0px)' } : undefined}
+          >
+            {/* Header */}
+            <div className={cn('flex shrink-0 items-center justify-between border-b px-4 py-3', t.border)}>
+              <span className={cn('text-xs font-medium', t.textStrong)}>Уведомления</span>
+              <div className="flex items-center gap-3">
+                {notifications.length > 0 ? (
+                  <button
+                    onClick={markAllRead}
+                    className={cn('text-[10px] font-medium transition-opacity hover:opacity-70', a.text)}
+                  >
+                    Прочитать все
+                  </button>
+                ) : null}
+                {isMobile ? (
+                  <button onClick={() => setOpen(false)} className={cn('rounded-full p-1.5', t.textSubtle, t.navHover)}>
+                    <X weight="bold" className="h-3.5 w-3.5" />
+                  </button>
+                ) : null}
+              </div>
+            </div>
+
+            {/* List */}
+            <div className={cn('overflow-y-auto', isMobile ? 'max-h-[60vh]' : 'max-h-80', isMobile && 'overscroll-contain')}>
+              {notifications.length === 0 ? (
+                <div className={cn('px-4 py-8 text-center text-xs', t.textSubtle)}>
+                  Нет уведомлений
+                </div>
+              ) : (
+                notifications.map((n) => {
+                  const IconComp = NOTIFICATION_ICONS[n.type];
+                  return (
+                    <div
+                      key={n.id}
+                      className={cn(
+                        'group relative flex items-start gap-3 px-4 py-3 transition-colors',
+                        !n.read && a.bgSoft,
+                        t.cardHover
+                      )}
+                    >
+                      <div className={cn(
+                        'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
+                        n.type === 'promo' ? a.bgSoft : t.card
+                      )}>
+                        <IconComp
+                          weight={n.type === 'promo' ? 'fill' : ICON_WEIGHT}
+                          className={cn('h-3.5 w-3.5', n.type === 'promo' ? a.text : t.textMuted)}
+                        />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className={cn('text-xs font-medium', t.textStrong)}>{n.title}</span>
+                          <div className="flex shrink-0 items-center gap-1.5">
+                            <span className={cn('text-[10px]', t.textSubtle)}>{n.time}</span>
+                            <button
+                              onClick={() => dismiss(n.id)}
+                              className={cn(
+                                'rounded-full p-1 transition-all',
+                                isMobile ? 'opacity-60' : 'opacity-0 group-hover:opacity-100',
+                                t.textSubtle, 'hover:bg-white/10'
+                              )}
+                            >
+                              <X weight="bold" className="h-2.5 w-2.5" />
+                            </button>
+                          </div>
+                        </div>
+                        <p className={cn('mt-0.5 text-[11px] leading-relaxed', t.textMuted)}>{n.body}</p>
+                        {n.action ? (
+                          <a
+                            href={n.action.href}
+                            className={cn('mt-1.5 inline-block text-[11px] font-medium transition-opacity hover:opacity-80', a.text)}
+                          >
+                            {n.action.label} →
+                          </a>
+                        ) : null}
+                      </div>
+                      {!n.read ? (
+                        <div className={cn('absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full', a.color)} />
+                      ) : null}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </motion.div>
+        </>
+      ) : null}
+    </AnimatePresence>
+  );
 
   return (
     <div ref={ref}>
@@ -330,95 +472,7 @@ const NotificationPanel = () => {
         ) : null}
       </button>
 
-      <AnimatePresence>
-        {open ? (
-          <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ duration: 0.2 }}
-            className={cn(
-              'absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border shadow-2xl',
-              a.border, t.panel, 'backdrop-blur-xl'
-            )}
-          >
-            {/* Header */}
-            <div className={cn('flex items-center justify-between border-b px-4 py-3', t.border)}>
-              <span className={cn('text-xs font-medium', t.textStrong)}>Уведомления</span>
-              {notifications.length > 0 ? (
-                <button
-                  onClick={markAllRead}
-                  className={cn('text-[10px] font-medium transition-opacity hover:opacity-70', a.text)}
-                >
-                  Прочитать все
-                </button>
-              ) : null}
-            </div>
-
-            {/* List */}
-            <div className="max-h-80 overflow-y-auto">
-              {notifications.length === 0 ? (
-                <div className={cn('px-4 py-8 text-center text-xs', t.textSubtle)}>
-                  Нет уведомлений
-                </div>
-              ) : (
-                notifications.map((n) => {
-                  const IconComp = NOTIFICATION_ICONS[n.type];
-                  return (
-                    <div
-                      key={n.id}
-                      className={cn(
-                        'group relative flex items-start gap-3 px-4 py-3 transition-colors',
-                        !n.read && a.bgSoft,
-                        t.cardHover
-                      )}
-                    >
-                      <div className={cn(
-                        'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg',
-                        n.type === 'promo' ? a.bgSoft : t.card
-                      )}>
-                        <IconComp
-                          weight={n.type === 'promo' ? 'fill' : ICON_WEIGHT}
-                          className={cn('h-3.5 w-3.5', n.type === 'promo' ? a.text : t.textMuted)}
-                        />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <span className={cn('text-xs font-medium', t.textStrong)}>{n.title}</span>
-                          <div className="flex shrink-0 items-center gap-1.5">
-                            <span className={cn('text-[10px]', t.textSubtle)}>{n.time}</span>
-                            <button
-                              onClick={() => dismiss(n.id)}
-                              className={cn(
-                                'rounded-full p-0.5 opacity-0 transition-all group-hover:opacity-100',
-                                t.textSubtle, 'hover:bg-white/10'
-                              )}
-                            >
-                              <X weight="bold" className="h-2.5 w-2.5" />
-                            </button>
-                          </div>
-                        </div>
-                        <p className={cn('mt-0.5 text-[11px] leading-relaxed', t.textMuted)}>{n.body}</p>
-                        {n.action ? (
-                          <a
-                            href={n.action.href}
-                            className={cn('mt-1.5 inline-block text-[11px] font-medium transition-opacity hover:opacity-80', a.text)}
-                          >
-                            {n.action.label} →
-                          </a>
-                        ) : null}
-                      </div>
-                      {!n.read ? (
-                        <div className={cn('absolute left-1.5 top-1/2 h-1.5 w-1.5 -translate-y-1/2 rounded-full', a.color)} />
-                      ) : null}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+      {isMobile ? createPortal(dropdown, document.body) : dropdown}
     </div>
   );
 };
@@ -652,7 +706,7 @@ const NavItem = ({
     <button
       onClick={onClick}
       className={cn(
-        'relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 group',
+        'relative flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-300 group min-h-[44px]',
         active ? t.navActiveText : cn(t.textMuted, t.navHover)
       )}
     >
@@ -712,23 +766,23 @@ const DeviceRow = ({ device, onUnlink }: { device: { id: number; name: string; o
   return (
     <div
       className={cn(
-        'flex items-center justify-between rounded-xl border p-4 transition-colors',
+        'flex items-center justify-between gap-3 rounded-xl border p-3 transition-colors sm:p-4',
         t.card, t.border, t.borderHover
       )}
     >
-      <div className="flex items-center gap-4">
-        <div className={cn('flex h-10 w-10 items-center justify-center rounded-full border', t.cardSolid, t.border)}>
+      <div className="flex min-w-0 items-center gap-3 sm:gap-4">
+        <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full border', t.cardSolid, t.border)}>
           {device.os.includes('mac') || device.os.includes('Windows') ? (
             <Laptop weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
           ) : (
             <DeviceMobile weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
           )}
         </div>
-        <div>
-          <h4 className={cn('text-sm font-medium', t.textStrong)}>{device.name}</h4>
-          <div className={cn('mt-1 flex items-center gap-2 text-xs', t.textSubtle)}>
-            <span>{device.location}</span>
-            <span>•</span>
+        <div className="min-w-0">
+          <h4 className={cn('truncate text-sm font-medium', t.textStrong)}>{device.name}</h4>
+          <div className={cn('mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs', t.textSubtle)}>
+            <span className="truncate">{device.location}</span>
+            <span className="hidden sm:inline">•</span>
             <span className="font-mono">{device.ip}</span>
           </div>
         </div>
@@ -775,6 +829,7 @@ const DeviceRow = ({ device, onUnlink }: { device: { id: number; name: string; o
 /* ── Devices Card (split: VPN / whitelist) ── */
 const DevicesCard = () => {
   const { t, a, theme } = useContext(ThemeContext);
+  const isMobile = useIsMobile();
   const [confirmId, setConfirmId] = useState<number | null>(null);
 
   const handleUnlink = (id: number) => {
@@ -790,7 +845,7 @@ const DevicesCard = () => {
         <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
         <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
 
-        <div className="relative z-10 flex flex-col lg:flex-row">
+        <div className={cn('relative z-10 flex', isMobile ? 'flex-col' : 'flex-row')}>
           {/* ─ Left: Main VPN devices ─ */}
           <div className="flex-1 p-6 space-y-4">
             <div className="flex items-center justify-between">
@@ -811,10 +866,10 @@ const DevicesCard = () => {
           </div>
 
           {/* Divider */}
-          <div className="hidden lg:flex items-center self-stretch py-8">
+          <div className={cn('items-center self-stretch py-8', isMobile ? 'hidden' : 'flex')}>
             <div className={cn('w-px h-full rounded-full', theme === 'dark' ? 'bg-gradient-to-b from-transparent via-white/50 to-transparent' : 'bg-gradient-to-b from-transparent via-black/30 to-transparent')} />
           </div>
-          <div className={cn('mx-6 h-px lg:hidden', theme === 'dark' ? 'bg-gradient-to-r from-transparent via-white/50 to-transparent' : 'bg-gradient-to-r from-transparent via-black/30 to-transparent')} />
+          <div className={cn('mx-6 h-px', isMobile ? '' : 'hidden', theme === 'dark' ? 'bg-gradient-to-r from-transparent via-white/50 to-transparent' : 'bg-gradient-to-r from-transparent via-black/30 to-transparent')} />
 
           {/* ─ Right: Whitelist devices ─ */}
           <div className="flex-1 p-6 space-y-4">
@@ -838,60 +893,64 @@ const DevicesCard = () => {
       </div>
 
       {/* ── Confirmation overlay ── */}
-      <AnimatePresence>
-        {confirmId !== null ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-            onClick={() => setConfirmId(null)}
-          >
+      {createPortal(
+        <AnimatePresence>
+          {confirmId !== null ? (
             <motion.div
-              initial={{ opacity: 0, scale: 0.92, y: 12 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.92, y: 12 }}
-              transition={{ duration: 0.2 }}
-              onClick={(e) => e.stopPropagation()}
-              className={cn('mx-4 w-full max-w-sm overflow-hidden rounded-2xl border shadow-2xl', t.cardSolid, t.border)}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+              onClick={() => setConfirmId(null)}
             >
-              <div className="p-6 text-center">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/15">
-                  <WarningCircle weight={ICON_WEIGHT} className="h-6 w-6 text-red-400" />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 12 }}
+                transition={{ duration: 0.2 }}
+                onClick={(e) => e.stopPropagation()}
+                className={cn('mx-4 w-full max-w-sm overflow-hidden rounded-2xl border shadow-2xl', t.cardSolid, t.border)}
+              >
+                <div className="p-6 text-center">
+                  <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/15">
+                    <WarningCircle weight={ICON_WEIGHT} className="h-6 w-6 text-red-400" />
+                  </div>
+                  <h3 className={cn('text-base font-medium', t.textStrong)}>Отвязать устройство?</h3>
+                  <p className={cn('mt-2 text-sm leading-relaxed', t.textMuted)}>
+                    Вы уверены, что хотите отвязать{' '}
+                    <span className={cn('font-medium', t.textStrong)}>{deviceToUnlink?.name}</span>?
+                  </p>
                 </div>
-                <h3 className={cn('text-base font-medium', t.textStrong)}>Отвязать устройство?</h3>
-                <p className={cn('mt-2 text-sm leading-relaxed', t.textMuted)}>
-                  Вы уверены, что хотите отвязать{' '}
-                  <span className={cn('font-medium', t.textStrong)}>{deviceToUnlink?.name}</span>?
-                </p>
-              </div>
-              <div className={cn('flex gap-3 border-t px-6 py-4', t.border)}>
-                <button
-                  onClick={() => setConfirmId(null)}
-                  className={cn(
-                    'flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors',
-                    t.border, t.textStrong, t.cardHover
-                  )}
-                >
-                  Отмена
-                </button>
-                <button
-                  onClick={() => setConfirmId(null)}
-                  className="flex-1 rounded-xl bg-red-500/15 px-4 py-2.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/25"
-                >
-                  Отвязать
-                </button>
-              </div>
+                <div className={cn('flex gap-3 border-t px-6 py-4', t.border)}>
+                  <button
+                    onClick={() => setConfirmId(null)}
+                    className={cn(
+                      'flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors',
+                      t.border, t.textStrong, t.cardHover
+                    )}
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={() => setConfirmId(null)}
+                    className="flex-1 rounded-xl bg-red-500/15 px-4 py-2.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/25"
+                  >
+                    Отвязать
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+          ) : null}
+        </AnimatePresence>,
+        document.body
+      )}
     </>
   );
 };
 
 const OverviewTab = () => {
   const { t, a, hasSubscription, theme, navigateTab } = useContext(ThemeContext);
+  const isMobile = useIsMobile();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const paymentRef = useRef<HTMLDivElement>(null);
@@ -1296,7 +1355,7 @@ const OverviewTab = () => {
           <div className={cn('h-px', t.border)} style={{ opacity: 0.5 }} />
         </div>
 
-        <div className="relative z-10 flex flex-col lg:flex-row">
+        <div className={cn('relative z-10 flex', isMobile ? 'flex-col' : 'flex-row')}>
           {/* ─ Left: Main subscription ─ */}
           <div className="flex flex-1 flex-col justify-between p-6">
             <div className="space-y-5">
@@ -1315,7 +1374,7 @@ const OverviewTab = () => {
             {/* Days hero */}
             <div>
               <div className="flex items-baseline gap-2">
-                <h2 className={cn('text-6xl font-light tracking-tighter', t.textStrong)}>{activeSub.daysLeft}</h2>
+                <h2 className={cn('text-4xl font-light tracking-tighter sm:text-5xl lg:text-6xl', t.textStrong)}>{activeSub.daysLeft}</h2>
                 <span className={cn('text-lg font-light', t.textMuted)}>дней</span>
               </div>
             </div>
@@ -1371,10 +1430,10 @@ const OverviewTab = () => {
           </div>
 
           {/* Divider */}
-          <div className="hidden lg:flex items-center self-stretch py-8">
+          <div className={cn('items-center self-stretch py-8', isMobile ? 'hidden' : 'flex')}>
             <div className={cn('w-px h-full rounded-full', theme === 'dark' ? 'bg-gradient-to-b from-transparent via-white/50 to-transparent' : 'bg-gradient-to-b from-transparent via-black/30 to-transparent')} />
           </div>
-          <div className={cn('mx-6 h-px lg:hidden', theme === 'dark' ? 'bg-gradient-to-r from-transparent via-white/50 to-transparent' : 'bg-gradient-to-r from-transparent via-black/30 to-transparent')} />
+          <div className={cn('mx-6 h-px', isMobile ? '' : 'hidden', theme === 'dark' ? 'bg-gradient-to-r from-transparent via-white/50 to-transparent' : 'bg-gradient-to-r from-transparent via-black/30 to-transparent')} />
 
           {/* ─ Right: White Lists ─ */}
           <div className="flex flex-1 flex-col justify-between p-6">
@@ -2306,7 +2365,7 @@ const ReferralTab = () => {
               {/* Glow pulse */}
               <div className={cn('absolute -inset-4 rounded-full opacity-20 blur-2xl animate-pulse', a.color)} />
               <div className="relative">
-                <div className={cn('text-4xl font-light tabular-nums', a.text)}>
+                <div className={cn('text-3xl font-light tabular-nums sm:text-4xl', a.text)}>
                   <AnimatedNumber value={bonusDays} />
                 </div>
                 <div className={cn('text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>бонус-дней</div>
@@ -2776,7 +2835,7 @@ const BonusTab = () => {
             >
               <div className={cn('absolute -inset-4 rounded-full opacity-20 blur-2xl animate-pulse', a.color)} />
               <div className="relative">
-                <div className={cn('text-4xl font-light tabular-nums', a.text)}>{bonusDays}</div>
+                <div className={cn('text-3xl font-light tabular-nums sm:text-4xl', a.text)}>{bonusDays}</div>
                 <div className={cn('text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>дней</div>
               </div>
             </motion.div>
@@ -3211,6 +3270,7 @@ const BonusTab = () => {
 const NotificationsTab = () => {
   const { t, a, theme } = useContext(ThemeContext);
   const { notifications, unreadCount, dismiss, markAllRead, markRead, toggleStar } = useNotifications();
+  const isMobile = useIsMobile();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unread' | 'starred'>('all');
   const [search, setSearch] = useState('');
@@ -3311,7 +3371,7 @@ const NotificationsTab = () => {
                 exit={{ opacity: 0, y: 24, scale: 0.96 }}
                 transition={{ type: 'spring', bounce: 0.2, duration: 0.45 }}
                 className={cn(
-                  'absolute inset-x-4 top-14 z-40 max-h-[480px] overflow-y-auto rounded-2xl border-2 shadow-[0_12px_48px_rgba(0,0,0,0.5)]',
+                  'absolute inset-x-2 top-14 z-40 max-h-[80vh] overflow-y-auto rounded-2xl border-2 shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:inset-x-4',
                   a.border, t.cardSolid, 'backdrop-blur-xl'
                 )}
               >
@@ -3472,8 +3532,8 @@ const NotificationsTab = () => {
           )}
         </AnimatePresence>
         {/* Toolbar */}
-        <div className={cn('flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3', t.border)}>
-          <div className="flex items-center gap-1.5">
+        <div className={cn('flex flex-wrap items-center justify-between gap-3 border-b py-3', isMobile ? 'px-3' : 'px-5', t.border)}>
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
             {filterTabs.map((tab) => (
               <button
                 key={tab.key}
@@ -3538,10 +3598,15 @@ const NotificationsTab = () => {
           </div>
         </div>
 
-        {/* Two-panel layout */}
-        <div className="flex" style={{ minHeight: '520px' }}>
-          {/* Left: notification list */}
-          <div className={cn('w-[340px] shrink-0 overflow-y-auto border-r', t.border)} style={{ maxHeight: '520px' }}>
+        {/* Two-panel layout (stacks on mobile) */}
+        <div className={cn('flex', isMobile ? 'flex-col' : 'flex-row')} style={{ minHeight: '520px' }}>
+          {/* Left: notification list — full width on mobile when no detail selected, or always visible on desktop */}
+          <div className={cn(
+            'shrink-0 overflow-y-auto',
+            isMobile ? 'border-b' : 'w-[340px] border-r',
+            t.border,
+            selectedId && isMobile && 'hidden'
+          )} style={{ maxHeight: '520px' }}>
             {filteredNotifications.length === 0 ? (
               <div className={cn('flex flex-col items-center justify-center py-16 text-center', t.textSubtle)}>
                 <EnvelopeOpen weight={ICON_WEIGHT} className="mb-3 h-8 w-8 opacity-30" />
@@ -3601,8 +3666,8 @@ const NotificationsTab = () => {
             )}
           </div>
 
-          {/* Right: detail view */}
-          <div className="flex-1 overflow-y-auto" style={{ maxHeight: '520px' }}>
+          {/* Right: detail view — hidden on mobile when nothing selected */}
+          <div className={cn('flex-1 overflow-y-auto', !selectedId && isMobile && 'hidden')} style={{ maxHeight: '520px' }}>
             <AnimatePresence mode="wait">
               {selected ? (
                 <motion.div
@@ -3611,8 +3676,16 @@ const NotificationsTab = () => {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -20 }}
                   transition={{ duration: 0.2 }}
-                  className="p-6"
+                  className={isMobile ? 'p-4' : 'p-6'}
                 >
+                  {/* Mobile back button */}
+                  <button
+                    onClick={() => setSelectedId(null)}
+                    className={cn('mb-3 flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium transition-colors', isMobile ? '' : 'hidden', t.textMuted, t.navHover)}
+                  >
+                    <CaretRight weight="bold" className="h-3 w-3 rotate-180" />
+                    Назад к списку
+                  </button>
                   {/* Detail header */}
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4">
@@ -3704,6 +3777,111 @@ const NotificationsTab = () => {
   );
 };
 
+/* ── Preferences Tab ── */
+const PreferencesTab = () => {
+  const { t, a, theme, accent, setTheme, setAccent } = useContext(ThemeContext);
+  let deviceControl: { override: 'auto' | 'mobile' | 'desktop'; setOverride: (v: 'auto' | 'mobile' | 'desktop') => void } | null = null;
+  try { deviceControl = useDeviceOverride(); } catch { /* outside provider */ }
+
+  const deviceOptions: { key: 'auto' | 'mobile' | 'desktop'; label: string; icon: any }[] = [
+    { key: 'auto', label: 'Авто', icon: Globe },
+    { key: 'mobile', label: 'Мобильный', icon: DeviceMobile },
+    { key: 'desktop', label: 'Десктоп', icon: Desktop },
+  ];
+
+  return (
+    <motion.div
+      key="preferences"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-6"
+    >
+      {/* Theme & Accent */}
+      <GlowCard>
+        <div className="p-6">
+          <div className={cn('mb-5 flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
+            <GearSix weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+            <span>Внешний вид</span>
+          </div>
+
+          {/* Theme */}
+          <div className="mb-5">
+            <div className={cn('mb-2 text-sm font-medium', t.textStrong)}>Тема</div>
+            <div className="flex gap-2">
+              {([{ key: 'dark', label: 'Тёмная', icon: Moon }, { key: 'milky', label: 'Светлая', icon: Sun }] as const).map((item) => (
+                <button
+                  key={item.key}
+                  onClick={() => setTheme(item.key)}
+                  className={cn(
+                    'flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all min-h-[44px]',
+                    theme === item.key ? cn(a.bgSoft, a.text, a.border) : cn(t.card, t.border, t.textMuted, t.borderHover)
+                  )}
+                >
+                  <item.icon weight={theme === item.key ? 'fill' : ICON_WEIGHT} className="h-4 w-4" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Accent */}
+          <div>
+            <div className={cn('mb-2 text-sm font-medium', t.textStrong)}>Акцентный цвет</div>
+            <div className="flex gap-2">
+              {(Object.keys(ACCENTS) as AccentType[]).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => setAccent(key)}
+                  className={cn(
+                    'flex h-10 w-10 items-center justify-center rounded-xl border transition-all',
+                    accent === key ? cn(a.border, 'ring-2 ring-offset-2', theme === 'dark' ? 'ring-offset-[#0a0a0a]' : 'ring-offset-white') : cn(t.border, t.borderHover),
+                  )}
+                >
+                  <div className={cn('h-5 w-5 rounded-full', ACCENTS[key].color)} />
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </GlowCard>
+
+      {/* Device Preview */}
+      {deviceControl ? (
+        <GlowCard>
+          <div className="p-6">
+            <div className={cn('mb-5 flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
+              <Binoculars weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+              <span>Режим просмотра</span>
+            </div>
+            <div className={cn('mb-2 text-sm font-medium', t.textStrong)}>Переключатель устройства</div>
+            <p className={cn('mb-4 text-xs leading-relaxed', t.textMuted)}>
+              Позволяет протестировать интерфейс в мобильном или десктопном режиме вне зависимости от размера экрана.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {deviceOptions.map((opt) => (
+                <button
+                  key={opt.key}
+                  onClick={() => deviceControl!.setOverride(opt.key)}
+                  className={cn(
+                    'flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all min-h-[44px]',
+                    deviceControl!.override === opt.key
+                      ? cn(a.bgSoft, a.text, a.border)
+                      : cn(t.card, t.border, t.textMuted, t.borderHover)
+                  )}
+                >
+                  <opt.icon weight={deviceControl!.override === opt.key ? 'fill' : ICON_WEIGHT} className="h-4 w-4" />
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </GlowCard>
+      ) : null}
+    </motion.div>
+  );
+};
+
 /* ── Support Chat ── */
 type SupportMessage = {
   id: string;
@@ -3777,6 +3955,7 @@ const SupportChatPanel = ({
   onSend: (text: string) => void;
 }) => {
   const { t, a, theme } = useContext(ThemeContext);
+  const isMobile = useIsMobile();
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -3785,16 +3964,31 @@ const SupportChatPanel = ({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  /* Close on outside click/tap — handle both mouse and touch */
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const handler = (e: MouseEvent | TouchEvent) => {
       if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         const btn = (e.target as HTMLElement).closest('[data-support-toggle]');
         if (!btn) onClose();
       }
     };
-    if (isOpen) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [isOpen, onClose]);
+    if (isOpen && !isMobile) {
+      document.addEventListener('mousedown', handler);
+      document.addEventListener('touchstart', handler);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [isOpen, isMobile, onClose]);
+
+  /* Lock body scroll when open on mobile */
+  useEffect(() => {
+    if (isOpen && isMobile) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [isOpen, isMobile]);
 
   const handleSend = () => {
     const trimmed = input.trim();
@@ -3810,97 +4004,121 @@ const SupportChatPanel = ({
     }
   };
 
-  return (
+  const panel = (
     <AnimatePresence>
       {isOpen ? (
-        <motion.div
-          ref={panelRef}
-          initial={{ opacity: 0, y: 8, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 8, scale: 0.96 }}
-          transition={{ duration: 0.2 }}
-          className={cn(
-            'absolute right-0 top-full z-50 mt-2 flex w-80 flex-col overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl',
-            t.panel, a.border
-          )}
-          style={{ maxHeight: 'min(500px, calc(100vh - 100px))' }}
-        >
-          {/* Header */}
-          <div className={cn('flex items-center justify-between border-b px-4 py-3', t.border)}>
-            <div className="flex items-center gap-3">
-              <div className={cn('flex h-8 w-8 items-center justify-center rounded-full', a.bgSoft)}>
-                <ChatCircleDots weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
-              </div>
-              <div>
-                <div className={cn('text-sm font-medium', t.textStrong)}>Поддержка</div>
-                <div className={cn('text-[11px]', t.textMuted)}>Отвечаем по мере загруженности</div>
-              </div>
-            </div>
-            <button
+        <>
+          {/* Backdrop overlay on mobile */}
+          {isMobile ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
               onClick={onClose}
-              className={cn('rounded-full p-1.5 transition-colors', t.textSubtle, t.navHover)}
-            >
-              <X weight="bold" className="h-3.5 w-3.5" />
-            </button>
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-4" style={{ minHeight: 200, maxHeight: 340 }}>
-            <div className="flex flex-col gap-3">
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={cn('flex flex-col', msg.from === 'user' ? 'items-end' : 'items-start')}
-                >
-                  <div
-                    className={cn(
-                      'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
-                      msg.from === 'support'
-                        ? cn(a.bgSoft, t.text, 'rounded-bl-md')
-                        : cn(a.color, 'text-black rounded-br-md')
-                    )}
-                  >
-                    {msg.text}
-                  </div>
-                  <span className={cn('mt-1 px-1 text-[10px]', t.textSubtle)}>{msg.time}</span>
+            />
+          ) : null}
+          <motion.div
+            ref={panelRef}
+            initial={isMobile ? { opacity: 0, y: '100%' } : { opacity: 0, y: 8, scale: 0.96 }}
+            animate={isMobile ? { opacity: 1, y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isMobile ? { opacity: 0, y: '100%' } : { opacity: 0, y: 8, scale: 0.96 }}
+            transition={isMobile ? { type: 'spring', bounce: 0.15, duration: 0.4 } : { duration: 0.2 }}
+            className={cn(
+              isMobile
+                ? 'fixed inset-x-0 bottom-0 z-[61] flex flex-col overflow-hidden rounded-t-2xl border-t shadow-2xl backdrop-blur-xl'
+                : 'absolute right-0 top-full z-50 mt-2 flex w-80 flex-col overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl',
+              t.panel, a.border
+            )}
+            style={isMobile
+              ? { maxHeight: 'calc(100vh - var(--safe-top, 0px) - 20px)', paddingBottom: 'var(--safe-bottom, 0px)' }
+              : { maxHeight: 'min(500px, calc(100vh - 100px))' }
+            }
+          >
+            {/* Header */}
+            <div className={cn('flex shrink-0 items-center justify-between border-b px-4 py-3', t.border)}>
+              <div className="flex items-center gap-3">
+                <div className={cn('flex h-8 w-8 items-center justify-center rounded-full', a.bgSoft)}>
+                  <ChatCircleDots weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
                 </div>
-              ))}
-              <div ref={messagesEndRef} />
-            </div>
-          </div>
-
-          {/* Input */}
-          <div className={cn('border-t px-3 py-3', t.border)}>
-            <div className={cn('flex items-end gap-2 rounded-xl border px-3 py-2 transition-colors', t.border, t.card)}>
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Напишите сообщение..."
-                rows={1}
-                className={cn(
-                  'max-h-20 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-inherit',
-                  t.text, t.textMuted
-                )}
-              />
+                <div>
+                  <div className={cn('text-sm font-medium', t.textStrong)}>Поддержка</div>
+                  <div className={cn('text-[11px]', t.textMuted)}>Отвечаем по мере загруженности</div>
+                </div>
+              </div>
               <button
-                onClick={handleSend}
-                disabled={!input.trim()}
-                className={cn(
-                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all',
-                  input.trim()
-                    ? cn(a.color, 'text-black')
-                    : cn(t.card, t.textSubtle)
-                )}
+                onClick={onClose}
+                className={cn('rounded-full p-1.5 transition-colors', t.textSubtle, t.navHover)}
               >
-                <PaperPlaneTilt weight="fill" className="h-4 w-4" />
+                <X weight="bold" className="h-3.5 w-3.5" />
               </button>
             </div>
-          </div>
-        </motion.div>
+
+            {/* Messages */}
+            <div
+              className={cn('flex-1 overflow-y-auto px-4 py-4', isMobile && 'overscroll-contain')}
+              style={isMobile ? { minHeight: 120 } : { minHeight: 200, maxHeight: 340 }}
+            >
+              <div className="flex flex-col gap-3">
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={cn('flex flex-col', msg.from === 'user' ? 'items-end' : 'items-start')}
+                  >
+                    <div
+                      className={cn(
+                        'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+                        msg.from === 'support'
+                          ? cn(a.bgSoft, t.text, 'rounded-bl-md')
+                          : cn(a.color, 'text-black rounded-br-md')
+                      )}
+                    >
+                      {msg.text}
+                    </div>
+                    <span className={cn('mt-1 px-1 text-[10px]', t.textSubtle)}>{msg.time}</span>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Input */}
+            <div className={cn('shrink-0 border-t px-3 py-3', t.border)}>
+              <div className={cn('flex items-end gap-2 rounded-xl border px-3 py-2 transition-colors', t.border, t.card)}>
+                <textarea
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Напишите сообщение..."
+                  rows={1}
+                  className={cn(
+                    'max-h-20 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-inherit',
+                    t.text, t.textMuted
+                  )}
+                />
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim()}
+                  className={cn(
+                    'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all',
+                    input.trim()
+                      ? cn(a.color, 'text-black')
+                      : cn(t.card, t.textSubtle)
+                  )}
+                >
+                  <PaperPlaneTilt weight="fill" className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </>
       ) : null}
     </AnimatePresence>
   );
+
+  /* On mobile, render via portal to escape header overflow constraints */
+  if (isMobile) return createPortal(panel, document.body);
+  return panel;
 };
 
 /* ── Support Tab (page) ── */
@@ -4069,51 +4287,63 @@ const CONNECTED_ACCOUNTS = {
 
 const ProfilePopover = () => {
   const { t, a, hasSubscription } = useContext(ThemeContext);
+  const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    const handler = (e: MouseEvent | TouchEvent) => {
+      const target = e.target as Node;
+      if (ref.current?.contains(target)) return;
+      if (popoverRef.current?.contains(target)) return;
+      setOpen(false);
     };
-    if (open) document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [open]);
+    if (open && !isMobile) {
+      document.addEventListener('mousedown', handler);
+      document.addEventListener('touchstart', handler);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handler);
+      document.removeEventListener('touchstart', handler);
+    };
+  }, [open, isMobile]);
 
-  return (
-    <div ref={ref}>
-      <button
-        onClick={() => setOpen(!open)}
-        className={cn(
-          'flex items-center gap-2 rounded-xl border px-2 py-1.5 transition-all',
-          t.border, open ? t.card : 'bg-transparent', t.borderHover
-        )}
-      >
-        <div className={cn('flex h-8 w-8 items-center justify-center rounded-full border', t.border, t.cardSolid)}>
-          <span className={cn('text-xs font-medium', t.textStrong)}>В</span>
-        </div>
-        <div className="hidden text-left md:block">
-          <div className={cn('text-xs font-medium leading-tight', t.textStrong)}>Влад</div>
-          <div className={cn('text-[10px] leading-tight', hasSubscription ? a.text : t.textSubtle)}>
-            {hasSubscription ? 'Pro' : 'Free'}
-          </div>
-        </div>
-        <CaretDown weight="bold" className={cn('hidden h-2.5 w-2.5 transition-transform md:block', t.textSubtle, open && 'rotate-180')} />
-      </button>
+  useEffect(() => {
+    if (open && isMobile) {
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = ''; };
+    }
+  }, [open, isMobile]);
 
-      <AnimatePresence>
-        {open ? (
+  const popoverContent = (
+    <AnimatePresence>
+      {open ? (
+        <>
+          {isMobile ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[60] bg-black/50 backdrop-blur-sm"
+              onClick={() => setOpen(false)}
+            />
+          ) : null}
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
-            transition={{ duration: 0.2 }}
+            ref={popoverRef}
+            initial={isMobile ? { opacity: 0, y: '100%' } : { opacity: 0, y: 8, scale: 0.96 }}
+            animate={isMobile ? { opacity: 1, y: 0 } : { opacity: 1, y: 0, scale: 1 }}
+            exit={isMobile ? { opacity: 0, y: '100%' } : { opacity: 0, y: 8, scale: 0.96 }}
+            transition={isMobile ? { type: 'spring', bounce: 0.15, duration: 0.4 } : { duration: 0.2 }}
             className={cn(
-              'absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border shadow-2xl',
+              isMobile
+                ? 'fixed inset-x-0 bottom-0 z-[61] max-h-[80vh] overflow-hidden rounded-t-2xl border-t shadow-2xl'
+                : 'absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border shadow-2xl',
               a.border,
               t.panel,
               'backdrop-blur-xl'
             )}
+            style={isMobile ? { paddingBottom: 'var(--safe-bottom, 0px)' } : undefined}
           >
             {/* User header */}
             <div className={cn('border-b px-4 py-4', t.border)}>
@@ -4189,8 +4419,33 @@ const ProfilePopover = () => {
               </button>
             </div>
           </motion.div>
-        ) : null}
-      </AnimatePresence>
+        </>
+      ) : null}
+    </AnimatePresence>
+  );
+
+  return (
+    <div ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          'flex items-center gap-2 rounded-xl border px-2 py-1.5 transition-all',
+          t.border, open ? t.card : 'bg-transparent', t.borderHover
+        )}
+      >
+        <div className={cn('flex h-8 w-8 items-center justify-center rounded-full border', t.border, t.cardSolid)}>
+          <span className={cn('text-xs font-medium', t.textStrong)}>В</span>
+        </div>
+        <div className={cn('text-left', isMobile && 'hidden')}>
+          <div className={cn('text-xs font-medium leading-tight', t.textStrong)}>Влад</div>
+          <div className={cn('text-[10px] leading-tight', hasSubscription ? a.text : t.textSubtle)}>
+            {hasSubscription ? 'Pro' : 'Free'}
+          </div>
+        </div>
+        <CaretDown weight="bold" className={cn('h-2.5 w-2.5 transition-transform', isMobile && 'hidden', t.textSubtle, open && 'rotate-180')} />
+      </button>
+
+      {isMobile ? createPortal(popoverContent, document.body) : popoverContent}
     </div>
   );
 };
@@ -4203,6 +4458,8 @@ export default function App() {
   const [scrollTarget, setScrollTarget] = useState<string | null>(null);
   const [isSupportChatOpen, setIsSupportChatOpen] = useState(false);
   const [supportMessages, setSupportMessages] = useState<SupportMessage[]>(INITIAL_SUPPORT_MESSAGES);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   const handleSendSupportMessage = (text: string) => {
     const msg: SupportMessage = {
@@ -4239,11 +4496,110 @@ export default function App() {
     <ThemeContext.Provider value={{ theme, accent, t, a, hasSubscription, setTheme, setAccent, setHasSubscription, navigateTab }}>
       <NotificationProvider>
       <div
-        className={cn('relative flex h-screen overflow-hidden font-sans transition-colors duration-500', t.bg, t.text, a.selection)}
+        className={cn('relative flex h-dvh overflow-hidden font-sans transition-colors duration-500', t.bg, t.text, a.selection)}
       >
+        {/* ── Mobile sidebar overlay ── */}
+        <AnimatePresence>
+          {sidebarOpen && isMobile ? (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+                onClick={() => setSidebarOpen(false)}
+              />
+              <motion.div
+                initial={{ x: -280 }}
+                animate={{ x: 0 }}
+                exit={{ x: -280 }}
+                transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                className={cn(
+                  'fixed inset-y-0 left-0 z-50 flex w-[280px] flex-col border-r transition-colors duration-500',
+                  t.border,
+                  t.sidebar,
+                  theme === 'dark' ? 'bg-[#0a0a0a] backdrop-blur-xl' : 'bg-[#faf8f5] backdrop-blur-md'
+                )}
+                style={{ paddingTop: 'var(--safe-top, 0px)', paddingBottom: 'var(--safe-bottom, 0px)', paddingLeft: 'var(--safe-left, 0px)' }}
+              >
+                <div className="flex items-center justify-between p-6">
+                  <Logo theme={theme} accent={accent} className="h-8 w-auto" />
+                  <button onClick={() => setSidebarOpen(false)} className={cn('rounded-full p-2', t.textMuted, t.navHover)}>
+                    <X weight="bold" className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <div className="flex-1 space-y-8 overflow-y-auto px-4 py-6">
+                  <div>
+                    <div className={cn('mb-3 px-4 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Управление</div>
+                    <div className="space-y-1">
+                      <NavItem icon={Globe} label="Личный кабинет" active={activeTab === 'overview'} onClick={() => { setActiveTab('overview'); setSidebarOpen(false); }} />
+                      <NavItem icon={ShieldCheck} label="Настройка VPN" active={activeTab === 'billing'} onClick={() => { setActiveTab('billing'); setSidebarOpen(false); }} />
+                      <NavItem icon={Gift} label="Бонусы" active={activeTab === 'bonuses'} onClick={() => { setActiveTab('bonuses'); setSidebarOpen(false); }} />
+                      <NavItem icon={PersonArmsSpread} label="Рефералы" active={activeTab === 'referral'} onClick={() => { setActiveTab('referral'); setSidebarOpen(false); }} />
+                      <NavItem icon={Envelope} label="Уведомления" active={activeTab === 'notifications'} onClick={() => { setActiveTab('notifications'); setSidebarOpen(false); }} />
+                    </div>
+                  </div>
+                  <div>
+                    <div className={cn('mb-3 px-4 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Настройки</div>
+                    <div className="space-y-1">
+                      <NavItem icon={GearSix} label="Параметры" active={activeTab === 'preferences'} onClick={() => { setActiveTab('preferences'); setSidebarOpen(false); }} />
+                      <NavItem icon={Lifebuoy} label="Поддержка" active={activeTab === 'support'} onClick={() => { setActiveTab('support'); setSidebarOpen(false); }} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className={cn('shrink-0 border-t px-6 py-4', t.border)}>
+                  {/* Theme & accent in mobile sidebar */}
+                  <div className="mb-3 flex items-center justify-between">
+                    <div className={cn('flex items-center gap-1.5 rounded-full border p-1.5', t.border, t.cardSolid)}>
+                      {(Object.keys(ACCENTS) as AccentType[]).map((key) => (
+                        <button
+                          key={key}
+                          onClick={() => setAccent(key)}
+                          className={cn(
+                            'h-5 w-5 rounded-full transition-all duration-300',
+                            ACCENTS[key].color,
+                            accent === key ? 'scale-110 ring-2 ring-current ring-offset-2' : 'scale-90 opacity-60',
+                            theme === 'dark' ? 'ring-offset-[#0a0a0a]' : 'ring-offset-white'
+                          )}
+                        />
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => setTheme(theme === 'dark' ? 'milky' : 'dark')}
+                      className={cn('rounded-full border p-2', t.border, t.cardSolid, t.textMuted)}
+                    >
+                      {theme === 'dark' ? <Sun weight={ICON_WEIGHT} className="h-4 w-4" /> : <Moon weight={ICON_WEIGHT} className="h-4 w-4" />}
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => setHasSubscription(!hasSubscription)}
+                    className={cn('mb-3 flex w-full items-center justify-between rounded-lg border px-3 py-2 text-[11px] font-medium transition-all', t.border, t.card, t.textMuted, t.borderHover)}
+                  >
+                    <span>Подписка</span>
+                    <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-semibold', hasSubscription ? cn(a.bgSoft, a.text) : cn('bg-white/[0.06]', t.textSubtle))}>
+                      {hasSubscription ? 'Активна' : 'Нет'}
+                    </span>
+                  </button>
+                  <div className={cn('flex flex-wrap gap-x-3 gap-y-1 text-[11px]', t.textSubtle)}>
+                    <a href="/terms" className="transition-colors hover:underline">Условия</a>
+                    <a href="/privacy" className="transition-colors hover:underline">Конфиденциальность</a>
+                    <a href="/refund" className="transition-colors hover:underline">Возврат</a>
+                  </div>
+                  <div className={cn('mt-1.5 text-[10px]', t.textSubtle)}>© 2026 WW.pro</div>
+                </div>
+              </motion.div>
+            </>
+          ) : null}
+        </AnimatePresence>
+
+        {/* ── Desktop sidebar ── */}
         <div
           className={cn(
-            'relative z-10 flex w-64 flex-col border-r transition-colors duration-500',
+            'relative z-10 w-64 flex-col border-r transition-colors duration-500',
+            isMobile ? 'hidden' : 'flex',
             t.border,
             t.sidebar,
             theme === 'dark' ? 'backdrop-blur-xl' : 'backdrop-blur-md'
@@ -4307,15 +4663,24 @@ export default function App() {
 
           <header
             className={cn(
-              'relative z-30 flex h-20 shrink-0 items-center justify-between border-b px-8 transition-colors duration-500',
+              'relative z-30 flex shrink-0 items-center justify-between border-b transition-colors duration-500',
+              isMobile ? 'h-14 px-4' : 'h-20 px-8',
               t.border,
               theme === 'dark' ? 'bg-black/10 backdrop-blur-md' : 'bg-white/40 backdrop-blur-md'
             )}
           >
-            <h1 className={cn('text-xl font-medium', t.textStrong)}>{TAB_LABELS[activeTab]}</h1>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setSidebarOpen(true)}
+                className={cn('rounded-xl p-2 transition-colors', isMobile ? '' : 'hidden', t.textMuted, t.navHover)}
+              >
+                <List weight="bold" className="h-5 w-5" />
+              </button>
+              <h1 className={cn('font-medium', isMobile ? 'text-base' : 'text-xl', t.textStrong)}>{TAB_LABELS[activeTab]}</h1>
+            </div>
 
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
+            <div className={cn('flex items-center', isMobile ? 'gap-2' : 'gap-4')}>
+              <div className={cn('items-center gap-1.5', isMobile ? 'hidden' : 'flex')}>
                 <div className={cn('flex items-center gap-1.5 rounded-full border p-1.5 transition-colors', t.border, t.cardSolid)}>
                   {(Object.keys(ACCENTS) as AccentType[]).map((key) => (
                     <button
@@ -4363,7 +4728,10 @@ export default function App() {
             </div>
           </header>
 
-          <main className="relative z-10 flex-1 overflow-y-auto p-8">
+          <main
+            className={cn('relative z-10 flex-1 overflow-y-auto', isMobile ? 'p-4' : 'p-8')}
+            style={isMobile ? { paddingBottom: 'calc(16px + var(--safe-bottom, 0px))' } : undefined}
+          >
             <div className="mx-auto max-w-5xl">
               <AnimatePresence mode="wait">
                 {activeTab === 'overview' ? <OverviewTab key="overview" /> : null}
@@ -4373,19 +4741,7 @@ export default function App() {
                 {activeTab === 'notifications' ? <NotificationsTab key="notifications" /> : null}
                 {activeTab === 'support' ? <SupportTab key="support" onOpenChat={() => setIsSupportChatOpen(true)} /> : null}
                 {activeTab === 'preferences' ? (
-                  <motion.div
-                    key={activeTab}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className={cn('flex flex-col items-center justify-center py-20 text-center', t.textMuted)}
-                  >
-                    <WarningCircle weight={ICON_WEIGHT} className="mb-4 h-12 w-12 opacity-20" />
-                    <h3 className={cn('mb-2 text-lg font-medium', t.textStrong)}>Скоро будет</h3>
-                    <p className="max-w-sm">
-                      Этот раздел еще в разработке. Скоро здесь появится полноценный интерфейс.
-                    </p>
-                  </motion.div>
+                  <PreferencesTab key="preferences" />
                 ) : null}
               </AnimatePresence>
             </div>

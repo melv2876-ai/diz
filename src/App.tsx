@@ -1,6 +1,7 @@
 import { Suspense, lazy } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import CookieBanner from '@/components/CookieBanner';
+import { MobileProvider } from '@/hooks/use-mobile';
 
 const HomePage = lazy(() => import('./pages/HomePage'));
 const DashboardPage = lazy(() => import('./pages/DashboardPage'));
@@ -9,6 +10,7 @@ const LegalPage = lazy(() => import('./pages/LegalPage'));
 
 export default function App() {
   return (
+    <MobileProvider>
     <BrowserRouter>
       <Suspense
         fallback={
@@ -30,5 +32,6 @@ export default function App() {
         <CookieBanner />
       </Suspense>
     </BrowserRouter>
+    </MobileProvider>
   );
 }
