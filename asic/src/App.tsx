@@ -24,6 +24,7 @@ import {
   FileCode,
   Gift,
   Globe,
+  GooglePlayLogo,
   HandHeart,
   Fingerprint,
   Info,
@@ -93,6 +94,28 @@ const ICON_WEIGHT = 'duotone' as const;
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
+}
+
+/* ── PWA Install Prompt ── */
+let deferredInstallPrompt: BeforeInstallPromptEvent | null = null;
+const pwaListeners = new Set<() => void>();
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeinstallprompt', ((e: Event) => {
+    e.preventDefault();
+    deferredInstallPrompt = e as BeforeInstallPromptEvent;
+    pwaListeners.forEach((fn) => fn());
+  }) as EventListener);
+
+  window.addEventListener('appinstalled', () => {
+    deferredInstallPrompt = null;
+    pwaListeners.forEach((fn) => fn());
+  });
 }
 
 /* ── Notification System ── */
@@ -683,6 +706,7 @@ const TAB_LABELS = {
   bonuses: 'Бонусы',
   referral: 'Рефералы',
   notifications: 'Уведомления',
+  install: 'Установить приложение',
   preferences: 'Параметры',
   support: 'Поддержка',
 } as const;
@@ -1242,19 +1266,15 @@ const OverviewTab = () => {
               </div>
 
               {/* Info */}
-              <div className={cn('flex items-center gap-3 rounded-xl border p-4', a.border, a.bgSoft)}>
-                <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-full', a.color)}>
-                  <RocketLaunch weight="fill" className="h-4 w-4 text-black" />
-                </div>
-                <div>
-                  <p className={cn('text-xs font-medium leading-relaxed', t.textStrong)}>
-                    Подписка активируется мгновенно
-                  </p>
-                  <p className={cn('text-[11px] leading-relaxed', t.textMuted)}>
-                    Если что-то пойдёт не так — нажмите «Проверить оплату»
-                  </p>
-                </div>
-              </div>
+              <motion.p
+                initial={{ opacity: 0, y: 4 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.15 }}
+                className={cn('text-center text-xs leading-relaxed', t.textMuted)}
+              >
+                <RocketLaunch weight="fill" className={cn('mb-0.5 mr-1 inline h-3.5 w-3.5', a.text)} />
+                Подписка активируется мгновенно. Если что-то пойдёт не&nbsp;так&nbsp;— нажмите «Проверить оплату»
+              </motion.p>
 
               {/* Buttons */}
               <motion.button
@@ -1970,20 +1990,78 @@ const VPN_DEVICES = [
 ];
 
 const VpnSetupTab = () => {
-  const { t, a } = useContext(ThemeContext);
+  const { t, a, theme } = useContext(ThemeContext);
   const [selectedDevice, setSelectedDevice] = useState('ios');
+
+  const deviceInstructions: Record<string, { steps: string[]; stores: { label: string; icon: any; href: string }[] }> = {
+    ios: {
+      steps: [
+        'Откройте страницу в App Store и установите приложение',
+        'Запустите приложение',
+        'В окне «Разрешение VPN-конфигурации» нажмите «Разрешить» и введите свой пароль',
+      ],
+      stores: [
+        { label: 'App Store RU', icon: AppleLogo, href: '#' },
+        { label: 'App Store Global', icon: AppleLogo, href: '#' },
+      ],
+    },
+    macos: {
+      steps: [
+        'Скачайте приложение из App Store или по ссылке',
+        'Установите и запустите приложение',
+        'Разрешите установку VPN-конфигурации',
+      ],
+      stores: [
+        { label: 'App Store RU', icon: AppleLogo, href: '#' },
+        { label: 'App Store Global', icon: AppleLogo, href: '#' },
+      ],
+    },
+    android: {
+      steps: [
+        'Скачайте APK-файл или установите из Google Play',
+        'Разрешите установку из неизвестных источников при необходимости',
+        'Запустите приложение и подключитесь',
+      ],
+      stores: [
+        { label: 'Google Play', icon: GooglePlayLogo, href: '#' },
+        { label: 'Скачать APK', icon: DownloadSimple, href: '#' },
+      ],
+    },
+    windows: {
+      steps: [
+        'Скачайте установщик по ссылке',
+        'Запустите установку и следуйте инструкциям',
+        'После установки запустите приложение и подключитесь',
+      ],
+      stores: [
+        { label: 'Скачать для Windows', icon: DownloadSimple, href: '#' },
+      ],
+    },
+    tv: {
+      steps: [
+        'Установите приложение из магазина вашего ТВ',
+        'Откройте приложение и введите код авторизации',
+        'Подключение произойдёт автоматически',
+      ],
+      stores: [
+        { label: 'Инструкция для ТВ', icon: Television, href: '#' },
+      ],
+    },
+  };
+
+  const current = deviceInstructions[selectedDevice] ?? deviceInstructions.ios;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="space-y-6"
+      className="space-y-10"
     >
-      {/* ── 1. Device Selection ── */}
+      {/* ── 1. Device picker ── */}
       <div>
-        <h3 className={cn('mb-4 text-sm font-medium', t.textMuted)}>Шаг 1 — Выберите устройство</h3>
-        <div className="grid grid-cols-3 gap-3 sm:grid-cols-5">
+        <p className={cn('mb-5 text-xs uppercase tracking-widest', t.textMuted)}>Устройство</p>
+        <div className="flex flex-wrap gap-2">
           {VPN_DEVICES.map((device) => {
             const isActive = selectedDevice === device.id;
             const Icon = device.icon;
@@ -1992,187 +2070,194 @@ const VpnSetupTab = () => {
                 key={device.id}
                 onClick={() => setSelectedDevice(device.id)}
                 className={cn(
-                  'group relative flex flex-col items-center gap-2.5 overflow-hidden rounded-2xl border p-5 transition-all duration-300',
+                  'relative flex items-center gap-2 rounded-full px-4 py-2 text-xs font-medium transition-all duration-300',
                   isActive
-                    ? cn(t.cardSolid, a.border, 'shadow-[0_0_20px_rgba(0,0,0,0.1)]')
-                    : cn(t.card, t.border, t.borderHover)
+                    ? cn(a.bgSoft, a.text, 'shadow-sm')
+                    : cn(t.textMuted, theme === 'dark' ? 'hover:bg-white/[0.06]' : 'hover:bg-black/[0.04]')
                 )}
               >
-                <Icon weight={ICON_WEIGHT} className={cn('h-6 w-6 transition-colors', isActive ? a.text : t.textMuted)} />
-                <span className={cn('text-xs font-medium', isActive ? t.textStrong : t.textMuted)}>{device.label}</span>
-                <AnimatePresence>
-                  {isActive ? (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      exit={{ scale: 0 }}
-                      className={cn('absolute right-2.5 top-2.5 h-2 w-2 rounded-full', a.color)}
-                    />
-                  ) : null}
-                </AnimatePresence>
+                <Icon weight={isActive ? 'fill' : ICON_WEIGHT} className="h-4 w-4" />
+                {device.label}
               </button>
             );
           })}
         </div>
       </div>
 
-      {/* ── 2. App Selection ── */}
-      <div>
-        <h3 className={cn('mb-4 text-sm font-medium', t.textMuted)}>Шаг 2 — Выберите приложение</h3>
-        <div
-          className={cn(
-            'group relative flex items-center gap-4 overflow-hidden rounded-2xl border p-5 transition-all duration-300',
-            t.cardSolid, a.border, 'shadow-[0_0_20px_rgba(0,0,0,0.1)]'
-          )}
-        >
-          <div className={cn('pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-transparent opacity-100', a.glowCard)} />
-          <img src="/happ-icon.webp" alt="Happ" className="relative z-10 h-14 w-14 shrink-0" />
-          <div className="relative z-10 flex-1">
-            <div className={cn('text-sm font-medium', t.textStrong)}>Happ</div>
-            <div className={cn('text-xs', t.textMuted)}>Рекомендуемое VPN-приложение</div>
-          </div>
-          <div className={cn('relative z-10 rounded-full px-2.5 py-0.5 text-[10px] font-medium', a.bgSoft, a.text)}>Доступно</div>
+      {/* ── 2. App badge ── */}
+      <div className="flex items-center gap-4">
+        <img src="/happ-icon.webp" alt="Happ" className="h-12 w-12 rounded-xl" />
+        <div>
+          <p className={cn('text-sm font-medium', t.textStrong)}>Happ</p>
+          <p className={cn('text-xs', t.textMuted)}>Рекомендуемое VPN-приложение</p>
         </div>
+        <span className={cn('ml-auto rounded-full px-2.5 py-0.5 text-[10px] font-medium', a.bgSoft, a.text)}>Доступно</span>
       </div>
 
-      {/* ── 3. Installation Instructions ── */}
-      <GlowCard className="p-6">
-        <h3 className={cn('mb-5 text-lg font-medium', t.textStrong)}>Установка приложения</h3>
-        <div className="space-y-4">
-          {[
-            { step: '1', text: 'Откройте страницу в App Store и установите приложение' },
-            { step: '2', text: 'Запустите приложение' },
-            { step: '3', text: 'В окне «Разрешение VPN-конфигурации» нажмите «Разрешить» и введите свой пароль' },
-          ].map((item) => (
-            <div key={item.step} className="flex items-start gap-3">
-              <span className={cn('flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold', a.bgSoft, a.text)}>
-                {item.step}
-              </span>
-              <p className={cn('text-sm leading-relaxed', t.text)}>{item.text}</p>
-            </div>
-          ))}
-        </div>
+      {/* thin accent divider */}
+      <div className={cn('h-px w-full', theme === 'dark' ? 'bg-white/[0.06]' : 'bg-black/[0.06]')} />
 
-        <div className={cn('my-5 h-px w-full', t.divider)} />
+      {/* ── 3. Installation steps — floating text ── */}
+      <div>
+        <p className={cn('mb-1 text-xs uppercase tracking-widest', t.textMuted)}>Установка</p>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={selectedDevice}
+            initial={{ opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -8 }}
+            transition={{ duration: 0.25 }}
+            className="mt-4 space-y-4"
+          >
+            {current.steps.map((text, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: i * 0.08 }}
+                className="flex items-start gap-3"
+              >
+                <span className={cn('mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[10px] font-semibold', a.bgSoft, a.text)}>
+                  {i + 1}
+                </span>
+                <p className={cn('text-sm leading-relaxed', t.text)}>{text}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </AnimatePresence>
 
-        <div className="flex flex-col gap-3 sm:flex-row">
-          <a
-            href="#"
-            className={cn(
-              'flex flex-1 items-center justify-center gap-2 rounded-xl border py-3 text-sm font-medium transition-all',
-              t.border, t.textStrong, t.cardHover, 'hover:shadow-lg'
-            )}
+        {/* Store buttons */}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={selectedDevice + '-stores'}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2, delay: 0.15 }}
+            className="mt-6 flex flex-col gap-2 sm:flex-row"
           >
-            <AppleLogo weight="fill" className="h-4 w-4" />
-            App Store RU
-          </a>
-          <a
-            href="#"
-            className={cn(
-              'flex flex-1 items-center justify-center gap-2 rounded-xl border py-3 text-sm font-medium transition-all',
-              t.border, t.textStrong, t.cardHover, 'hover:shadow-lg'
-            )}
-          >
-            <AppleLogo weight="fill" className="h-4 w-4" />
-            App Store Global
-          </a>
-        </div>
-      </GlowCard>
+            {current.stores.map((store) => {
+              const SIcon = store.icon;
+              return (
+                <a
+                  key={store.label}
+                  href={store.href}
+                  className={cn(
+                    'flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-xs font-medium transition-all duration-300',
+                    theme === 'dark' ? 'bg-white/[0.06] hover:bg-white/[0.1]' : 'bg-black/[0.05] hover:bg-black/[0.08]',
+                    t.textStrong
+                  )}
+                >
+                  <SIcon weight="fill" className="h-3.5 w-3.5" />
+                  {store.label}
+                </a>
+              );
+            })}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* thin divider */}
+      <div className={cn('h-px w-full', theme === 'dark' ? 'bg-white/[0.06]' : 'bg-black/[0.06]')} />
 
       {/* ── 4. Main Subscription ── */}
-      <GlowCard className="p-6">
-        <div className="flex items-start gap-4">
-          <ShieldCheck weight={ICON_WEIGHT} className={cn('h-7 w-7 shrink-0 mt-0.5', a.text)} />
-          <div className="flex-1">
-            <h3 className={cn('text-lg font-medium', t.textStrong)}>Основная подписка</h3>
-            <p className={cn('mt-1.5 text-sm leading-relaxed', t.textMuted)}>
-              Нажмите кнопку ниже — ссылка откроется и добавит вашу безлимитную подписку автоматически.
-            </p>
-          </div>
+      <div>
+        <div className="flex items-center gap-3">
+          <ShieldCheck weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+          <p className={cn('text-sm font-medium', t.textStrong)}>Основная подписка</p>
         </div>
+        <p className={cn('mt-2 text-xs leading-relaxed', t.textMuted)}>
+          Нажмите кнопку — ссылка откроется и добавит безлимитную подписку автоматически.
+        </p>
         <button className={cn(
-          'group mt-5 flex w-full items-center justify-between rounded-xl border px-5 py-4 transition-all duration-300',
-          a.border, a.bgSoft, 'hover:shadow-lg'
+          'group mt-4 flex w-full items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-all duration-300',
+          a.color, 'text-white hover:opacity-90 active:scale-[0.98]'
         )}>
-          <span className={cn('text-sm font-semibold', a.text)}>Добавить основную подписку</span>
-          <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', a.text)} />
+          Добавить подписку
+          <CaretRight weight="bold" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </button>
-      </GlowCard>
+      </div>
+
+      {/* thin divider */}
+      <div className={cn('h-px w-full', theme === 'dark' ? 'bg-white/[0.06]' : 'bg-black/[0.06]')} />
 
       {/* ── 5. White List Subscription ── */}
-      <GlowCard className="p-6" id="whitelist-section">
-        <div className="flex items-start gap-4">
-          <Globe weight={ICON_WEIGHT} className="h-7 w-7 shrink-0 mt-0.5 text-blue-400" />
-          <div className="flex-1">
-            <h3 className={cn('text-lg font-medium', t.textStrong)}>Подписка белых списков</h3>
-            <div className="mt-1.5 w-fit rounded-full bg-emerald-500/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-400">
-              БС активны
-            </div>
-          </div>
+      <div id="whitelist-section">
+        <div className="flex items-center gap-3">
+          <Globe weight={ICON_WEIGHT} className="h-5 w-5 text-blue-400" />
+          <p className={cn('text-sm font-medium', t.textStrong)}>Белые списки</p>
+          <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-emerald-400">
+            активны
+          </span>
         </div>
-
-        <p className={cn('mt-4 text-sm leading-relaxed', t.textMuted)}>
-          Отдельная подписка для полного шатдауна: используйте через мобильную сеть (LTE), не через Wi-Fi.
+        <p className={cn('mt-2 text-xs leading-relaxed', t.textMuted)}>
+          Отдельная подписка для полного шатдауна. Используйте через LTE, не через Wi-Fi.
         </p>
 
-        {/* Traffic usage */}
-        <div className={cn('mt-5 rounded-xl border p-4', t.card, t.border)}>
-          <div className="flex items-center justify-between">
-            <span className={cn('text-sm', t.text)}>Трафик белых списков</span>
-            <span className={cn('text-sm font-medium', a.text)}>40.67 GB</span>
+        {/* Traffic bar */}
+        <div className="mt-5">
+          <div className="flex items-baseline justify-between">
+            <span className={cn('text-xs', t.textMuted)}>Трафик</span>
+            <span className={cn('text-lg font-light tabular-nums', a.text)}>40.67 <span className={cn('text-xs font-normal', t.textMuted)}>/ 70.50 GB</span></span>
           </div>
-          <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-white/[0.08]">
-            <div className={cn('h-full rounded-full', a.color)} style={{ width: '42%' }} />
-          </div>
-          <div className="mt-2.5 space-y-0.5">
-            <div className={cn('text-xs', t.textMuted)}>Использовано: 29.83 GB</div>
-            <div className={cn('text-xs', t.textMuted)}>Всего: 70.50 GB</div>
+          <div className={cn('mt-2 h-1 w-full overflow-hidden rounded-full', theme === 'dark' ? 'bg-white/[0.08]' : 'bg-black/[0.06]')}>
+            <motion.div
+              initial={{ width: 0 }}
+              animate={{ width: '42%' }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className={cn('h-full rounded-full', a.color)}
+            />
           </div>
         </div>
 
-        {/* Warnings */}
-        <div className="mt-5 space-y-3">
-          <div className="flex items-center gap-3">
-            <WifiSlash weight={ICON_WEIGHT} className="h-5 w-5 shrink-0 text-orange-400" />
-            <span className={cn('text-sm', t.text)}>Через Wi-Fi не используйте</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <CellSignalFull weight={ICON_WEIGHT} className="h-5 w-5 shrink-0 text-emerald-400" />
-            <span className={cn('text-sm', t.text)}>Работает через LTE/мобильную сеть</span>
-          </div>
+        {/* Inline tips */}
+        <div className={cn('mt-4 flex flex-wrap gap-x-5 gap-y-1 text-xs', t.textMuted)}>
+          <span className="inline-flex items-center gap-1.5">
+            <WifiSlash weight={ICON_WEIGHT} className="h-3.5 w-3.5 text-orange-400" />
+            Wi-Fi не используйте
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <CellSignalFull weight={ICON_WEIGHT} className="h-3.5 w-3.5 text-emerald-400" />
+            Только LTE / мобильная сеть
+          </span>
         </div>
 
         {/* Buttons */}
-        <div className="mt-5 flex flex-col gap-3">
+        <div className="mt-5 flex flex-col gap-2 sm:flex-row">
           <button className={cn(
-            'group flex w-full items-center justify-between rounded-xl border px-5 py-4 transition-all duration-300',
-            a.border, a.bgSoft, 'hover:shadow-lg'
+            'group flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm font-semibold transition-all duration-300',
+            a.color, 'text-white hover:opacity-90 active:scale-[0.98]'
           )}>
-            <span className={cn('text-sm font-semibold', a.text)}>Добавить белые списки</span>
-            <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', a.text)} />
+            Добавить белые списки
+            <CaretRight weight="bold" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
           <button className={cn(
-            'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 transition-all duration-300',
-            t.border, t.textStrong, t.cardHover, 'hover:shadow-lg'
+            'flex flex-1 items-center justify-center gap-2 rounded-full py-3 text-sm font-medium transition-all duration-300',
+            theme === 'dark' ? 'bg-white/[0.06] hover:bg-white/[0.1]' : 'bg-black/[0.05] hover:bg-black/[0.08]',
+            t.textStrong
           )}>
-            <span className="text-sm font-medium">Купить GB</span>
-            <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', t.textSubtle)} />
+            Купить GB
           </button>
         </div>
-      </GlowCard>
+      </div>
+
+      {/* thin divider */}
+      <div className={cn('h-px w-full', theme === 'dark' ? 'bg-white/[0.06]' : 'bg-black/[0.06]')} />
 
       {/* ── 6. Connection ── */}
-      <GlowCard className="p-6">
-        <div className="flex items-start gap-4">
-          <Plugs weight={ICON_WEIGHT} className={cn('h-7 w-7 shrink-0 mt-0.5', a.text)} />
-          <div className="flex-1">
-            <h3 className={cn('text-lg font-medium', t.textStrong)}>Подключение</h3>
-            <p className={cn('mt-1.5 text-sm leading-relaxed', t.textMuted)}>
-              После добавления подписок вернитесь в приложение Hub. Подключение произойдёт автоматически — просто нажмите кнопку «Подключить».
-            </p>
-          </div>
+      <motion.div
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+      >
+        <div className="flex items-center gap-3">
+          <Plugs weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+          <p className={cn('text-sm font-medium', t.textStrong)}>Подключение</p>
         </div>
-      </GlowCard>
+        <p className={cn('mt-2 text-xs leading-relaxed', t.textMuted)}>
+          После добавления подписок вернитесь в приложение Hub. Нажмите «Подключить» — всё заработает автоматически.
+        </p>
+      </motion.div>
     </motion.div>
   );
 };
@@ -3882,6 +3967,347 @@ const PreferencesTab = () => {
   );
 };
 
+/* ── PWA Install Section ── */
+/* ── Install App Tab ── */
+const InstallTab = () => {
+  const { t, a, theme } = useContext(ThemeContext);
+  const isMobile = useIsMobile();
+  const [canInstall, setCanInstall] = useState(!!deferredInstallPrompt);
+  const [isInstalled, setIsInstalled] = useState(
+    typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches,
+  );
+  const [installing, setInstalling] = useState(false);
+  const [showSteps, setShowSteps] = useState<string | null>(null);
+
+  useEffect(() => {
+    const update = () => {
+      setCanInstall(!!deferredInstallPrompt);
+      if (!deferredInstallPrompt) setIsInstalled(window.matchMedia('(display-mode: standalone)').matches);
+    };
+    pwaListeners.add(update);
+    return () => { pwaListeners.delete(update); };
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredInstallPrompt) return;
+    setInstalling(true);
+    try {
+      await deferredInstallPrompt.prompt();
+      const { outcome } = await deferredInstallPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsInstalled(true);
+        deferredInstallPrompt = null;
+        setCanInstall(false);
+      }
+    } finally {
+      setInstalling(false);
+    }
+  };
+
+  const isIos = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isSafari = typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
+
+  const platforms = [
+    {
+      id: 'chrome',
+      icon: Desktop,
+      title: 'Компьютер',
+      subtitle: 'Windows, macOS, Linux',
+      relevant: !isIos && !isAndroid,
+      canAutoInstall: canInstall && !isIos && !isAndroid,
+      buttonLabel: 'Установить на компьютер',
+      steps: [
+        'Откройте WW.pro в Chrome, Edge или Brave',
+        'Нажмите кнопку «Установить» выше',
+        'Или найдите иконку ⊕ в правой части адресной строки',
+        'Подтвердите установку — приложение появится на рабочем столе',
+      ],
+      note: 'Firefox не поддерживает установку PWA. Используйте Chrome, Edge или Brave.',
+    },
+    {
+      id: 'android',
+      icon: GooglePlayLogo,
+      title: 'Android',
+      subtitle: 'Chrome, Samsung Internet',
+      relevant: isAndroid,
+      canAutoInstall: canInstall && isAndroid,
+      buttonLabel: 'Установить на Android',
+      steps: [
+        'Откройте WW.pro в Chrome',
+        'Нажмите меню (⋮) в правом верхнем углу',
+        'Выберите «Установить приложение»',
+        'Нажмите «Установить» в диалоге',
+        'Приложение появится среди ваших приложений',
+      ],
+      note: null,
+    },
+    {
+      id: 'ios',
+      icon: AppleLogo,
+      title: 'iPhone / iPad',
+      subtitle: 'Только через Safari',
+      relevant: isIos || isSafari,
+      canAutoInstall: false,
+      buttonLabel: 'Как установить на iOS',
+      steps: [
+        'Откройте WW.pro именно в Safari',
+        'Нажмите кнопку «Поделиться» (⬆) внизу экрана',
+        'Нажмите «На экран \u00abДомой\u00bb»',
+        'Нажмите «Добавить»',
+        'Иконка WW.pro появится на домашнем экране',
+      ],
+      note: 'На iOS установка возможна только через Safari. Chrome и Firefox на iOS не поддерживают PWA.',
+    },
+  ];
+
+  const benefits = [
+    { icon: Lightning, title: 'Мгновенный запуск', desc: 'Без адресной строки и вкладок' },
+    { icon: WifiSlash, title: 'Работает оффлайн', desc: 'Базовый интерфейс доступен без сети' },
+    { icon: ShieldCheck, title: 'Безопасно', desc: 'Обновляется автоматически' },
+    { icon: RocketLaunch, title: 'Без магазина', desc: 'Установка за секунды' },
+  ];
+
+  return (
+    <motion.div
+      key="install"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-6"
+    >
+      {/* Hero + Status */}
+      <GlowCard>
+        <div className="p-6">
+          <div className="flex items-start gap-4">
+            <div className={cn('flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl', a.bgSoft)}>
+              <DownloadSimple weight="fill" className={cn('h-6 w-6', a.text)} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className={cn('text-lg font-medium', t.textStrong)}>Установить WW.pro</h2>
+              <p className={cn('mt-1 text-sm leading-relaxed', t.textMuted)}>
+                Добавьте на своё устройство — работает как нативное приложение, без магазинов.
+              </p>
+            </div>
+          </div>
+
+          {isInstalled && (
+            <motion.div
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={cn('mt-5 flex items-center gap-3 rounded-xl border px-4 py-3', a.bgSoft, a.border)}
+            >
+              <CheckCircle weight="fill" className={cn('h-5 w-5 shrink-0', a.text)} />
+              <div>
+                <div className={cn('text-sm font-medium', a.text)}>Приложение установлено</div>
+                <div className={cn('text-xs', t.textMuted)}>Вы используете WW.pro как приложение</div>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Benefits row */}
+          <div className={cn('mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs', t.textMuted)}>
+            {benefits.map((b) => (
+              <span key={b.title} className="flex items-center gap-1.5">
+                <b.icon weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5', a.text)} />
+                <span className={cn('font-medium', t.text)}>{b.title}</span>
+                <span>— {b.desc}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      </GlowCard>
+
+      {/* Platform Cards with Install Buttons */}
+      <div className="space-y-3">
+        {platforms.map((platform) => {
+          const isStepsOpen = showSteps === platform.id;
+
+          return (
+            <GlowCard key={platform.id}>
+              <div className="p-5">
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
+                    platform.relevant ? a.bgSoft : cn(t.card, t.border, 'border'),
+                  )}>
+                    <platform.icon
+                      weight={platform.relevant ? 'fill' : ICON_WEIGHT}
+                      className={cn('h-5 w-5', platform.relevant ? a.text : t.textMuted)}
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className={cn('text-sm font-medium', t.textStrong)}>{platform.title}</span>
+                      {platform.relevant && (
+                        <span className={cn('text-[10px] font-medium uppercase tracking-wider rounded-full px-2 py-0.5', a.bgSoft, a.text)}>
+                          ваше устройство
+                        </span>
+                      )}
+                    </div>
+                    <div className={cn('text-xs', t.textSubtle)}>{platform.subtitle}</div>
+                  </div>
+
+                  {/* Install / Info button */}
+                  {isInstalled ? (
+                    <div className={cn('flex items-center gap-1.5 text-xs font-medium', a.text)}>
+                      <CheckCircle weight="fill" className="h-4 w-4" />
+                      <span>Готово</span>
+                    </div>
+                  ) : platform.canAutoInstall ? (
+                    <button
+                      onClick={handleInstall}
+                      disabled={installing}
+                      className={cn(
+                        'flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all min-h-[44px]',
+                        a.button,
+                        installing && 'opacity-70 pointer-events-none',
+                      )}
+                    >
+                      <DownloadSimple weight="bold" className="h-4 w-4" />
+                      {installing ? 'Установка…' : 'Установить'}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setShowSteps(isStepsOpen ? null : platform.id)}
+                      className={cn(
+                        'flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all min-h-[44px]',
+                        isStepsOpen ? cn(a.bgSoft, a.text, a.border) : cn(a.buttonOutline),
+                      )}
+                    >
+                      <Info weight={ICON_WEIGHT} className="h-4 w-4" />
+                      Как установить
+                    </button>
+                  )}
+                </div>
+
+                {/* Expandable steps */}
+                <AnimatePresence>
+                  {isStepsOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className={cn('mt-4 h-px w-full', t.divider)} />
+                      <ol className="mt-4 space-y-3">
+                        {platform.steps.map((step, i) => (
+                          <li key={i} className="flex items-start gap-3">
+                            <span
+                              className={cn(
+                                'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
+                                a.bgSoft, a.text,
+                              )}
+                            >
+                              {i + 1}
+                            </span>
+                            <span className={cn('text-sm leading-relaxed', t.text)}>{step}</span>
+                          </li>
+                        ))}
+                      </ol>
+                      {platform.note && (
+                        <div className={cn('mt-4 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs leading-relaxed', t.border, t.textMuted)}>
+                          <WarningCircle weight={ICON_WEIGHT} className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', a.text)} />
+                          <span>{platform.note}</span>
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {/* Show steps link for auto-installable platforms */}
+                {platform.canAutoInstall && !isInstalled && (
+                  <div className="mt-3">
+                    <button
+                      onClick={() => setShowSteps(isStepsOpen ? null : platform.id)}
+                      className={cn('flex items-center gap-1 text-xs transition-colors', isStepsOpen ? a.text : t.textSubtle, !isStepsOpen && 'hover:' + t.textMuted)}
+                    >
+                      <CaretDown
+                        weight="bold"
+                        className={cn('h-3 w-3 transition-transform duration-200', isStepsOpen && 'rotate-180')}
+                      />
+                      {isStepsOpen ? 'Скрыть инструкцию' : 'Показать пошаговую инструкцию'}
+                    </button>
+
+                    <AnimatePresence>
+                      {isStepsOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: 'auto', opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <ol className="mt-3 space-y-3">
+                            {platform.steps.map((step, i) => (
+                              <li key={i} className="flex items-start gap-3">
+                                <span
+                                  className={cn(
+                                    'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
+                                    a.bgSoft, a.text,
+                                  )}
+                                >
+                                  {i + 1}
+                                </span>
+                                <span className={cn('text-sm leading-relaxed', t.text)}>{step}</span>
+                              </li>
+                            ))}
+                          </ol>
+                          {platform.note && (
+                            <div className={cn('mt-4 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs leading-relaxed', t.border, t.textMuted)}>
+                              <WarningCircle weight={ICON_WEIGHT} className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', a.text)} />
+                              <span>{platform.note}</span>
+                            </div>
+                          )}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                )}
+              </div>
+            </GlowCard>
+          );
+        })}
+      </div>
+
+      {/* What is PWA? */}
+      <GlowCard>
+        <div className="p-6">
+          <div className={cn('mb-5 flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
+            <Question weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+            <span>Что такое PWA?</span>
+          </div>
+          <p className={cn('text-sm leading-relaxed', t.text)}>
+            PWA (Progressive Web App) — технология, которая позволяет использовать сайт как полноценное приложение.
+            Устанавливается прямо из браузера, не занимает много места и всегда содержит последнюю версию.
+          </p>
+          <div className={cn('mt-4 grid gap-2', isMobile ? 'grid-cols-1' : 'grid-cols-3')}>
+            {[
+              { label: 'Размер', value: '< 1 МБ', icon: Feather },
+              { label: 'Обновления', value: 'Автоматически', icon: Sparkle },
+              { label: 'Платформы', value: 'Все устройства', icon: Globe },
+            ].map((item) => (
+              <div
+                key={item.label}
+                className={cn('flex items-center gap-3 rounded-xl border px-4 py-3', t.border, t.card)}
+              >
+                <item.icon weight={ICON_WEIGHT} className={cn('h-4 w-4 shrink-0', a.text)} />
+                <div>
+                  <div className={cn('text-xs', t.textSubtle)}>{item.label}</div>
+                  <div className={cn('text-sm font-medium', t.textStrong)}>{item.value}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </GlowCard>
+    </motion.div>
+  );
+};
+
 /* ── Support Chat ── */
 type SupportMessage = {
   id: string;
@@ -4543,6 +4969,7 @@ export default function App() {
                   <div>
                     <div className={cn('mb-3 px-4 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Настройки</div>
                     <div className="space-y-1">
+                      <NavItem icon={DownloadSimple} label="Установить приложение" active={activeTab === 'install'} onClick={() => { setActiveTab('install'); setSidebarOpen(false); }} />
                       <NavItem icon={GearSix} label="Параметры" active={activeTab === 'preferences'} onClick={() => { setActiveTab('preferences'); setSidebarOpen(false); }} />
                       <NavItem icon={Lifebuoy} label="Поддержка" active={activeTab === 'support'} onClick={() => { setActiveTab('support'); setSidebarOpen(false); }} />
                     </div>
@@ -4624,6 +5051,7 @@ export default function App() {
             <div>
               <div className={cn('mb-3 px-4 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Настройки</div>
               <div className="space-y-1">
+                <NavItem icon={DownloadSimple} label="Установить приложение" active={activeTab === 'install'} onClick={() => setActiveTab('install')} />
                 <NavItem icon={GearSix} label="Параметры" active={activeTab === 'preferences'} onClick={() => setActiveTab('preferences')} />
                 <NavItem icon={Lifebuoy} label="Поддержка" active={activeTab === 'support'} onClick={() => setActiveTab('support')} />
               </div>
@@ -4740,6 +5168,7 @@ export default function App() {
                 {activeTab === 'referral' ? <ReferralTab key="referral" /> : null}
                 {activeTab === 'notifications' ? <NotificationsTab key="notifications" /> : null}
                 {activeTab === 'support' ? <SupportTab key="support" onOpenChat={() => setIsSupportChatOpen(true)} /> : null}
+                {activeTab === 'install' ? <InstallTab key="install" /> : null}
                 {activeTab === 'preferences' ? (
                   <PreferencesTab key="preferences" />
                 ) : null}
