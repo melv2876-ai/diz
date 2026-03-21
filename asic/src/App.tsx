@@ -1,43 +1,87 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Logo } from '../../components/Logo';
 import {
   AppleLogo,
   Bell,
+  BellRinging,
   CalendarBlank,
   CaretDown,
   CaretRight,
   CellSignalFull,
   CheckCircle,
   Clock,
+  ClipboardText,
+  Copy,
   CreditCard,
   Crown,
   Desktop,
   DeviceMobile,
+  Diamond,
   DownloadSimple,
   Envelope,
+  EnvelopeOpen,
   FileCode,
   Gift,
   Globe,
+  HandHeart,
+  Fingerprint,
   Info,
   Laptop,
   Lifebuoy,
-  Lightning,
+  MagnifyingGlass,
   Megaphone,
   Moon,
   GearSix,
   Plugs,
+  QrCode,
   RocketLaunch,
+  ShareNetwork,
   ShieldCheck,
   ShoppingCartSimple,
   SignOut,
+  Star,
   Sun,
   TelegramLogo,
   Television,
+  Trash,
   User,
+  UserPlus,
+  Users,
   Wallet,
+  WhatsappLogo,
   WarningCircle,
   WifiSlash,
   X,
+  Binoculars,
+  ChatCircleDots,
+  PaperPlaneTilt,
+  Question,
+  ArrowRight,
+  Detective,
+  Ear,
+  Eye,
+  Ghost,
+  Sparkle,
+  Lightning,
+  Confetti,
+  Timer,
+  Coins,
+  ShieldStar,
+  PersonArmsSpread,
+  MagicWand,
+  Parachute,
+  Meteor,
+  Compass,
+  Seal,
+  SealCheck,
+  Feather,
+  Spiral,
+  Planet,
+  Atom,
+  Hexagon,
+  Flower,
+  HandPeace,
 } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
@@ -57,8 +101,10 @@ type Notification = {
   type: NotificationType;
   title: string;
   body: string;
+  fullBody?: string;
   time: string;
   read: boolean;
+  starred?: boolean;
   action?: { label: string; href: string };
 };
 
@@ -75,8 +121,10 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
     type: 'promo',
     title: 'Бонус 5 дней бесплатно',
     body: 'Привяжите Telegram-аккаунт и получите 5 дней VPN в подарок',
+    fullBody: 'Здравствуйте!\n\nМы подготовили для вас специальное предложение: привяжите Telegram-аккаунт к вашему профилю WW.pro и получите 5 дней бесплатного VPN-доступа.\n\nКак получить бонус:\n\n1. Перейдите в настройки профиля\n2. Нажмите «Привязать Telegram»\n3. Подтвердите аккаунт через бота @wwpro_bot\n4. 5 дней будут начислены автоматически\n\nПредложение действует для всех новых пользователей. Привязка занимает менее минуты.\n\nС уважением,\nКоманда WW.pro',
     time: 'Сейчас',
     read: false,
+    starred: true,
     action: { label: 'Получить', href: '#' },
   },
   {
@@ -84,6 +132,7 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
     type: 'success',
     title: 'Вход выполнен',
     body: 'Новый вход через Telegram с устройства macOS',
+    fullBody: 'Зафиксирован новый вход в ваш аккаунт.\n\nДетали:\n• Метод: Telegram OAuth\n• Устройство: macOS (MacBook Pro)\n• Браузер: Safari 18.2\n• IP: 185.220.xx.xx\n• Локация: Москва, Россия\n• Время: 14 марта 2026, 15:42 MSK\n\nЕсли это были не вы — немедленно смените пароль и обратитесь в службу поддержки.\n\nБезопасность вашего аккаунта — наш приоритет.',
     time: '2 мин назад',
     read: false,
   },
@@ -92,7 +141,37 @@ const INITIAL_NOTIFICATIONS: Notification[] = [
     type: 'info',
     title: 'Обновление серверов',
     body: 'Добавлены новые локации: Стамбул, Варшава',
+    fullBody: 'Мы расширили нашу серверную инфраструктуру!\n\nНовые локации:\n\n🇹🇷 Стамбул, Турция\n— Пинг из Москвы: ~48 мс\n— Оптимально для доступа к турецким сервисам\n\n🇵🇱 Варшава, Польша\n— Пинг из Москвы: ~35 мс\n— Быстрое подключение к европейским ресурсам\n\nОба сервера уже доступны в приложении Hub. Просто выберите новую локацию из списка серверов.\n\nМы продолжаем расширять географию — следующие на очереди: Сеул и Сингапур.\n\nСпасибо, что выбираете WW.pro!',
     time: '1 час назад',
+    read: true,
+  },
+  {
+    id: '4',
+    type: 'system',
+    title: 'Плановое обслуживание серверов',
+    body: 'Серверы Франкфурт и Амстердам будут недоступны 16 марта с 03:00 до 05:00 MSK',
+    fullBody: 'Уважаемый пользователь!\n\nСообщаем о предстоящем плановом обслуживании серверной инфраструктуры.\n\n📅 Дата: 16 марта 2026\n🕐 Время: 03:00 — 05:00 MSK\n🌍 Затронутые серверы: Франкфурт (DE), Амстердам (NL)\n\nНа время обслуживания:\n• Подключения к указанным серверам будут временно прерваны\n• Автоматическое переключение на ближайший доступный сервер\n• Все остальные локации работают в штатном режиме\n\nЧто мы делаем:\n— Обновление ядра WireGuard до версии 1.0.20260315\n— Оптимизация маршрутизации трафика\n— Увеличение пропускной способности на 40%\n\nПриносим извинения за возможные неудобства. После завершения работ вы заметите значительное улучшение скорости.\n\nС уважением,\nТехническая команда WW.pro',
+    time: '3 часа назад',
+    read: true,
+    starred: true,
+  },
+  {
+    id: '5',
+    type: 'promo',
+    title: 'Весенняя скидка 30%',
+    body: 'Только до 31 марта — годовой тариф со скидкой 30%',
+    fullBody: '🌸 Весенняя акция WW.pro!\n\nТолько до 31 марта 2026 года — специальная скидка 30% на годовой тариф Pro.\n\nЧто входит:\n✓ Безлимитный VPN-трафик\n✓ Все серверные локации\n✓ До 5 устройств одновременно\n✓ Белые списки\n✓ Приоритетная поддержка\n\n💰 Было: 2 388 ₽/год\n💚 Стало: 1 672 ₽/год (139 ₽/мес)\n\nПромокод: SPRING2026\n\nАктивируйте в разделе «Личный кабинет» при оформлении подписки.\n\nУсловия:\n— Промокод одноразовый\n— Действует только на годовой тариф\n— Не суммируется с другими скидками\n\nНе упустите возможность!',
+    time: 'Вчера',
+    read: true,
+    action: { label: 'Активировать', href: '#' },
+  },
+  {
+    id: '6',
+    type: 'info',
+    title: 'Новая версия приложения Hub v2.4',
+    body: 'Доступно обновление — улучшена скорость и стабильность',
+    fullBody: 'Доступна новая версия приложения Hub v2.4!\n\nЧто нового:\n\n🚀 Производительность\n— Скорость подключения улучшена на 25%\n— Уменьшено потребление батареи на мобильных устройствах\n— Оптимизирован расход оперативной памяти\n\n🛡️ Безопасность\n— Обновлён протокол WireGuard\n— Добавлена защита от DNS-утечек\n— Улучшено обнаружение нестабильных соединений\n\n✨ Интерфейс\n— Новый виджет быстрого подключения\n— Статус серверов в реальном времени\n— Тёмная тема по умолчанию\n\nОбновите приложение через App Store или скачайте актуальную версию на сайте.',
+    time: '2 дня назад',
     read: true,
   },
 ];
@@ -102,6 +181,8 @@ type NotificationContextValue = {
   unreadCount: number;
   dismiss: (id: string) => void;
   markAllRead: () => void;
+  markRead: (id: string) => void;
+  toggleStar: (id: string) => void;
   addToast: (n: Omit<Notification, 'id' | 'read'>) => void;
 };
 
@@ -110,6 +191,8 @@ const NotificationCtx = createContext<NotificationContextValue>({
   unreadCount: 0,
   dismiss: () => {},
   markAllRead: () => {},
+  markRead: () => {},
+  toggleStar: () => {},
   addToast: () => {},
 });
 
@@ -128,6 +211,12 @@ const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
   const markAllRead = () =>
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
 
+  const markRead = (id: string) =>
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+
+  const toggleStar = (id: string) =>
+    setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, starred: !n.starred } : n)));
+
   const addToast = (n: Omit<Notification, 'id' | 'read'>) => {
     const id = Date.now().toString();
     const notification: Notification = { ...n, id, read: false };
@@ -144,7 +233,7 @@ const NotificationProvider = ({ children }: { children: React.ReactNode }) => {
   }, [toasts.length]);
 
   return (
-    <NotificationCtx.Provider value={{ notifications, unreadCount, dismiss, markAllRead, addToast }}>
+    <NotificationCtx.Provider value={{ notifications, unreadCount, dismiss, markAllRead, markRead, toggleStar, addToast }}>
       {children}
       <ToastStack toasts={toasts} onDismiss={(id) => setToasts((prev) => prev.filter((t) => t.id !== id))} />
     </NotificationCtx.Provider>
@@ -209,23 +298,23 @@ const NotificationPanel = () => {
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref}>
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          'relative rounded-full border p-2 transition-all duration-300',
-          t.cardSolid,
-          unreadCount > 0 && !open
-            ? cn(a.border, a.text)
-            : cn(t.border, t.textMuted),
-          'hover:text-inherit'
+          'relative rounded-full p-2 transition-all duration-300',
+          open
+            ? cn(a.text, a.bgSoft)
+            : unreadCount > 0
+              ? a.text
+              : t.textMuted,
         )}
       >
         <motion.div
           animate={unreadCount > 0 && !open ? { rotate: [0, 12, -12, 8, -8, 0] } : { rotate: 0 }}
           transition={{ duration: 0.8, repeat: Infinity, repeatDelay: 2.5 }}
         >
-          <Bell weight={unreadCount > 0 ? 'fill' : (open ? 'fill' : ICON_WEIGHT)} className="h-4 w-4" />
+          <Bell weight={unreadCount > 0 ? 'fill' : (open ? 'fill' : ICON_WEIGHT)} className="h-[18px] w-[18px]" />
         </motion.div>
         {unreadCount > 0 ? (
           <motion.span
@@ -249,8 +338,8 @@ const NotificationPanel = () => {
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              'absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border-2 shadow-[0_8px_40px_rgba(0,0,0,0.5)]',
-              a.border, t.cardSolid, 'backdrop-blur-xl'
+              'absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border shadow-2xl',
+              a.border, t.panel, 'backdrop-blur-xl'
             )}
           >
             {/* Header */}
@@ -414,6 +503,7 @@ const THEMES = {
     card: 'bg-white/[0.02]',
     cardHover: 'hover:bg-white/[0.04]',
     cardSolid: 'bg-[#0a0a0a]',
+    panel: 'bg-[#161616]',
     divider: 'bg-gradient-to-r from-white/[0.08] via-white/[0.02] to-transparent',
     divide: 'divide-white/[0.05]',
     navHover: 'hover:bg-white/[0.05]',
@@ -432,6 +522,7 @@ const THEMES = {
     card: 'bg-black/[0.02]',
     cardHover: 'hover:bg-black/[0.04]',
     cardSolid: 'bg-white',
+    panel: 'bg-[#f3f0eb]',
     divider: 'bg-gradient-to-r from-black/[0.08] via-black/[0.02] to-transparent',
     divide: 'divide-black/[0.05]',
     navHover: 'hover:bg-black/[0.05]',
@@ -467,15 +558,13 @@ const ThemeContext = createContext<ThemeContextValue>({
   navigateTab: () => {},
 });
 
-const DEVICES = [
+const VPN_MAIN_DEVICES = [
   {
     id: 1,
     name: 'MacBook Pro 16"',
     os: 'macOS',
     location: 'Франкфурт, Германия',
     ip: '192.168.1.12',
-    lastActive: '2 мин назад',
-    status: 'active',
   },
   {
     id: 2,
@@ -483,8 +572,6 @@ const DEVICES = [
     os: 'iOS',
     location: 'Лондон, Великобритания',
     ip: '10.0.0.5',
-    lastActive: '1 час назад',
-    status: 'offline',
   },
   {
     id: 3,
@@ -492,8 +579,23 @@ const DEVICES = [
     os: 'Windows 11',
     location: 'Нью-Йорк, США',
     ip: '172.16.0.8',
-    lastActive: '3 дня назад',
-    status: 'offline',
+  },
+];
+
+const WL_DEVICES = [
+  {
+    id: 4,
+    name: 'iPhone 14 Pro',
+    os: 'iOS',
+    location: 'Лондон, Великобритания',
+    ip: '10.0.0.5',
+  },
+  {
+    id: 5,
+    name: 'MacBook Pro 16"',
+    os: 'macOS',
+    location: 'Франкфурт, Германия',
+    ip: '192.168.1.12',
   },
 ];
 
@@ -524,7 +626,9 @@ const SERVERS = [
 const TAB_LABELS = {
   overview: 'Личный кабинет',
   billing: 'Настройка VPN',
-  devices: 'Устройства',
+  bonuses: 'Бонусы',
+  referral: 'Рефералы',
+  notifications: 'Уведомления',
   preferences: 'Параметры',
   support: 'Поддержка',
 } as const;
@@ -597,6 +701,192 @@ const GlowCard = ({
       />
       <div className="relative z-10">{children}</div>
     </div>
+  );
+};
+
+/* ── Device Row with hover unlink ── */
+const DeviceRow = ({ device, onUnlink }: { device: { id: number; name: string; os: string; location: string; ip: string }; onUnlink: (id: number) => void }) => {
+  const { t, a } = useContext(ThemeContext);
+  const [hovered, setHovered] = useState(false);
+
+  return (
+    <div
+      className={cn(
+        'flex items-center justify-between rounded-xl border p-4 transition-colors',
+        t.card, t.border, t.borderHover
+      )}
+    >
+      <div className="flex items-center gap-4">
+        <div className={cn('flex h-10 w-10 items-center justify-center rounded-full border', t.cardSolid, t.border)}>
+          {device.os.includes('mac') || device.os.includes('Windows') ? (
+            <Laptop weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
+          ) : (
+            <DeviceMobile weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
+          )}
+        </div>
+        <div>
+          <h4 className={cn('text-sm font-medium', t.textStrong)}>{device.name}</h4>
+          <div className={cn('mt-1 flex items-center gap-2 text-xs', t.textSubtle)}>
+            <span>{device.location}</span>
+            <span>•</span>
+            <span className="font-mono">{device.ip}</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="relative cursor-pointer select-none"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+      >
+        <AnimatePresence mode="wait">
+          {hovered ? (
+            <motion.button
+              key="unlink"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.15 }}
+              onClick={() => onUnlink(device.id)}
+              className="flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-medium text-red-400 transition-colors hover:bg-red-500/20"
+            >
+              <X weight="bold" className="h-3 w-3" />
+              Отвязать
+            </motion.button>
+          ) : (
+            <motion.div
+              key="active"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center gap-1.5"
+            >
+              <div className={cn('h-2 w-2 rounded-full', a.color)} />
+              <span className={cn('text-xs font-medium', a.text)}>Активно</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
+
+/* ── Devices Card (split: VPN / whitelist) ── */
+const DevicesCard = () => {
+  const { t, a, theme } = useContext(ThemeContext);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
+
+  const handleUnlink = (id: number) => {
+    setConfirmId(id);
+  };
+
+  const allDevices = [...VPN_MAIN_DEVICES, ...WL_DEVICES];
+  const deviceToUnlink = allDevices.find((d) => d.id === confirmId);
+
+  return (
+    <>
+      <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
+        <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
+        <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
+
+        <div className="relative z-10 flex flex-col lg:flex-row">
+          {/* ─ Left: Main VPN devices ─ */}
+          <div className="flex-1 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className={cn('flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
+                <ShieldCheck weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+                <span>Основная подписка</span>
+              </div>
+              <span className={cn('rounded-full border px-2.5 py-0.5 text-[11px]', t.border, t.textMuted)}>
+                {VPN_MAIN_DEVICES.length} из 5
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {VPN_MAIN_DEVICES.map((device) => (
+                <DeviceRow key={device.id} device={device} onUnlink={handleUnlink} />
+              ))}
+            </div>
+          </div>
+
+          {/* Divider */}
+          <div className="hidden lg:flex items-center self-stretch py-8">
+            <div className={cn('w-px h-full rounded-full', theme === 'dark' ? 'bg-gradient-to-b from-transparent via-white/50 to-transparent' : 'bg-gradient-to-b from-transparent via-black/30 to-transparent')} />
+          </div>
+          <div className={cn('mx-6 h-px lg:hidden', theme === 'dark' ? 'bg-gradient-to-r from-transparent via-white/50 to-transparent' : 'bg-gradient-to-r from-transparent via-black/30 to-transparent')} />
+
+          {/* ─ Right: Whitelist devices ─ */}
+          <div className="flex-1 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Globe weight={ICON_WEIGHT} className="h-4 w-4 text-blue-400" />
+                <span className={cn('text-xs font-medium uppercase tracking-wider', t.textSubtle)}>Белые списки</span>
+              </div>
+              <span className={cn('rounded-full border px-2.5 py-0.5 text-[11px]', t.border, t.textMuted)}>
+                {WL_DEVICES.length} из 5
+              </span>
+            </div>
+
+            <div className="space-y-3">
+              {WL_DEVICES.map((device) => (
+                <DeviceRow key={device.id} device={device} onUnlink={handleUnlink} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Confirmation overlay ── */}
+      <AnimatePresence>
+        {confirmId !== null ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+            onClick={() => setConfirmId(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 12 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 12 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className={cn('mx-4 w-full max-w-sm overflow-hidden rounded-2xl border shadow-2xl', t.cardSolid, t.border)}
+            >
+              <div className="p-6 text-center">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-500/15">
+                  <WarningCircle weight={ICON_WEIGHT} className="h-6 w-6 text-red-400" />
+                </div>
+                <h3 className={cn('text-base font-medium', t.textStrong)}>Отвязать устройство?</h3>
+                <p className={cn('mt-2 text-sm leading-relaxed', t.textMuted)}>
+                  Вы уверены, что хотите отвязать{' '}
+                  <span className={cn('font-medium', t.textStrong)}>{deviceToUnlink?.name}</span>?
+                </p>
+              </div>
+              <div className={cn('flex gap-3 border-t px-6 py-4', t.border)}>
+                <button
+                  onClick={() => setConfirmId(null)}
+                  className={cn(
+                    'flex-1 rounded-xl border px-4 py-2.5 text-sm font-medium transition-colors',
+                    t.border, t.textStrong, t.cardHover
+                  )}
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={() => setConfirmId(null)}
+                  className="flex-1 rounded-xl bg-red-500/15 px-4 py-2.5 text-sm font-medium text-red-400 transition-colors hover:bg-red-500/25"
+                >
+                  Отвязать
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </>
   );
 };
 
@@ -945,9 +1235,14 @@ const OverviewTab = () => {
 
   /* ── Active subscription view ── */
   const [activeSubIdx, setActiveSubIdx] = useState(0);
-  const [showBuyGb, setShowBuyGb] = useState(false);
   const [selectedGb, setSelectedGb] = useState<number | null>(null);
   const [customGb, setCustomGb] = useState('');
+  const [gbPayment, setGbPayment] = useState<PaymentMethod | null>(null);
+  const [gbPurchaseState, setGbPurchaseState] = useState<'idle' | 'processing' | 'success'>('idle');
+  const buyGbRef = useRef<HTMLDivElement>(null);
+  const gbPaymentRef = useRef<HTMLDivElement>(null);
+  const gbReceiptRef = useRef<HTMLDivElement>(null);
+  const { addToast } = useNotifications();
 
   const USER_SUBS = [
     { id: 'main', label: 'Основная', plan: 'Pro', daysLeft: 243, startDate: '22.06.2025', endDate: '18.02.2026', price: '249 ₽', period: '3 мес', devices: 5, usedDevices: 3 },
@@ -972,14 +1267,15 @@ const OverviewTab = () => {
       exit={{ opacity: 0, y: -10 }}
       className="space-y-6"
     >
-      {/* ── Profile row ── */}
+      {/* ── Profile + Subscription + White Lists (single card) ── */}
       <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
         <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
         <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
 
-        <div className={cn('relative z-10 flex items-center gap-4 px-8 py-5')}>
-          <div className={cn('flex h-12 w-12 items-center justify-center rounded-full border-2', a.border)}>
-            <span className={cn('text-lg font-semibold', t.textStrong)}>В</span>
+        {/* ─ Profile header ─ */}
+        <div className={cn('relative z-10 flex items-center gap-4 px-6 pt-5 pb-4')}>
+          <div className={cn('flex h-11 w-11 items-center justify-center rounded-full border-2', a.border)}>
+            <span className={cn('text-base font-semibold', t.textStrong)}>В</span>
           </div>
           <div className="flex-1">
             <div className={cn('text-sm font-medium', t.textStrong)}>Влад</div>
@@ -994,16 +1290,16 @@ const OverviewTab = () => {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* ── Subscription + White Lists (single card) ── */}
-      <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
-        <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
-        <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
+        {/* ─ Divider ─ */}
+        <div className="relative z-10 mx-6">
+          <div className={cn('h-px', t.border)} style={{ opacity: 0.5 }} />
+        </div>
 
         <div className="relative z-10 flex flex-col lg:flex-row">
           {/* ─ Left: Main subscription ─ */}
-          <div className="flex-1 p-6 space-y-5">
+          <div className="flex flex-1 flex-col justify-between p-6">
+            <div className="space-y-5">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div className={cn('flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
@@ -1041,26 +1337,36 @@ const OverviewTab = () => {
                 </div>
               ))}
             </div>
+            </div>
 
             {/* Actions */}
-            <div className="flex flex-col gap-3">
-              <button className={cn(
-                'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 transition-all duration-300',
-                a.border, a.bgSoft, 'hover:shadow-lg'
-              )}>
-                <span className={cn('text-sm font-semibold', a.text)}>Продлить подписку</span>
-                <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', a.text)} />
-              </button>
-              <button
-                onClick={() => navigateTab('billing')}
+            <div className="mt-5 flex flex-col gap-2.5">
+              <motion.button
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 className={cn(
-                  'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 transition-all duration-300',
-                  t.border, t.textMuted, t.cardHover, 'hover:shadow-lg'
+                  'group flex w-full items-center justify-between rounded-xl px-5 py-3.5 text-sm font-semibold transition-shadow duration-300',
+                  a.button
                 )}
               >
-                <span className="text-sm font-medium">Настроить VPN</span>
-                <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', t.textSubtle)} />
-              </button>
+                Продлить подписку
+                <CaretRight weight="bold" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                onClick={() => navigateTab('billing')}
+                className={cn(
+                  'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 text-sm font-medium transition-all duration-300',
+                  'border-white/[0.06] bg-white/[0.03] hover:border-white/[0.12] hover:bg-white/[0.06]',
+                  t.textStrong
+                )}
+              >
+                Настроить VPN
+                <CaretRight weight="bold" className={cn('h-4 w-4 transition-all duration-300 group-hover:translate-x-1', t.textSubtle)} />
+              </motion.button>
             </div>
           </div>
 
@@ -1071,7 +1377,8 @@ const OverviewTab = () => {
           <div className={cn('mx-6 h-px lg:hidden', theme === 'dark' ? 'bg-gradient-to-r from-transparent via-white/50 to-transparent' : 'bg-gradient-to-r from-transparent via-black/30 to-transparent')} />
 
           {/* ─ Right: White Lists ─ */}
-          <div className="flex-1 p-6 space-y-5">
+          <div className="flex flex-1 flex-col justify-between p-6">
+            <div className="space-y-5">
             {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -1139,218 +1446,456 @@ const OverviewTab = () => {
                 <span className={cn('text-xs', t.text)}>Через Wi-Fi не используется</span>
               </div>
             </div>
+            </div>
 
             {/* Actions */}
-            <div className="flex flex-col gap-2.5">
-              <button
-                onClick={() => { setShowBuyGb(!showBuyGb); setSelectedGb(null); setCustomGb(''); }}
+            <div className="mt-5 flex flex-col gap-2.5">
+              <motion.button
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                onClick={() => buyGbRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
                 className={cn(
-                  'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 transition-all duration-300',
-                  a.border, a.bgSoft, 'hover:shadow-lg'
+                  'group flex w-full items-center justify-between rounded-xl px-5 py-3.5 text-sm font-semibold transition-shadow duration-300',
+                  a.button
                 )}
               >
                 <div className="flex items-center gap-2.5">
-                  <ShoppingCartSimple weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
-                  <span className={cn('text-sm font-semibold', a.text)}>Купить гигабайты</span>
+                  <ShoppingCartSimple weight={ICON_WEIGHT} className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
+                  Купить гигабайты
                 </div>
-                <CaretDown weight="bold" className={cn('h-4 w-4 transition-transform duration-300', a.text, showBuyGb && 'rotate-180')} />
-              </button>
-              <button
+                <CaretRight weight="bold" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.97 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 onClick={() => navigateTab('billing', 'whitelist-section')}
                 className={cn(
-                  'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 transition-all duration-300',
-                  t.border, t.textMuted, t.cardHover, 'hover:shadow-lg'
+                  'group flex w-full items-center justify-between rounded-xl border px-5 py-3.5 text-sm font-medium transition-all duration-300',
+                  'border-white/[0.06] bg-white/[0.03] hover:border-white/[0.12] hover:bg-white/[0.06]',
+                  t.textStrong
                 )}
               >
-                <span className="text-sm font-medium">Настроить белые списки</span>
-                <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', t.textSubtle)} />
-              </button>
+                Настроить белые списки
+                <CaretRight weight="bold" className={cn('h-4 w-4 transition-all duration-300 group-hover:translate-x-1', t.textSubtle)} />
+              </motion.button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ── Buy GB panel (expands below) ── */}
-      <AnimatePresence>
-        {showBuyGb ? (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
-            <div className={cn('rounded-2xl border p-6 space-y-5', t.cardSolid, t.border)}>
-              <div className="flex items-center justify-between">
-                <h3 className={cn('text-lg font-medium', t.textStrong)}>Покупка трафика</h3>
-                <span className={cn('text-xs', t.textMuted)}>19 ₽ / GB</span>
-              </div>
+      {/* ── Active Devices (split card) ── */}
+      <DevicesCard />
 
-              {/* Quick amounts */}
-              <div className="grid grid-cols-4 gap-3">
-                {GB_QUICK.map((gb) => {
-                  const isActive = selectedGb === gb && customGb === '';
-                  return (
-                    <button
-                      key={gb}
-                      onClick={() => { setSelectedGb(gb); setCustomGb(''); }}
-                      className={cn(
-                        'flex flex-col items-center gap-1.5 rounded-xl border p-4 transition-all duration-200',
-                        isActive
-                          ? cn(a.border, a.bgSoft, 'shadow-sm')
-                          : cn(t.border, t.card, t.borderHover)
-                      )}
-                    >
-                      <span className={cn('text-lg font-semibold', isActive ? a.text : t.textStrong)}>{gb}</span>
-                      <span className={cn('text-[11px]', isActive ? a.text : t.textMuted)}>GB</span>
-                      <span className={cn('text-xs font-medium', isActive ? a.text : t.textSubtle)}>{gb * pricePerGb} ₽</span>
-                    </button>
-                  );
-                })}
-              </div>
+      {/* ── Buy GB — full purchase flow ── */}
+      <div ref={buyGbRef} className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
+        <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
+        <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
 
-              {/* Custom amount */}
-              <div>
-                <span className={cn('text-xs font-medium uppercase tracking-wider', t.textSubtle)}>Своё количество</span>
-                <div className="mt-3 flex items-center gap-3">
-                  <div className={cn('flex flex-1 items-center overflow-hidden rounded-xl border transition-colors', customGb ? cn(a.border) : t.border, t.card)}>
-                    <input
-                      type="number"
-                      min="1"
-                      max="500"
-                      placeholder="Введите GB"
-                      value={customGb}
-                      onChange={(e) => {
-                        const v = e.target.value;
-                        if (v === '' || (Number(v) >= 0 && Number(v) <= 500)) {
-                          setCustomGb(v);
-                          setSelectedGb(null);
-                        }
-                      }}
-                      className={cn(
-                        'w-full bg-transparent px-4 py-3 text-sm font-medium outline-none placeholder:opacity-40',
-                        t.textStrong
-                      )}
-                    />
-                    <span className={cn('pr-4 text-sm', t.textMuted)}>GB</span>
-                  </div>
-                  {customGb && Number(customGb) > 0 ? (
-                    <span className={cn('whitespace-nowrap text-sm font-medium', a.text)}>
-                      {Number(customGb) * pricePerGb} ₽
-                    </span>
-                  ) : null}
-                </div>
-              </div>
+        <div className="relative z-10 p-6 space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div className={cn('flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
+              <Globe weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+              <span>Покупка трафика</span>
+            </div>
+            <span className={cn('rounded-full border px-2.5 py-0.5 text-[11px] font-medium', a.border, a.text)}>
+              {pricePerGb} ₽ / GB
+            </span>
+          </div>
 
-              {/* Proceed button */}
-              <AnimatePresence>
-                {(selectedGb || (customGb && Number(customGb) > 0)) ? (
+          {/* Description */}
+          <div className={cn('rounded-xl border p-4 space-y-3', t.card, t.border)}>
+            <p className={cn('text-sm leading-relaxed', t.text)}>
+              Белые списки — это доступ к определённым сайтам и сервисам, когда весь остальной интернет заблокирован.
+              Используйте во время <span className={cn('font-medium', t.textStrong)}>шатдауна</span>, когда глушат мобильный интернет.
+            </p>
+            <div className="space-y-2">
+              <div className="flex items-center gap-2.5">
+                <CellSignalFull weight={ICON_WEIGHT} className="h-3.5 w-3.5 shrink-0 text-emerald-400" />
+                <span className={cn('text-xs', t.text)}>Работает через мобильную сеть (LTE) — основной режим</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <WifiSlash weight={ICON_WEIGHT} className="h-3.5 w-3.5 shrink-0 text-orange-400" />
+                <span className={cn('text-xs', t.text)}>Не используйте через Wi-Fi, исключение — если Wi-Fi раздаётся с модема</span>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <Info weight={ICON_WEIGHT} className="h-3.5 w-3.5 shrink-0 text-blue-400" />
+                <span className={cn('text-xs', t.text)}>Трафик расходуется только когда белые списки активны</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Step 1: Select traffic */}
+          <div className="space-y-4">
+            <h3 className={cn('text-sm font-medium', t.textMuted)}>Шаг 1 — Выберите объём</h3>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {GB_QUICK.map((gb, idx) => {
+                const isActive = selectedGb === gb && customGb === '';
+                const isBest = idx === 2;
+                return (
                   <motion.button
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -6 }}
-                    transition={{ duration: 0.2 }}
+                    key={gb}
+                    whileHover={{ scale: 1.03, y: -2 }}
+                    whileTap={{ scale: 0.97 }}
+                    transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                    onClick={() => { setSelectedGb(gb); setCustomGb(''); setGbPayment(null); setTimeout(() => gbPaymentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }}
                     className={cn(
-                      'group flex w-full items-center justify-between rounded-xl border px-5 py-4 transition-all duration-300',
-                      a.border, a.bgSoft, 'hover:shadow-lg'
+                      'group relative flex flex-col items-center overflow-hidden rounded-2xl border py-5 px-3 transition-all duration-300',
+                      isActive
+                        ? cn(a.border, t.cardSolid, 'shadow-lg')
+                        : cn(t.border, t.card, t.borderHover, 'hover:shadow-md')
                     )}
                   >
-                    <span className={cn('text-sm font-semibold', a.text)}>
-                      Оформить {customGb && Number(customGb) > 0 ? customGb : selectedGb} GB за {((customGb && Number(customGb) > 0 ? Number(customGb) : selectedGb!) * pricePerGb)} ₽
-                    </span>
-                    <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', a.text)} />
+                    {/* Glow */}
+                    <div className={cn(
+                      'pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-transparent transition-opacity duration-300',
+                      a.glowCard,
+                      isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-60'
+                    )} />
+
+                    {/* Best badge */}
+                    {isBest ? (
+                      <div className={cn('absolute right-2 top-2 z-10 rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider', a.color, 'text-black')}>
+                        хит
+                      </div>
+                    ) : null}
+
+                    {/* Value */}
+                    <span className={cn('relative z-10 text-3xl font-light tracking-tight', isActive ? a.text : t.textStrong)}>{gb}</span>
+                    <span className={cn('relative z-10 -mt-0.5 text-[10px] font-medium uppercase tracking-widest', isActive ? a.text : t.textSubtle)}>GB</span>
+
+                    {/* Divider */}
+                    <div className={cn('relative z-10 my-3 h-px w-8 rounded-full', isActive ? a.color : theme === 'dark' ? 'bg-white/10' : 'bg-black/10')} />
+
+                    {/* Price */}
+                    <span className={cn('relative z-10 text-sm font-semibold', isActive ? a.text : t.textStrong)}>{gb * pricePerGb} ₽</span>
+                    <span className={cn('relative z-10 mt-0.5 text-[10px]', t.textSubtle)}>{pricePerGb} ₽/GB</span>
                   </motion.button>
-                ) : null}
-              </AnimatePresence>
+                );
+              })}
             </div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
 
-      {/* ── Bottom grid ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <GlowCard className="p-6 lg:col-span-2">
-          <div className="mb-6 flex items-center justify-between">
-            <h3 className={cn('text-lg font-medium', t.textStrong)}>Активные устройства</h3>
-            <span className={cn('rounded-full border px-2 py-1 text-xs', t.border, t.textMuted)}>{activeSub.usedDevices} из {activeSub.devices}</span>
-          </div>
-
-          <div className="space-y-3">
-            {DEVICES.map((device) => (
-              <div
-                key={device.id}
-                className={cn(
-                  'flex items-center justify-between rounded-xl border p-4 transition-colors',
-                  t.card,
-                  t.border,
-                  t.borderHover
-                )}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={cn('flex h-10 w-10 items-center justify-center rounded-full border', t.cardSolid, t.border)}>
-                    {device.os.includes('mac') || device.os.includes('Windows') ? (
-                      <Laptop weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
-                    ) : (
-                      <DeviceMobile weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
+            {/* Custom amount */}
+            <div>
+              <span className={cn('text-xs font-medium uppercase tracking-wider', t.textSubtle)}>Или введите вручную</span>
+              <div className="mt-2.5 flex items-center gap-3">
+                <div className={cn('flex flex-1 items-center overflow-hidden rounded-xl border transition-colors', customGb ? cn(a.border) : t.border, t.card)}>
+                  <input
+                    type="number"
+                    min="1"
+                    max="500"
+                    placeholder="Количество GB"
+                    value={customGb}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === '' || (Number(v) >= 0 && Number(v) <= 500)) {
+                        setCustomGb(v);
+                        setSelectedGb(null);
+                        setGbPayment(null);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && customGb && Number(customGb) > 0) {
+                        setTimeout(() => gbPaymentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                      }
+                    }}
+                    className={cn(
+                      'w-full bg-transparent px-4 py-3 text-sm font-medium outline-none placeholder:opacity-40',
+                      t.textStrong
                     )}
-                  </div>
-                  <div>
-                    <h4 className={cn('text-sm font-medium', t.textStrong)}>{device.name}</h4>
-                    <div className={cn('mt-1 flex items-center gap-2 text-xs', t.textSubtle)}>
-                      <span>{device.location}</span>
-                      <span>•</span>
-                      <span className="font-mono">{device.ip}</span>
-                    </div>
-                  </div>
+                  />
+                  <span className={cn('pr-4 text-sm', t.textMuted)}>GB</span>
                 </div>
-
-                <div className="flex items-center gap-4">
-                  {device.status === 'active' ? (
-                    <div className="flex items-center gap-1.5">
-                      <div className={cn('h-2 w-2 rounded-full', a.color)} />
-                      <span className={cn('text-xs font-medium', a.text)}>Активно</span>
-                    </div>
-                  ) : (
-                    <span className={cn('text-xs', t.textSubtle)}>{device.lastActive}</span>
-                  )}
-                </div>
+                {customGb && Number(customGb) > 0 ? (
+                  <span className={cn('whitespace-nowrap text-sm font-medium', a.text)}>
+                    {Number(customGb) * pricePerGb} ₽
+                  </span>
+                ) : null}
               </div>
-            ))}
+            </div>
           </div>
-        </GlowCard>
 
-        <div className="space-y-6">
-          <GlowCard className="p-6">
-            <h3 className={cn('mb-4 text-lg font-medium', t.textStrong)}>Быстрые действия</h3>
-            <div className="space-y-3">
-              <button className={cn('group flex w-full items-center justify-between rounded-xl border p-3 transition-colors', t.card, t.border, t.borderHover)}>
-                <div className="flex items-center gap-3">
-                  <DownloadSimple weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
-                  <span className={cn('text-sm font-medium', t.textStrong)}>Скачать приложение</span>
-                </div>
-                <CaretRight weight="bold" className={cn('h-4 w-4', t.textSubtle)} />
-              </button>
-              <button className={cn('group flex w-full items-center justify-between rounded-xl border p-3 transition-colors', t.card, t.border, t.borderHover)}>
-                <div className="flex items-center gap-3">
-                  <FileCode weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
-                  <span className={cn('text-sm font-medium', t.textStrong)}>Конфиги WireGuard</span>
-                </div>
-                <CaretRight weight="bold" className={cn('h-4 w-4', t.textSubtle)} />
-              </button>
-            </div>
-          </GlowCard>
+          {/* Step 2: Payment method */}
+          <AnimatePresence>
+            {(selectedGb || (customGb && Number(customGb) > 0)) ? (
+              <motion.div
+                ref={gbPaymentRef}
+                key="gb-payment"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-4"
+              >
+                <h3 className={cn('text-sm font-medium', t.textMuted)}>Шаг 2 — Способ оплаты</h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => { setGbPayment('yukassa'); setTimeout(() => gbReceiptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }}
+                    className={cn(
+                      'group relative flex items-center gap-4 overflow-hidden rounded-xl border p-4 text-left transition-all duration-300',
+                      gbPayment === 'yukassa'
+                        ? cn(t.cardSolid, a.border)
+                        : cn(t.card, t.border, t.borderHover)
+                    )}
+                  >
+                    <div className={cn(
+                      'pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-transparent transition-opacity duration-500',
+                      a.glowCard,
+                      gbPayment === 'yukassa' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    )} />
+                    <div className="relative z-10 flex w-full items-center gap-3">
+                      <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', a.bgSoft)}>
+                        <CreditCard weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
+                      </div>
+                      <div className="flex-1">
+                        <div className={cn('text-sm font-medium', t.textStrong)}>ЮKassa</div>
+                        <div className={cn('text-[11px]', t.textMuted)}>Карта, СБП, кошельки</div>
+                      </div>
+                      {gbPayment === 'yukassa' ? (
+                        <div className={cn('h-2.5 w-2.5 rounded-full', a.color)} />
+                      ) : null}
+                    </div>
+                  </motion.button>
 
-          <GlowCard className="p-6">
-            <div className="flex items-start gap-3">
-              <Lightning weight={ICON_WEIGHT} className={cn('mt-0.5 h-5 w-5 shrink-0', a.text)} />
-              <div>
-                <h4 className={cn('text-sm font-medium', t.textStrong)}>Автопродление</h4>
-                <p className={cn('mt-1 text-xs leading-relaxed', t.textMuted)}>
-                  Подписка автоматически продлится {activeSub.endDate}
-                </p>
-              </div>
-            </div>
-          </GlowCard>
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => { setGbPayment('cryptobot'); setTimeout(() => gbReceiptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }}
+                    className={cn(
+                      'group relative flex items-center gap-4 overflow-hidden rounded-xl border p-4 text-left transition-all duration-300',
+                      gbPayment === 'cryptobot'
+                        ? cn(t.cardSolid, a.border)
+                        : cn(t.card, t.border, t.borderHover)
+                    )}
+                  >
+                    <div className={cn(
+                      'pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-transparent transition-opacity duration-500',
+                      a.glowCard,
+                      gbPayment === 'cryptobot' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    )} />
+                    <div className="relative z-10 flex w-full items-center gap-3">
+                      <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-medium', a.bgSoft, a.text)}>BTC</div>
+                      <div className="flex-1">
+                        <div className={cn('text-sm font-medium', t.textStrong)}>Cryptobot</div>
+                        <div className={cn('text-[11px]', t.textMuted)}>Крипто через Telegram</div>
+                      </div>
+                      {gbPayment === 'cryptobot' ? (
+                        <div className={cn('h-2.5 w-2.5 rounded-full', a.color)} />
+                      ) : null}
+                    </div>
+                  </motion.button>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          {/* Step 3: Receipt + Payment flow */}
+          <AnimatePresence mode="wait">
+            {gbPayment && (selectedGb || (customGb && Number(customGb) > 0)) ? (
+              <motion.div
+                ref={gbReceiptRef}
+                key={`gb-receipt-${gbPurchaseState}`}
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-4"
+              >
+                {(() => {
+                  const gbAmount = customGb && Number(customGb) > 0 ? Number(customGb) : selectedGb!;
+                  const gbTotal = gbAmount * pricePerGb;
+                  const gbTxId = 'wl-' + mockTxId.slice(3);
+
+                  const handlePurchase = () => {
+                    setGbPurchaseState('processing');
+                    setTimeout(() => {
+                      setGbPurchaseState('success');
+                      addToast({
+                        type: 'success',
+                        title: `+${gbAmount} GB зачислено`,
+                        body: `Оплата ${gbTotal} ₽ прошла успешно. Трафик добавлен к белым спискам. Транзакция: ${gbTxId.slice(0, 12)}…`,
+                        time: 'Только что',
+                      });
+                      setTimeout(() => {
+                        setGbPurchaseState('idle');
+                        setSelectedGb(null);
+                        setCustomGb('');
+                        setGbPayment(null);
+                      }, 4000);
+                    }, 2500);
+                  };
+
+                  /* ── Processing state ── */
+                  if (gbPurchaseState === 'processing') {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-12">
+                        {/* Spinner ring */}
+                        <div className="relative mb-6">
+                          <svg className="h-16 w-16 animate-spin" viewBox="0 0 50 50">
+                            <circle cx="25" cy="25" r="20" fill="none" className={theme === 'dark' ? 'stroke-white/[0.08]' : 'stroke-black/[0.08]'} strokeWidth="3" />
+                            <circle cx="25" cy="25" r="20" fill="none" className={strokeColor} strokeWidth="3" strokeLinecap="round" strokeDasharray="80 126" />
+                          </svg>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <Globe weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                          </div>
+                        </div>
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.2 }}
+                          className={cn('text-sm font-medium', t.textStrong)}
+                        >
+                          Обработка платежа…
+                        </motion.p>
+                        <motion.p
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.5 }}
+                          className={cn('mt-1.5 text-xs', t.textMuted)}
+                        >
+                          Начисляем {gbAmount} GB на ваш аккаунт
+                        </motion.p>
+                      </div>
+                    );
+                  }
+
+                  /* ── Success state ── */
+                  if (gbPurchaseState === 'success') {
+                    return (
+                      <div className="flex flex-col items-center justify-center py-12">
+                        <motion.div
+                          initial={{ scale: 0, rotate: -90 }}
+                          animate={{ scale: 1, rotate: 0 }}
+                          transition={{ type: 'spring', stiffness: 200, damping: 12 }}
+                          className={cn('mb-5 flex h-16 w-16 items-center justify-center rounded-full', a.bgSoft)}
+                        >
+                          <CheckCircle weight="fill" className={cn('h-8 w-8', a.text)} />
+                        </motion.div>
+                        <motion.p
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.15 }}
+                          className={cn('text-base font-semibold', t.textStrong)}
+                        >
+                          +{gbAmount} GB зачислено
+                        </motion.p>
+                        <motion.p
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.3 }}
+                          className={cn('mt-1.5 text-xs', t.textMuted)}
+                        >
+                          Транзакция {gbTxId.slice(0, 18)}… • {gbTotal} ₽
+                        </motion.p>
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ delay: 0.5 }}
+                          className={cn('mt-4 rounded-full px-4 py-1.5 text-[11px] font-medium', a.bgSoft, a.text)}
+                        >
+                          Гигабайты добавлены к балансу
+                        </motion.div>
+                      </div>
+                    );
+                  }
+
+                  /* ── Idle — receipt view ── */
+                  return (
+                    <>
+                      <div className={cn('overflow-hidden rounded-2xl border', t.card, a.border)}>
+                        <div className={cn('flex items-center gap-2.5 border-b px-5 py-4', a.border, a.bgSoft)}>
+                          <div className={cn('flex h-5 w-5 items-center justify-center rounded-full', a.color)}>
+                            <Globe weight="fill" className="h-3 w-3 text-black" />
+                          </div>
+                          <span className={cn('text-sm font-medium', t.textStrong)}>Счёт сформирован</span>
+                        </div>
+                        <div className={cn('divide-y px-5', t.divide)}>
+                          <div className="flex items-center justify-between py-3">
+                            <span className={cn('text-xs', t.textMuted)}>ID пользователя</span>
+                            <span className={cn('font-mono text-xs', a.text)}>{mockUserId}</span>
+                          </div>
+                          <div className="flex items-start justify-between gap-4 py-3">
+                            <span className={cn('shrink-0 text-xs', t.textMuted)}>Транзакция</span>
+                            <span className={cn('break-all text-right font-mono text-[11px]', a.text)}>{gbTxId}</span>
+                          </div>
+                          <div className="flex items-center justify-between py-3">
+                            <span className={cn('text-xs', t.textMuted)}>Тип</span>
+                            <span className={cn('text-xs', t.textStrong)}>Трафик белых списков</span>
+                          </div>
+                          <div className="flex items-center justify-between py-3">
+                            <span className={cn('text-xs', t.textMuted)}>Объём</span>
+                            <span className={cn('text-sm font-medium', a.text)}>{gbAmount} GB</span>
+                          </div>
+                          <div className="flex items-center justify-between py-3">
+                            <span className={cn('text-xs', t.textMuted)}>Цена за GB</span>
+                            <span className={cn('text-xs', t.textStrong)}>{pricePerGb} ₽</span>
+                          </div>
+                          <div className="flex items-center justify-between py-3">
+                            <span className={cn('text-xs', t.textMuted)}>Итого</span>
+                            <span className={cn('text-sm font-semibold', a.text)}>{gbTotal} ₽</span>
+                          </div>
+                          <div className="flex items-center justify-between py-3">
+                            <span className={cn('text-xs', t.textMuted)}>Оплата</span>
+                            <span className={cn('text-xs', t.textStrong)}>
+                              {gbPayment === 'yukassa' ? 'Карта / СБП' : 'Криптовалюта'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={cn('flex items-center gap-3 rounded-xl border p-4', a.border, a.bgSoft)}>
+                        <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-full', a.color)}>
+                          <RocketLaunch weight="fill" className="h-4 w-4 text-black" />
+                        </div>
+                        <div>
+                          <p className={cn('text-xs font-medium leading-relaxed', t.textStrong)}>
+                            GB зачислятся мгновенно после оплаты
+                          </p>
+                          <p className={cn('text-[11px] leading-relaxed', t.textMuted)}>
+                            Если доступ был прерван — серверы обновятся в течение 5–10 минут
+                          </p>
+                        </div>
+                      </div>
+
+                      <motion.button
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25, delay: 0.1 }}
+                        whileHover={{ scale: 1.02, y: -1 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={handlePurchase}
+                        className={cn(
+                          'group flex w-full items-center justify-between rounded-xl px-5 py-4 text-sm font-semibold transition-shadow duration-300',
+                          a.button
+                        )}
+                      >
+                        Перейти к оплате — {gbTotal} ₽
+                        <CaretRight weight="bold" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                      </motion.button>
+
+                      <motion.button
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.25, delay: 0.2 }}
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={cn(
+                          'w-full rounded-xl border py-3 text-center text-xs font-medium transition-all',
+                          a.buttonOutline
+                        )}
+                      >
+                        Проверить оплату
+                      </motion.button>
+                    </>
+                  );
+                })()}
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
         </div>
       </div>
     </motion.div>
@@ -1573,6 +2118,1949 @@ const VpnSetupTab = () => {
   );
 };
 
+/* ── Referral Tab ── */
+
+const REFERRAL_LEVELS = [
+  { min: 0,  label: 'Стажёр',     Icon: Fingerprint },
+  { min: 2,  label: 'Информатор', Icon: Ear },
+  { min: 5,  label: 'Агент',      Icon: Detective },
+  { min: 10, label: 'Спецагент',  Icon: Binoculars },
+  { min: 20, label: 'Резидент',   Icon: Eye },
+  { min: 35, label: 'Куратор',    Icon: ShieldCheck },
+  { min: 50, label: 'Призрак',    Icon: Ghost },
+];
+
+const LevelIcon = ({ Icon, size = 'md' }: { Icon: any; size?: 'md' | 'sm' }) => {
+  const { t, a, theme } = useContext(ThemeContext);
+  const isMd = size === 'md';
+  return (
+    <div className={cn('relative', isMd ? 'h-14 w-14' : 'h-5 w-5')}>
+      {isMd && (
+        <div className={cn('absolute -inset-2 rounded-full opacity-40 blur-2xl', a.color)} />
+      )}
+      <div className={cn(
+        'relative flex h-full w-full items-center justify-center rounded-full',
+        isMd
+          ? cn('ring-1', a.border, theme === 'dark' ? 'bg-white/[0.06]' : 'bg-black/[0.04]')
+          : ''
+      )}>
+        <Icon weight="fill" className={cn(isMd ? 'h-8 w-8' : 'h-3.5 w-3.5', a.text)} />
+      </div>
+    </div>
+  );
+};
+
+const ReferralTab = () => {
+  const { t, a, theme } = useContext(ThemeContext);
+  const [copied, setCopied] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [promoInput, setPromoInput] = useState('');
+  const [promoApplied, setPromoApplied] = useState(false);
+  const [showShare, setShowShare] = useState(false);
+  const [bonusActivated, setBonusActivated] = useState(false);
+  const shareRef = useRef<HTMLDivElement>(null);
+
+  const referralCode = 'VLAD-WW2026';
+  const referralLink = `https://ww.pro/ref/${referralCode}`;
+  const totalReferrals = 5;
+  const activeReferrals = 3;
+  const totalEarnedDays = 50;
+  const bonusDays = 15;
+  const currentLevel = [...REFERRAL_LEVELS].reverse().find((l) => totalReferrals >= l.min) || REFERRAL_LEVELS[0];
+  const nextLevel = REFERRAL_LEVELS.find((l) => l.min > totalReferrals);
+  const progressToNext = nextLevel ? ((totalReferrals - currentLevel.min) / (nextLevel.min - currentLevel.min)) * 100 : 100;
+
+  useEffect(() => {
+    if (!showShare) return;
+    const handler = (e: MouseEvent) => {
+      if (shareRef.current && !shareRef.current.contains(e.target as Node)) setShowShare(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showShare]);
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(referralLink);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(referralCode);
+    setCodeCopied(true);
+    setTimeout(() => setCodeCopied(false), 2000);
+  };
+
+  const handleApplyPromo = () => {
+    if (promoInput.trim().length > 0) {
+      setPromoApplied(true);
+      setTimeout(() => setPromoApplied(false), 3000);
+      setPromoInput('');
+    }
+  };
+
+  /* Animated counter */
+  const AnimatedNumber = ({ value }: { value: number }) => {
+    const [display, setDisplay] = useState(0);
+    useEffect(() => {
+      let start = 0;
+      const duration = 1200;
+      const startTime = Date.now();
+      const step = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setDisplay(Math.round(eased * value));
+        if (progress < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+    }, [value]);
+    return <>{display}</>;
+  };
+
+  /* Simple QR code SVG */
+  const QRBlock = () => {
+    const size = 21;
+    const cells: boolean[][] = [];
+    let seed = 0;
+    for (let i = 0; i < referralCode.length; i++) seed = (seed * 31 + referralCode.charCodeAt(i)) & 0xffff;
+    for (let y = 0; y < size; y++) {
+      cells[y] = [];
+      for (let x = 0; x < size; x++) {
+        const inFinderTL = x < 7 && y < 7;
+        const inFinderTR = x >= size - 7 && y < 7;
+        const inFinderBL = x < 7 && y >= size - 7;
+        if (inFinderTL || inFinderTR || inFinderBL) {
+          const lx = inFinderTR ? x - (size - 7) : x;
+          const ly = inFinderBL ? y - (size - 7) : y;
+          cells[y][x] = lx === 0 || lx === 6 || ly === 0 || ly === 6 || (lx >= 2 && lx <= 4 && ly >= 2 && ly <= 4);
+        } else {
+          seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+          cells[y][x] = (seed >> 16) % 3 !== 0;
+        }
+      }
+    }
+    const cellSize = 6;
+    const padding = 12;
+    const total = size * cellSize + padding * 2;
+    return (
+      <svg viewBox={`0 0 ${total} ${total}`} className="h-full w-full">
+        <rect x="0" y="0" width={total} height={total} rx="8" fill="white" />
+        {cells.map((row, y) =>
+          row.map((cell, x) =>
+            cell ? (
+              <rect
+                key={`${x}-${y}`}
+                x={padding + x * cellSize}
+                y={padding + y * cellSize}
+                width={cellSize - 0.5}
+                height={cellSize - 0.5}
+                rx={1}
+                fill={theme === 'dark' ? '#0a0a0a' : '#18181b'}
+              />
+            ) : null
+          )
+        )}
+      </svg>
+    );
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-8"
+    >
+      {/* ── Hero Block ── */}
+      <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
+        <div className={cn('pointer-events-none absolute -right-32 -top-32 h-[400px] w-[400px] rounded-full opacity-20 blur-[140px]', a.blur1)} />
+        <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
+
+        <div className="relative z-10 p-6 pb-0">
+          {/* Top row: level + bonus days */}
+          <div className="flex items-start justify-between">
+            {/* Level */}
+            <div className="flex items-center gap-4">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', bounce: 0.3, delay: 0.1 }}
+              >
+                <LevelIcon Icon={currentLevel.Icon} />
+              </motion.div>
+              <div>
+                <div className={cn('text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Ваш уровень</div>
+                <h2 className={cn('text-lg font-medium', t.textStrong)}>{currentLevel.label}</h2>
+              </div>
+            </div>
+
+            {/* Bonus days */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, type: 'spring', bounce: 0.2 }}
+              className="relative text-right"
+            >
+              {/* Glow pulse */}
+              <div className={cn('absolute -inset-4 rounded-full opacity-20 blur-2xl animate-pulse', a.color)} />
+              <div className="relative">
+                <div className={cn('text-4xl font-light tabular-nums', a.text)}>
+                  <AnimatedNumber value={bonusDays} />
+                </div>
+                <div className={cn('text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>бонус-дней</div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Level progress */}
+          {nextLevel && (
+            <div className="mt-5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <LevelIcon Icon={currentLevel.Icon} size="sm" />
+                  <span className={cn('text-[11px]', t.textSubtle)}>{currentLevel.label}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={cn('text-[11px]', t.textSubtle)}>{nextLevel.label}</span>
+                  <LevelIcon Icon={nextLevel.Icon} size="sm" />
+                </div>
+              </div>
+              <div className={cn('mt-1.5 h-1.5 w-full overflow-hidden rounded-full', theme === 'dark' ? 'bg-white/[0.06]' : 'bg-black/[0.05]')}>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressToNext}%` }}
+                  transition={{ duration: 1.2, ease: 'easeOut', delay: 0.3 }}
+                  className={cn('h-full rounded-full', a.color)}
+                />
+              </div>
+              <div className={cn('mt-1 text-center text-[10px]', t.textSubtle)}>
+                {totalReferrals} / {nextLevel.min}
+              </div>
+            </div>
+          )}
+
+          {/* Floating stats */}
+          <div className={cn('mt-5 flex items-end justify-between border-t pt-5', t.border)}>
+            {[
+              { value: totalReferrals, label: 'Рефералов', Icon: Users },
+              { value: activeReferrals, label: 'Активных', Icon: CheckCircle },
+              { value: totalEarnedDays, label: 'Заработано дней', Icon: CalendarBlank },
+            ].map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 + i * 0.1 }}
+                className="flex-1 py-4 text-center"
+              >
+                <stat.Icon weight={ICON_WEIGHT} className={cn('mx-auto mb-1 h-4 w-4', a.textLight)} />
+                <div className={cn('text-xl font-light tabular-nums', t.textStrong)}>
+                  <AnimatedNumber value={stat.value} />
+                </div>
+                <div className={cn('text-[10px]', t.textMuted)}>{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* Activate bonus button */}
+        <div className={cn('border-t px-6 py-4', t.border)}>
+          <button
+            onClick={() => setBonusActivated(true)}
+            className={cn(
+              'group flex w-full items-center justify-between rounded-xl px-5 py-3 text-sm font-medium transition-all duration-300',
+              bonusActivated
+                ? cn('border', a.border, a.bgSoft, a.text)
+                : a.button
+            )}
+          >
+            <span className="flex items-center gap-2">
+              {bonusActivated ? (
+                <><CheckCircle weight="fill" className="h-4 w-4" /> Бонусы активированы</>
+              ) : (
+                <><RocketLaunch weight={ICON_WEIGHT} className="h-4 w-4" /> Активировать {bonusDays} бонусных дней</>
+              )}
+            </span>
+            {!bonusActivated && (
+              <CaretRight weight="bold" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+            )}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Link + QR Grid ── */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Left: link, share, code */}
+        <div className={cn('lg:col-span-2 relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
+          <div className="p-6 space-y-5">
+            {/* Referral link */}
+            <div>
+              <div className={cn('mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>
+                <ShareNetwork weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+                Реферальная ссылка
+              </div>
+              <div className={cn('flex items-center gap-2 rounded-xl border p-1', t.border, theme === 'dark' ? 'bg-white/[0.03]' : 'bg-black/[0.02]')}>
+                <div className={cn('flex-1 truncate rounded-lg px-4 py-2.5 font-mono text-sm', a.text)}>
+                  {referralLink}
+                </div>
+                <button
+                  onClick={handleCopy}
+                  className={cn(
+                    'flex shrink-0 items-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all',
+                    copied ? 'bg-emerald-500 text-black' : a.button
+                  )}
+                >
+                  {copied ? (
+                    <><CheckCircle weight="bold" className="h-4 w-4" /> Скопировано</>
+                  ) : (
+                    <><Copy weight={ICON_WEIGHT} className="h-4 w-4" /> Копировать</>
+                  )}
+                </button>
+              </div>
+
+              {/* Share row */}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a
+                  href={`https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к WW.pro VPN — получи 5 бонусных дней!')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    'flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all',
+                    t.border, t.textStrong, t.cardHover, 'hover:shadow-lg'
+                  )}
+                >
+                  <TelegramLogo weight="fill" className="h-4 w-4 text-[#2AABEE]" />
+                  Telegram
+                </a>
+                <a
+                  href={`https://wa.me/?text=${encodeURIComponent('Присоединяйся к WW.pro VPN — получи 5 бонусных дней! ' + referralLink)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={cn(
+                    'flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all',
+                    t.border, t.textStrong, t.cardHover, 'hover:shadow-lg'
+                  )}
+                >
+                  <WhatsappLogo weight="fill" className="h-4 w-4 text-[#25D366]" />
+                  WhatsApp
+                </a>
+                <div className="relative" ref={shareRef}>
+                  <button
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({ title: 'WW.pro VPN', text: 'Присоединяйся к WW.pro — получи 5 бонусных дней!', url: referralLink });
+                      } else {
+                        setShowShare(!showShare);
+                      }
+                    }}
+                    className={cn(
+                      'flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all',
+                      t.border, t.textStrong, t.cardHover, 'hover:shadow-lg'
+                    )}
+                  >
+                    <ShareNetwork weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
+                    Ещё
+                  </button>
+                  <AnimatePresence>
+                    {showShare && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                        transition={{ duration: 0.2 }}
+                        className={cn(
+                          'absolute bottom-full left-0 z-50 mb-2 w-56 overflow-hidden rounded-xl border-2 shadow-[0_8px_40px_rgba(0,0,0,0.5)]',
+                          a.border, t.cardSolid, 'backdrop-blur-xl'
+                        )}
+                      >
+                        {[
+                          { label: 'Скопировать ссылку', icon: Copy, action: handleCopy },
+                          { label: 'Email', icon: Envelope, action: () => window.open(`mailto:?subject=WW.pro VPN&body=${encodeURIComponent('Присоединяйся: ' + referralLink)}`) },
+                        ].map((item) => (
+                          <button
+                            key={item.label}
+                            onClick={() => { item.action(); setShowShare(false); }}
+                            className={cn(
+                              'flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition-colors',
+                              t.textStrong, t.cardHover
+                            )}
+                          >
+                            <item.icon weight={ICON_WEIGHT} className={cn('h-4 w-4', t.textMuted)} />
+                            {item.label}
+                          </button>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className={cn('h-px w-full', t.divider)} />
+
+            {/* Your code */}
+            <div>
+              <div className={cn('mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>
+                <ClipboardText weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+                Ваш реферальный код
+              </div>
+              <div className="flex items-center gap-3">
+                <span className={cn('font-mono text-xl font-medium tracking-[0.15em]', a.text)}>{referralCode}</span>
+                <button
+                  onClick={handleCopyCode}
+                  className={cn(
+                    'rounded-lg p-2 transition-all',
+                    codeCopied ? 'text-emerald-400' : cn(t.textSubtle, t.navHover)
+                  )}
+                >
+                  {codeCopied ? <CheckCircle weight="fill" className="h-4 w-4" /> : <Copy weight={ICON_WEIGHT} className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className={cn('mt-1.5 text-xs', t.textMuted)}>Друзья вводят этот код при регистрации и получают +5 дней</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: QR */}
+        <div className={cn('relative overflow-hidden rounded-3xl border flex flex-col items-center p-6', t.cardSolid, t.border)}>
+          <div className={cn('mb-3 flex items-center gap-2 self-start text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>
+            <QrCode weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+            QR-код
+          </div>
+          <div className={cn('w-full max-w-[180px] rounded-2xl p-2', theme === 'dark' ? 'bg-white/[0.04]' : 'bg-black/[0.03]')}>
+            <div className="aspect-square w-full overflow-hidden rounded-xl">
+              <QRBlock />
+            </div>
+          </div>
+          <p className={cn('mt-3 text-center text-[11px] leading-relaxed', t.textMuted)}>
+            Покажите QR-код — друзья перейдут по вашей ссылке
+          </p>
+        </div>
+      </div>
+
+      {/* ── Enter code (floating, no card wrapper) ── */}
+      <div className="px-1">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <div className={cn('mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>
+            <Gift weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+            Есть код друга?
+          </div>
+          <div className={cn('flex items-center gap-2 rounded-xl border p-1', t.border, theme === 'dark' ? 'bg-white/[0.03]' : 'bg-black/[0.02]')}>
+            <input
+              type="text"
+              placeholder="Вставьте реферальный код"
+              value={promoInput}
+              onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+              className={cn(
+                'flex-1 bg-transparent px-4 py-2.5 font-mono text-sm uppercase tracking-wider outline-none placeholder:normal-case placeholder:font-sans placeholder:tracking-normal',
+                t.text, 'placeholder:text-zinc-500'
+              )}
+            />
+            <button
+              onClick={handleApplyPromo}
+              disabled={!promoInput.trim()}
+              className={cn(
+                'shrink-0 rounded-lg px-4 py-2.5 text-sm font-medium transition-all',
+                promoInput.trim() ? a.button : cn('opacity-30 cursor-not-allowed', a.button)
+              )}
+            >
+              Применить
+            </button>
+          </div>
+          <AnimatePresence>
+            {promoApplied && (
+              <motion.p
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                className="mt-2 flex items-center gap-1.5 text-xs font-medium text-emerald-400"
+              >
+                <CheckCircle weight="fill" className="h-3.5 w-3.5" />
+                Код активирован! +5 бонусных дней
+              </motion.p>
+            )}
+          </AnimatePresence>
+          {!promoApplied && (
+            <p className={cn('mt-2 text-xs', t.textMuted)}>
+              Введите код друга — вы оба получите бонусные дни
+            </p>
+          )}
+        </motion.div>
+      </div>
+
+      {/* ── How it works (floating steps, no card frames) ── */}
+      <div className="px-1">
+        <div className={cn('mb-6 h-px w-full', t.divider)} />
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.2 }}
+          className={cn('mb-5 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}
+        >
+          <RocketLaunch weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+          Как это работает
+        </motion.div>
+
+        <div className="grid gap-x-8 gap-y-6 sm:grid-cols-3">
+          {[
+            {
+              step: '01',
+              Icon: TelegramLogo,
+              title: 'Привяжите Telegram',
+              desc: 'Подключите свой Telegram-аккаунт и мгновенно получите 5 бонусных дней бесплатного VPN.',
+            },
+            {
+              step: '02',
+              Icon: ShareNetwork,
+              title: 'Поделитесь ссылкой',
+              desc: 'Отправьте вашу реферальную ссылку друзьям — каждый из них получит +5 дней при регистрации.',
+            },
+            {
+              step: '03',
+              Icon: Gift,
+              title: 'Получайте бонусы',
+              desc: 'За каждого друга с активной подпиской вы получаете 10 бонусных дней на свой счёт.',
+            },
+          ].map((item, i) => (
+            <motion.div
+              key={item.step}
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 + i * 0.1 }}
+            >
+              <div className="flex items-center gap-3 mb-2">
+                <span className={cn('font-mono text-xs font-bold', a.text)}>{item.step}</span>
+                <item.Icon weight={ICON_WEIGHT} className={cn('h-5 w-5', t.textMuted)} />
+              </div>
+              <h4 className={cn('text-sm font-medium', t.textStrong)}>{item.title}</h4>
+              <p className={cn('mt-1 text-xs leading-relaxed', t.textMuted)}>{item.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+/* ── Bonus Tab ── */
+const ACTIVATION_STEPS = [
+  { label: 'Подготовка серверов', icon: Planet, duration: 1200 },
+  { label: 'Настройка конфигурации', icon: Compass, duration: 1000 },
+  { label: 'Выдача доступа', icon: SealCheck, duration: 800 },
+  { label: 'Готово!', icon: CheckCircle, duration: 600 },
+];
+
+const EXTEND_STEPS = [
+  { label: 'Применяем бонусы', icon: Feather, duration: 1000 },
+  { label: 'Обновляем подписку', icon: Spiral, duration: 800 },
+  { label: 'Готово!', icon: CheckCircle, duration: 600 },
+];
+
+const BonusTab = () => {
+  const { t, a, hasSubscription, theme, navigateTab } = useContext(ThemeContext);
+
+  /* Mock bonus data */
+  const bonusDays = 15;
+  const bonusGb = bonusDays >= 10 ? +(bonusDays / 10).toFixed(1) : 0;
+
+  /* Mock existing subscriptions */
+  const existingSubs = hasSubscription
+    ? [
+        { id: 'main', label: 'Основная', plan: 'Pro', endDate: '18.02.2026', daysLeft: 243 },
+        { id: 'second', label: 'Рабочая', plan: 'Pro', endDate: '04.09.2025', daysLeft: 80 },
+      ]
+    : [];
+
+  const [showModal, setShowModal] = useState(false);
+  const [selectedSubId, setSelectedSubId] = useState<string | null>(
+    existingSubs.length === 1 ? existingSubs[0].id : null
+  );
+  const [activating, setActivating] = useState(false);
+  const [activationStep, setActivationStep] = useState(0);
+  const [activationDone, setActivationDone] = useState(false);
+
+  const steps = hasSubscription ? EXTEND_STEPS : ACTIVATION_STEPS;
+
+  const selectedSub = existingSubs.find((s) => s.id === selectedSubId) || null;
+
+  const today = new Date();
+  const bonusEndDate = new Date(today);
+  bonusEndDate.setDate(bonusEndDate.getDate() + bonusDays);
+  const formatDate = (d: Date) =>
+    `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}.${d.getFullYear()}`;
+
+  const newEndDate = selectedSub
+    ? (() => {
+        const parts = selectedSub.endDate.split('.');
+        const d = new Date(+parts[2], +parts[1] - 1, +parts[0]);
+        d.setDate(d.getDate() + bonusDays);
+        return formatDate(d);
+      })()
+    : formatDate(bonusEndDate);
+
+  const handleActivate = () => {
+    setActivating(true);
+    setActivationStep(0);
+    setActivationDone(false);
+
+    let stepIdx = 0;
+    const runStep = () => {
+      if (stepIdx >= steps.length) {
+        setActivationDone(true);
+        return;
+      }
+      setActivationStep(stepIdx);
+      setTimeout(() => {
+        stepIdx++;
+        runStep();
+      }, steps[stepIdx].duration);
+    };
+    runStep();
+  };
+
+  const handleClose = () => {
+    setShowModal(false);
+    setActivating(false);
+    setActivationStep(0);
+    setActivationDone(false);
+    setSelectedSubId(existingSubs.length === 1 ? existingSubs[0].id : null);
+  };
+
+  if (bonusDays <= 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-6"
+    >
+      {/* ── Hero card ── */}
+      <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
+        <div className={cn('pointer-events-none absolute -right-32 -top-32 h-[400px] w-[400px] rounded-full opacity-20 blur-[140px]', a.blur1)} />
+        <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
+
+        <div className="relative z-10 p-6">
+          {/* Header */}
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ type: 'spring', bounce: 0.3, delay: 0.1 }}
+                className={cn('flex h-12 w-12 items-center justify-center rounded-2xl', a.bgSoft)}
+              >
+                <Gift weight="fill" className={cn('h-6 w-6', a.text)} />
+              </motion.div>
+              <div>
+                <div className={cn('text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Ваши бонусы</div>
+                <h2 className={cn('text-lg font-medium', t.textStrong)}>Бонусные дни</h2>
+              </div>
+            </div>
+
+            {/* Bonus days counter */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2, type: 'spring', bounce: 0.2 }}
+              className="relative text-right"
+            >
+              <div className={cn('absolute -inset-4 rounded-full opacity-20 blur-2xl animate-pulse', a.color)} />
+              <div className="relative">
+                <div className={cn('text-4xl font-light tabular-nums', a.text)}>{bonusDays}</div>
+                <div className={cn('text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>дней</div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Description */}
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="mt-6 space-y-4"
+          >
+            <p className={cn('text-sm leading-relaxed', t.text)}>
+              У вас накоплено <span className={cn('font-medium', a.text)}>{bonusDays} бонусных дней</span>.
+              Сейчас они не активны — вы можете применить их в любой удобный момент.
+              {!hasSubscription
+                ? ' При активации будет создана полноценная бонусная подписка с доступом ко всем серверам.'
+                : ' Выберите одну из ваших подписок, и бонусные дни продлят её срок действия.'
+              }
+            </p>
+
+            {bonusGb > 0 && (
+              <div className={cn('rounded-xl border p-3', t.border, theme === 'dark' ? 'bg-white/[0.02]' : 'bg-black/[0.02]')}>
+                <div className="flex items-start gap-3">
+                  <Hexagon weight={ICON_WEIGHT} className={cn('mt-0.5 h-4 w-4 shrink-0', a.textLight)} />
+                  <div className={cn('text-sm leading-relaxed', t.text)}>
+                    За каждые 10 бонусных дней начисляется <span className={cn('font-medium', a.text)}>1 ГБ</span> трафика
+                    на белые списки. Ваши <span className={cn('font-medium', a.text)}>{bonusDays} дней</span> дадут{' '}
+                    <span className={cn('font-medium', a.text)}>{bonusGb} ГБ</span> бонусного трафика.
+                    <span className={cn('block mt-1.5 text-xs', t.textMuted)}>
+                      Подписка белых списков входит в бонусную активацию. Если понадобится больше — гигабайты можно докупить отдельно.
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <p className={cn('text-xs leading-relaxed', t.textMuted)}>
+              Бонусные дни копятся за приглашённых друзей, промокоды и участие в акциях.
+              Чем больше накопите — тем больше трафика и дней подписки получите при активации.
+            </p>
+          </motion.div>
+
+          {/* Stats row */}
+          <div className={cn('mt-5 flex items-end justify-between border-t pt-5', t.border)}>
+            {[
+              { value: `${bonusDays}`, label: 'Бонус-дней', Icon: Feather },
+              { value: bonusGb > 0 ? `${bonusGb} ГБ` : '—', label: 'Трафик', Icon: Hexagon },
+              { value: hasSubscription ? 'Продление' : 'Новая', label: 'Тип активации', Icon: hasSubscription ? Spiral : Meteor },
+            ].map((stat, i) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 + i * 0.1 }}
+                className="flex-1 py-3 text-center"
+              >
+                <stat.Icon weight={ICON_WEIGHT} className={cn('mx-auto mb-1 h-4 w-4', a.textLight)} />
+                <div className={cn('text-base font-light', t.textStrong)}>{stat.value}</div>
+                <div className={cn('text-[10px]', t.textMuted)}>{stat.label}</div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+
+        {/* CTA button */}
+        <div className={cn('border-t px-6 py-4', t.border)}>
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => setShowModal(true)}
+            className={cn('group flex w-full items-center justify-between rounded-xl px-5 py-3 text-sm font-medium transition-all duration-300', a.button)}
+          >
+            <span className="flex items-center gap-2">
+              <MagicWand weight={ICON_WEIGHT} className="h-4 w-4" />
+              {hasSubscription ? `Применить ${bonusDays} бонусных дней` : `Активировать ${bonusDays} бонусных дней`}
+            </span>
+            <CaretRight weight="bold" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+          </motion.button>
+        </div>
+      </div>
+
+      {/* ── Activation Modal ── */}
+      {createPortal(
+        <AnimatePresence>
+          {showModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+              onClick={() => { if (!activating && !activationDone) handleClose(); }}
+            >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.92, y: 16 }}
+              transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
+              onClick={(e) => e.stopPropagation()}
+              className={cn('mx-4 w-full max-w-md overflow-hidden rounded-2xl border shadow-2xl', t.cardSolid, t.border)}
+            >
+              {/* Modal header */}
+              <div className={cn('flex items-center justify-between border-b px-6 py-4', t.border)}>
+                <div className="flex items-center gap-3">
+                  <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', a.bgSoft)}>
+                    {hasSubscription
+                      ? <Spiral weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                      : <Meteor weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                    }
+                  </div>
+                  <div>
+                    <h3 className={cn('text-sm font-medium', t.textStrong)}>
+                      {hasSubscription ? 'Продление подписки' : 'Бонусная подписка'}
+                    </h3>
+                    <p className={cn('text-xs', t.textMuted)}>
+                      {hasSubscription ? 'Применить бонусы к подписке' : 'Создание новой подписки'}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={handleClose} className={cn('rounded-lg p-1.5 transition-colors', t.navHover, (activating || activationDone) && 'pointer-events-none opacity-0')}>
+                  <X weight="bold" className={cn('h-4 w-4', t.textMuted)} />
+                </button>
+              </div>
+
+              {/* Modal body */}
+              <div className="px-6 py-5">
+                <AnimatePresence mode="wait">
+                  {!activating && !activationDone && (
+                    <motion.div
+                      key="config"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="space-y-4"
+                    >
+                      {/* Subscription selector (when has subscriptions) */}
+                      {hasSubscription && existingSubs.length > 1 && (
+                        <div>
+                          <div className={cn('mb-2 text-xs font-medium', t.textMuted)}>Выберите подписку</div>
+                          <div className="space-y-2">
+                            {existingSubs.map((sub) => (
+                              <motion.button
+                                key={sub.id}
+                                whileHover={{ scale: 1.01 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={() => setSelectedSubId(sub.id)}
+                                className={cn(
+                                  'flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition-all',
+                                  selectedSubId === sub.id
+                                    ? cn(a.border, a.bgSoft)
+                                    : cn(t.border, theme === 'dark' ? 'bg-white/[0.02] hover:bg-white/[0.04]' : 'bg-black/[0.02] hover:bg-black/[0.04]')
+                                )}
+                              >
+                                <div>
+                                  <div className={cn('text-sm font-medium', selectedSubId === sub.id ? a.text : t.textStrong)}>
+                                    {sub.label}
+                                  </div>
+                                  <div className={cn('text-xs', t.textMuted)}>
+                                    {sub.plan} · до {sub.endDate}
+                                  </div>
+                                </div>
+                                <div className={cn(
+                                  'flex h-5 w-5 items-center justify-center rounded-full border-2 transition-all',
+                                  selectedSubId === sub.id ? cn(a.border, a.color) : t.border
+                                )}>
+                                  {selectedSubId === sub.id && (
+                                    <motion.div
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      className="h-2 w-2 rounded-full bg-white"
+                                    />
+                                  )}
+                                </div>
+                              </motion.button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Summary */}
+                      <div className={cn('space-y-3 rounded-xl border p-4', t.border, theme === 'dark' ? 'bg-white/[0.02]' : 'bg-black/[0.02]')}>
+                        <div className="flex items-center justify-between">
+                          <span className={cn('text-xs', t.textMuted)}>Бонусных дней</span>
+                          <span className={cn('text-sm font-medium', a.text)}>{bonusDays}</span>
+                        </div>
+                        {bonusGb > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className={cn('text-xs', t.textMuted)}>Бонусный трафик</span>
+                            <span className={cn('text-sm font-medium', a.text)}>{bonusGb} ГБ</span>
+                          </div>
+                        )}
+                        {hasSubscription && selectedSub && (
+                          <>
+                            <div className={cn('h-px', t.border)} />
+                            <div className="flex items-center justify-between">
+                              <span className={cn('text-xs', t.textMuted)}>Подписка</span>
+                              <span className={cn('text-sm font-medium', t.textStrong)}>{selectedSub.label} ({selectedSub.plan})</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className={cn('text-xs', t.textMuted)}>Текущее окончание</span>
+                              <span className={cn('text-sm', t.text)}>{selectedSub.endDate}</span>
+                            </div>
+                          </>
+                        )}
+                        <div className={cn('h-px', t.border)} />
+                        {hasSubscription && selectedSub ? (
+                          <div className="flex items-center justify-between">
+                            <span className={cn('text-xs font-medium', t.textMuted)}>Новая дата окончания</span>
+                            <span className={cn('text-sm font-medium', a.text)}>{newEndDate}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center justify-between">
+                              <span className={cn('text-xs', t.textMuted)}>Тип подписки</span>
+                              <span className={cn('text-sm font-medium', t.textStrong)}>Бонусная</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className={cn('text-xs', t.textMuted)}>Начало</span>
+                              <span className={cn('text-sm', t.text)}>{formatDate(today)}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className={cn('text-xs font-medium', t.textMuted)}>Окончание</span>
+                              <span className={cn('text-sm font-medium', a.text)}>{newEndDate}</span>
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Activate button */}
+                      <motion.button
+                        whileHover={{ scale: 1.01 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={handleActivate}
+                        disabled={hasSubscription && !selectedSubId}
+                        className={cn(
+                          'flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all',
+                          hasSubscription && !selectedSubId ? 'cursor-not-allowed opacity-40' : '',
+                          a.button
+                        )}
+                      >
+                        <MagicWand weight={ICON_WEIGHT} className="h-4 w-4" />
+                        {hasSubscription ? 'Применить бонусы' : 'Создать подписку'}
+                      </motion.button>
+                    </motion.div>
+                  )}
+
+                  {activating && !activationDone && (
+                    <motion.div
+                      key="progress"
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="space-y-5 py-4"
+                    >
+                      {/* Center pulsing icon */}
+                      <div className="flex justify-center">
+                        <motion.div
+                          animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                          className={cn('flex h-16 w-16 items-center justify-center rounded-full', a.bgSoft)}
+                        >
+                          {hasSubscription
+                            ? <Spiral weight="fill" className={cn('h-8 w-8', a.text)} />
+                            : <Parachute weight="fill" className={cn('h-8 w-8', a.text)} />
+                          }
+                        </motion.div>
+                      </div>
+
+                      {/* Progress steps */}
+                      <div className="space-y-3">
+                        {steps.map((step, i) => {
+                          const isActive = i === activationStep;
+                          const isDone = i < activationStep;
+                          return (
+                            <motion.div
+                              key={step.label}
+                              initial={{ opacity: 0, x: -12 }}
+                              animate={{
+                                opacity: isDone || isActive ? 1 : 0.3,
+                                x: 0,
+                              }}
+                              transition={{ delay: i * 0.1, duration: 0.3 }}
+                              className="flex items-center gap-3"
+                            >
+                              <div className={cn(
+                                'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-300',
+                                isDone ? cn(a.bgSoft) : isActive ? cn(a.bgSoft) : theme === 'dark' ? 'bg-white/[0.04]' : 'bg-black/[0.04]'
+                              )}>
+                                {isDone ? (
+                                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.4 }}>
+                                    <CheckCircle weight="fill" className={cn('h-4 w-4', a.text)} />
+                                  </motion.div>
+                                ) : (
+                                  <step.icon
+                                    weight={ICON_WEIGHT}
+                                    className={cn('h-4 w-4', isActive ? a.text : t.textSubtle)}
+                                  />
+                                )}
+                              </div>
+                              <span className={cn(
+                                'text-sm transition-all duration-300',
+                                isDone ? cn('font-medium', a.text) : isActive ? cn('font-medium', t.textStrong) : t.textSubtle
+                              )}>
+                                {step.label}
+                              </span>
+                              {isActive && (
+                                <motion.div
+                                  animate={{ rotate: 360 }}
+                                  transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                  className={cn('ml-auto h-4 w-4 rounded-full border-2 border-t-transparent', a.border)}
+                                />
+                              )}
+                            </motion.div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Progress bar */}
+                      <div className={cn('h-1 w-full overflow-hidden rounded-full', theme === 'dark' ? 'bg-white/[0.06]' : 'bg-black/[0.05]')}>
+                        <motion.div
+                          initial={{ width: '0%' }}
+                          animate={{ width: `${((activationStep + 1) / steps.length) * 100}%` }}
+                          transition={{ duration: 0.4, ease: 'easeOut' }}
+                          className={cn('h-full rounded-full', a.color)}
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {activationDone && (
+                    <motion.div
+                      key="done"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ type: 'spring', bounce: 0.3 }}
+                      className="space-y-5 py-4"
+                    >
+                      {/* Success animation */}
+                      <div className="relative flex justify-center">
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ type: 'spring', bounce: 0.4, delay: 0.1 }}
+                          className={cn('flex h-20 w-20 items-center justify-center rounded-full', a.bgSoft)}
+                        >
+                          <SealCheck weight="fill" className={cn('h-10 w-10', a.text)} />
+                        </motion.div>
+                        {/* Confetti particles */}
+                        {Array.from({ length: 8 }).map((_, i) => (
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
+                            animate={{
+                              opacity: [0, 1, 0],
+                              scale: [0, 1, 0.5],
+                              x: Math.cos((i * Math.PI) / 4) * 60,
+                              y: Math.sin((i * Math.PI) / 4) * 60,
+                            }}
+                            transition={{ duration: 0.8, delay: 0.2 + i * 0.05 }}
+                            className={cn('absolute h-2 w-2 rounded-full', i % 2 === 0 ? a.color : theme === 'dark' ? 'bg-white/40' : 'bg-black/20')}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="text-center">
+                        <h3 className={cn('text-lg font-medium', t.textStrong)}>
+                          {hasSubscription ? 'Подписка продлена!' : 'Подписка создана!'}
+                        </h3>
+                      </div>
+
+                      {/* Subscription details card */}
+                      <div className={cn('space-y-3 rounded-xl border p-4', t.border, theme === 'dark' ? 'bg-white/[0.02]' : 'bg-black/[0.02]')}>
+                        <div className="flex items-center justify-between">
+                          <span className={cn('text-xs', t.textMuted)}>Тип</span>
+                          <span className={cn('text-sm font-medium', t.textStrong)}>{hasSubscription && selectedSub ? selectedSub.label : 'Бонусная'}</span>
+                        </div>
+                        {!hasSubscription && (
+                          <div className="flex items-center justify-between">
+                            <span className={cn('text-xs', t.textMuted)}>Начало</span>
+                            <span className={cn('text-sm', t.text)}>{formatDate(today)}</span>
+                          </div>
+                        )}
+                        <div className="flex items-center justify-between">
+                          <span className={cn('text-xs', t.textMuted)}>{hasSubscription ? 'Новая дата окончания' : 'Активна до'}</span>
+                          <span className={cn('text-sm font-medium', a.text)}>{newEndDate}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className={cn('text-xs', t.textMuted)}>Бонусных дней</span>
+                          <span className={cn('text-sm font-medium', a.text)}>{bonusDays}</span>
+                        </div>
+                        {bonusGb > 0 && (
+                          <div className="flex items-center justify-between">
+                            <span className={cn('text-xs', t.textMuted)}>Белые списки</span>
+                            <span className={cn('text-sm font-medium', a.text)}>+ {bonusGb} ГБ</span>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Redirect prompt */}
+                      <div className="space-y-3">
+                        <p className={cn('text-center text-xs leading-relaxed', t.textMuted)}>
+                          {hasSubscription
+                            ? 'Бонусы успешно применены. Перейдите в настройки VPN, чтобы проверить обновлённую подписку.'
+                            : 'Перейдите к настройке VPN, чтобы добавить подписку в приложение и подключиться к серверам.'
+                          }
+                        </p>
+                        <motion.button
+                          whileHover={{ scale: 1.01 }}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => { handleClose(); navigateTab('billing'); }}
+                          className={cn('flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all', a.button)}
+                        >
+                          <Compass weight={ICON_WEIGHT} className="h-4 w-4" />
+                          Перейти к настройке VPN
+                        </motion.button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>,
+      document.body
+      )}
+    </motion.div>
+  );
+};
+
+/* ── Notifications Tab ── */
+const NotificationsTab = () => {
+  const { t, a, theme } = useContext(ThemeContext);
+  const { notifications, unreadCount, dismiss, markAllRead, markRead, toggleStar } = useNotifications();
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<'all' | 'unread' | 'starred'>('all');
+  const [search, setSearch] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const settingsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showSettings) return;
+    const handler = (e: MouseEvent) => {
+      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) setShowSettings(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showSettings]);
+
+  /* notification settings */
+  const [tgNotify, setTgNotify] = useState(true);
+  const [emailNotify, setEmailNotify] = useState(false);
+  const [emailAddr, setEmailAddr] = useState('');
+  const [pushNotify, setPushNotify] = useState(true);
+  const [soundNotify, setSoundNotify] = useState(true);
+  const [promoCategory, setPromoCategory] = useState(true);
+  const [infoCategory, setInfoCategory] = useState(true);
+  const [systemCategory, setSystemCategory] = useState(true);
+
+  const filteredNotifications = notifications.filter((n) => {
+    if (filter === 'unread' && n.read) return false;
+    if (filter === 'starred' && !n.starred) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!n.title.toLowerCase().includes(q) && !n.body.toLowerCase().includes(q)) return false;
+    }
+    return true;
+  });
+
+  const selected = notifications.find((n) => n.id === selectedId);
+
+  const handleSelect = (id: string) => {
+    setSelectedId(id);
+    markRead(id);
+  };
+
+  const filterTabs: { key: 'all' | 'unread' | 'starred'; label: string; count: number }[] = [
+    { key: 'all', label: 'Все', count: notifications.length },
+    { key: 'unread', label: 'Непрочитанные', count: unreadCount },
+    { key: 'starred', label: 'Избранные', count: notifications.filter((n) => !!n.starred).length },
+  ];
+
+  const TYPE_LABELS: Record<NotificationType, string> = {
+    promo: 'Акция',
+    info: 'Информация',
+    success: 'Успех',
+    system: 'Система',
+  };
+
+  const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+    <button
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative h-5 w-9 shrink-0 rounded-full transition-colors duration-300',
+        checked ? a.color : theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
+      )}
+    >
+      <div
+        className={cn(
+          'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-300',
+          checked ? 'translate-x-4' : 'translate-x-0.5'
+        )}
+      />
+    </button>
+  );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.4 }}
+    >
+      {/* ── Main Inbox ── */}
+      <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
+        {/* Settings overlay */}
+        <AnimatePresence>
+          {showSettings && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 z-30 bg-black/40 backdrop-blur-sm"
+              />
+              {/* Panel */}
+              <motion.div
+                ref={settingsRef}
+                initial={{ opacity: 0, y: 24, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 24, scale: 0.96 }}
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.45 }}
+                className={cn(
+                  'absolute inset-x-4 top-14 z-40 max-h-[480px] overflow-y-auto rounded-2xl border-2 shadow-[0_12px_48px_rgba(0,0,0,0.5)]',
+                  a.border, t.cardSolid, 'backdrop-blur-xl'
+                )}
+              >
+                <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
+
+                <div className={cn('relative z-10 flex items-center justify-between border-b px-6 py-4', t.border)}>
+                  <div className="flex items-center gap-3">
+                    <BellRinging weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                    <h3 className={cn('text-sm font-medium', t.textStrong)}>Настройки уведомлений</h3>
+                  </div>
+                  <button
+                    onClick={() => setShowSettings(false)}
+                    className={cn('rounded-full p-1.5 transition-colors', t.textSubtle, t.navHover)}
+                  >
+                    <X weight="bold" className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="relative z-10 p-6">
+                  <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Channels */}
+                    <div>
+                      <div className={cn('mb-4 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Каналы доставки</div>
+                      <div className="space-y-3">
+                        {/* Telegram */}
+                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
+                          <div className="flex items-center gap-3">
+                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', a.bgSoft)}>
+                              <TelegramLogo weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                            </div>
+                            <div>
+                              <div className={cn('text-sm font-medium', t.textStrong)}>Telegram</div>
+                              <div className={cn('text-xs', t.textMuted)}>
+                                {tgNotify ? 'Подключён: @vlad_dev' : 'Получайте уведомления в Telegram'}
+                              </div>
+                            </div>
+                          </div>
+                          <ToggleSwitch checked={tgNotify} onChange={setTgNotify} />
+                        </div>
+
+                        {/* Email */}
+                        <div className={cn('rounded-xl border p-4', t.card, t.border)}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', a.bgSoft)}>
+                                <Envelope weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                              </div>
+                              <div>
+                                <div className={cn('text-sm font-medium', t.textStrong)}>Email</div>
+                                <div className={cn('text-xs', t.textMuted)}>
+                                  {emailNotify && emailAddr ? `Подключён: ${emailAddr}` : 'Уведомления на почту'}
+                                </div>
+                              </div>
+                            </div>
+                            <ToggleSwitch checked={emailNotify} onChange={setEmailNotify} />
+                          </div>
+                          <AnimatePresence>
+                            {emailNotify && (
+                              <motion.div
+                                initial={{ opacity: 0, height: 0 }}
+                                animate={{ opacity: 1, height: 'auto' }}
+                                exit={{ opacity: 0, height: 0 }}
+                                className="overflow-hidden"
+                              >
+                                <div className="mt-3 pl-12">
+                                  <input
+                                    type="email"
+                                    placeholder="name@example.com"
+                                    value={emailAddr}
+                                    onChange={(e) => setEmailAddr(e.target.value)}
+                                    className={cn(
+                                      'w-full rounded-lg border bg-transparent px-3 py-2 text-sm outline-none transition-colors',
+                                      t.border, t.text, 'placeholder:text-zinc-500 focus:ring-1', a.border
+                                    )}
+                                  />
+                                </div>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
+
+                        {/* Push */}
+                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
+                          <div className="flex items-center gap-3">
+                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', a.bgSoft)}>
+                              <DeviceMobile weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                            </div>
+                            <div>
+                              <div className={cn('text-sm font-medium', t.textStrong)}>Push-уведомления</div>
+                              <div className={cn('text-xs', t.textMuted)}>Браузерные и мобильные push</div>
+                            </div>
+                          </div>
+                          <ToggleSwitch checked={pushNotify} onChange={setPushNotify} />
+                        </div>
+
+                        {/* Sound */}
+                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
+                          <div className="flex items-center gap-3">
+                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', a.bgSoft)}>
+                              <Bell weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                            </div>
+                            <div>
+                              <div className={cn('text-sm font-medium', t.textStrong)}>Звуковые уведомления</div>
+                              <div className={cn('text-xs', t.textMuted)}>Звук при получении уведомлений</div>
+                            </div>
+                          </div>
+                          <ToggleSwitch checked={soundNotify} onChange={setSoundNotify} />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Categories */}
+                    <div>
+                      <div className={cn('mb-4 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Категории уведомлений</div>
+                      <div className="space-y-3">
+                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
+                          <div className="flex items-center gap-3">
+                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10')}>
+                              <Gift weight={ICON_WEIGHT} className="h-5 w-5 text-amber-500" />
+                            </div>
+                            <div>
+                              <div className={cn('text-sm font-medium', t.textStrong)}>Акции и бонусы</div>
+                              <div className={cn('text-xs', t.textMuted)}>Скидки, промокоды, подарки</div>
+                            </div>
+                          </div>
+                          <ToggleSwitch checked={promoCategory} onChange={setPromoCategory} />
+                        </div>
+                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
+                          <div className="flex items-center gap-3">
+                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10')}>
+                              <Info weight={ICON_WEIGHT} className="h-5 w-5 text-blue-500" />
+                            </div>
+                            <div>
+                              <div className={cn('text-sm font-medium', t.textStrong)}>Информационные</div>
+                              <div className={cn('text-xs', t.textMuted)}>Обновления, новые серверы</div>
+                            </div>
+                          </div>
+                          <ToggleSwitch checked={infoCategory} onChange={setInfoCategory} />
+                        </div>
+                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
+                          <div className="flex items-center gap-3">
+                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/10')}>
+                              <Megaphone weight={ICON_WEIGHT} className="h-5 w-5 text-purple-500" />
+                            </div>
+                            <div>
+                              <div className={cn('text-sm font-medium', t.textStrong)}>Системные</div>
+                              <div className={cn('text-xs', t.textMuted)}>Обслуживание, безопасность</div>
+                            </div>
+                          </div>
+                          <ToggleSwitch checked={systemCategory} onChange={setSystemCategory} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+        {/* Toolbar */}
+        <div className={cn('flex flex-wrap items-center justify-between gap-3 border-b px-5 py-3', t.border)}>
+          <div className="flex items-center gap-1.5">
+            {filterTabs.map((tab) => (
+              <button
+                key={tab.key}
+                onClick={() => setFilter(tab.key)}
+                className={cn(
+                  'flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-all',
+                  filter === tab.key ? cn(a.bgSoft, a.text) : cn(t.textMuted, t.navHover)
+                )}
+              >
+                {tab.label}
+                {tab.count > 0 && (
+                  <span
+                    className={cn(
+                      'rounded-full px-1.5 py-0.5 text-[10px]',
+                      filter === tab.key ? cn(theme === 'dark' ? 'bg-white/10' : 'bg-black/10') : t.card
+                    )}
+                  >
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Search */}
+            <div className={cn('flex items-center gap-2 rounded-lg border px-3 py-1.5', t.border, t.card)}>
+              <MagnifyingGlass weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5', t.textSubtle)} />
+              <input
+                type="text"
+                placeholder="Поиск..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className={cn('w-32 bg-transparent text-xs outline-none placeholder:text-zinc-500', t.text)}
+              />
+            </div>
+
+            {/* Mark all read */}
+            {unreadCount > 0 && (
+              <button
+                onClick={markAllRead}
+                className={cn('rounded-lg px-3 py-1.5 text-xs font-medium transition-all', a.bgSoft, a.text, 'hover:opacity-80')}
+              >
+                Прочитать все
+              </button>
+            )}
+
+            {/* Settings toggle */}
+            <button
+              onClick={() => setShowSettings(!showSettings)}
+              className={cn(
+                'rounded-lg border p-1.5 transition-all',
+                showSettings ? cn(a.border, a.bgSoft) : cn(t.border, t.card),
+                'hover:opacity-80'
+              )}
+            >
+              <GearSix
+                weight={showSettings ? 'fill' : ICON_WEIGHT}
+                className={cn('h-4 w-4', showSettings ? a.text : t.textMuted)}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Two-panel layout */}
+        <div className="flex" style={{ minHeight: '520px' }}>
+          {/* Left: notification list */}
+          <div className={cn('w-[340px] shrink-0 overflow-y-auto border-r', t.border)} style={{ maxHeight: '520px' }}>
+            {filteredNotifications.length === 0 ? (
+              <div className={cn('flex flex-col items-center justify-center py-16 text-center', t.textSubtle)}>
+                <EnvelopeOpen weight={ICON_WEIGHT} className="mb-3 h-8 w-8 opacity-30" />
+                <p className="text-xs">Нет уведомлений</p>
+              </div>
+            ) : (
+              filteredNotifications.map((n) => {
+                const IconComp = NOTIFICATION_ICONS[n.type];
+                const isSelected = selectedId === n.id;
+                return (
+                  <button
+                    key={n.id}
+                    onClick={() => handleSelect(n.id)}
+                    className={cn(
+                      'group relative flex w-full items-start gap-3 border-b px-4 py-3.5 text-left transition-all',
+                      t.border,
+                      isSelected ? a.bgSoft : t.cardHover,
+                      !n.read && !isSelected && (theme === 'dark' ? 'bg-white/[0.02]' : 'bg-black/[0.02]')
+                    )}
+                  >
+                    {/* Accent left bar for selected */}
+                    {isSelected && (
+                      <div className={cn('absolute bottom-2 left-0 top-2 w-0.5 rounded-full', a.color)} />
+                    )}
+                    <div
+                      className={cn(
+                        'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg',
+                        n.type === 'promo' ? a.bgSoft : t.card
+                      )}
+                    >
+                      <IconComp
+                        weight={n.type === 'promo' ? 'fill' : ICON_WEIGHT}
+                        className={cn('h-4 w-4', n.type === 'promo' ? a.text : t.textMuted)}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={cn(
+                            'truncate text-xs',
+                            !n.read ? cn('font-semibold', t.textStrong) : cn('font-medium', t.text)
+                          )}
+                        >
+                          {n.title}
+                        </span>
+                        {!n.read && <div className={cn('h-1.5 w-1.5 shrink-0 rounded-full', a.color)} />}
+                      </div>
+                      <p className={cn('mt-0.5 truncate text-[11px] leading-relaxed', t.textMuted)}>{n.body}</p>
+                      <div className="mt-1 flex items-center gap-2">
+                        <span className={cn('text-[10px]', t.textSubtle)}>{n.time}</span>
+                        {n.starred && <Star weight="fill" className="h-2.5 w-2.5 text-amber-400" />}
+                      </div>
+                    </div>
+                  </button>
+                );
+              })
+            )}
+          </div>
+
+          {/* Right: detail view */}
+          <div className="flex-1 overflow-y-auto" style={{ maxHeight: '520px' }}>
+            <AnimatePresence mode="wait">
+              {selected ? (
+                <motion.div
+                  key={selected.id}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="p-6"
+                >
+                  {/* Detail header */}
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', a.bgSoft)}>
+                        {(() => {
+                          const IC = NOTIFICATION_ICONS[selected.type];
+                          return <IC weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />;
+                        })()}
+                      </div>
+                      <div>
+                        <h2 className={cn('text-lg font-medium leading-tight', t.textStrong)}>{selected.title}</h2>
+                        <div className={cn('mt-1.5 flex items-center gap-3 text-xs', t.textSubtle)}>
+                          <span>{selected.time}</span>
+                          <span>•</span>
+                          <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', a.bgSoft, a.text)}>
+                            {TYPE_LABELS[selected.type]}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => toggleStar(selected.id)}
+                        className={cn('rounded-lg p-2 transition-all', t.navHover)}
+                        title={selected.starred ? 'Убрать из избранного' : 'В избранное'}
+                      >
+                        <Star
+                          weight={selected.starred ? 'fill' : ICON_WEIGHT}
+                          className={cn('h-4 w-4', selected.starred ? 'text-amber-400' : t.textSubtle)}
+                        />
+                      </button>
+                      <button
+                        onClick={() => {
+                          dismiss(selected.id);
+                          setSelectedId(null);
+                        }}
+                        className={cn('rounded-lg p-2 transition-all', t.navHover)}
+                        title="Удалить"
+                      >
+                        <Trash weight={ICON_WEIGHT} className={cn('h-4 w-4', t.textSubtle)} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Divider */}
+                  <div className={cn('my-5 h-px w-full', t.divider)} />
+
+                  {/* Body */}
+                  <div className={cn('text-sm leading-relaxed whitespace-pre-line', t.text)}>
+                    {selected.fullBody || selected.body}
+                  </div>
+
+                  {/* Action */}
+                  {selected.action && (
+                    <div className="mt-6">
+                      <a
+                        href={selected.action.href}
+                        className={cn(
+                          'inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all',
+                          a.button
+                        )}
+                      >
+                        {selected.action.label}
+                        <CaretRight weight="bold" className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                  )}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="empty"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className={cn('flex h-full flex-col items-center justify-center text-center', t.textSubtle)}
+                >
+                  <Envelope weight={ICON_WEIGHT} className="mb-3 h-12 w-12 opacity-20" />
+                  <p className={cn('text-sm font-medium', t.textMuted)}>Выберите уведомление</p>
+                  <p className="mt-1 max-w-xs text-xs">
+                    Нажмите на уведомление слева, чтобы прочитать полное содержание
+                  </p>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+/* ── Support Chat ── */
+type SupportMessage = {
+  id: string;
+  from: 'user' | 'support';
+  text: string;
+  time: string;
+};
+
+const INITIAL_SUPPORT_MESSAGES: SupportMessage[] = [
+  {
+    id: '1',
+    from: 'support',
+    text: 'Здравствуйте! Чтобы мы могли максимально быстро помочь вам, пожалуйста, подробно опишите проблему и приложите скриншоты, если это возможно.',
+    time: formatTime(),
+  },
+];
+
+function formatTime() {
+  const d = new Date();
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+const SupportHeaderButton = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) => {
+  const { t, a } = useContext(ThemeContext);
+  const [hovered, setHovered] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  return (
+    <div ref={ref} className="relative" onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+      <button
+        onClick={onToggle}
+        className={cn(
+          'relative rounded-full p-2 transition-all duration-300',
+          isOpen
+            ? cn(a.text, a.bgSoft)
+            : hovered
+              ? a.text
+              : t.textMuted,
+        )}
+      >
+        <ChatCircleDots weight={isOpen ? 'fill' : ICON_WEIGHT} className="h-[18px] w-[18px]" />
+      </button>
+
+      {/* Floating label — no container, just text */}
+      <AnimatePresence>
+        {hovered && !isOpen ? (
+          <motion.div
+            initial={{ opacity: 0, y: -2 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -2 }}
+            transition={{ duration: 0.15 }}
+            className="absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap"
+          >
+            <span className={cn('text-[11px] font-medium', a.text)}>Нужна помощь?</span>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+const SupportChatPanel = ({
+  isOpen,
+  onClose,
+  messages,
+  onSend,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  messages: SupportMessage[];
+  onSend: (text: string) => void;
+}) => {
+  const { t, a, theme } = useContext(ThemeContext);
+  const [input, setInput] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        const btn = (e.target as HTMLElement).closest('[data-support-toggle]');
+        if (!btn) onClose();
+      }
+    };
+    if (isOpen) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isOpen, onClose]);
+
+  const handleSend = () => {
+    const trimmed = input.trim();
+    if (!trimmed) return;
+    onSend(trimmed);
+    setInput('');
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  return (
+    <AnimatePresence>
+      {isOpen ? (
+        <motion.div
+          ref={panelRef}
+          initial={{ opacity: 0, y: 8, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 8, scale: 0.96 }}
+          transition={{ duration: 0.2 }}
+          className={cn(
+            'absolute right-0 top-full z-50 mt-2 flex w-80 flex-col overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-xl',
+            t.panel, a.border
+          )}
+          style={{ maxHeight: 'min(500px, calc(100vh - 100px))' }}
+        >
+          {/* Header */}
+          <div className={cn('flex items-center justify-between border-b px-4 py-3', t.border)}>
+            <div className="flex items-center gap-3">
+              <div className={cn('flex h-8 w-8 items-center justify-center rounded-full', a.bgSoft)}>
+                <ChatCircleDots weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
+              </div>
+              <div>
+                <div className={cn('text-sm font-medium', t.textStrong)}>Поддержка</div>
+                <div className={cn('text-[11px]', t.textMuted)}>Отвечаем по мере загруженности</div>
+              </div>
+            </div>
+            <button
+              onClick={onClose}
+              className={cn('rounded-full p-1.5 transition-colors', t.textSubtle, t.navHover)}
+            >
+              <X weight="bold" className="h-3.5 w-3.5" />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto px-4 py-4" style={{ minHeight: 200, maxHeight: 340 }}>
+            <div className="flex flex-col gap-3">
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={cn('flex flex-col', msg.from === 'user' ? 'items-end' : 'items-start')}
+                >
+                  <div
+                    className={cn(
+                      'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+                      msg.from === 'support'
+                        ? cn(a.bgSoft, t.text, 'rounded-bl-md')
+                        : cn(a.color, 'text-black rounded-br-md')
+                    )}
+                  >
+                    {msg.text}
+                  </div>
+                  <span className={cn('mt-1 px-1 text-[10px]', t.textSubtle)}>{msg.time}</span>
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+
+          {/* Input */}
+          <div className={cn('border-t px-3 py-3', t.border)}>
+            <div className={cn('flex items-end gap-2 rounded-xl border px-3 py-2 transition-colors', t.border, t.card)}>
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Напишите сообщение..."
+                rows={1}
+                className={cn(
+                  'max-h-20 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-inherit',
+                  t.text, t.textMuted
+                )}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim()}
+                className={cn(
+                  'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all',
+                  input.trim()
+                    ? cn(a.color, 'text-black')
+                    : cn(t.card, t.textSubtle)
+                )}
+              >
+                <PaperPlaneTilt weight="fill" className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
+  );
+};
+
+/* ── Support Tab (page) ── */
+const FAQ_ITEMS = [
+  {
+    q: 'Как подключиться к VPN?',
+    a: 'Скачайте приложение Hub из раздела «Настройка VPN», установите конфигурационный файл и нажмите «Подключиться». Подробная инструкция находится там же.',
+  },
+  {
+    q: 'Как добавить устройство?',
+    a: 'Перейдите в «Настройка VPN» → «Устройства» и нажмите «Добавить устройство». Максимальное количество устройств зависит от вашего тарифа.',
+  },
+  {
+    q: 'Как работают белые списки?',
+    a: 'Белые списки позволяют направлять трафик определённых приложений напрямую, минуя VPN-туннель. Это полезно для банковских приложений и локальных сервисов.',
+  },
+  {
+    q: 'Как продлить подписку?',
+    a: 'Перейдите в «Личный кабинет» и нажмите «Продлить подписку». Мы поддерживаем оплату через ЮКасса и CryptoBot.',
+  },
+  {
+    q: 'Что делать, если VPN не подключается?',
+    a: 'Попробуйте переключить сервер, проверьте интернет-соединение и убедитесь, что конфигурация актуальна. Если проблема сохраняется — напишите нам в чат.',
+  },
+];
+
+const SupportTab = ({ onOpenChat }: { onOpenChat: () => void }) => {
+  const { t, a, theme } = useContext(ThemeContext);
+  const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  return (
+    <motion.div
+      key="support"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-6"
+    >
+      {/* Hero */}
+      <GlowCard>
+        <div className="flex flex-col items-center p-8 text-center">
+          <div className={cn('mb-4 flex h-16 w-16 items-center justify-center rounded-2xl', a.bgSoft)}>
+            <Lifebuoy weight={ICON_WEIGHT} className={cn('h-8 w-8', a.text)} />
+          </div>
+          <h2 className={cn('text-xl font-medium', t.textStrong)}>Поддержка</h2>
+          <p className={cn('mt-2 max-w-md text-sm', t.textMuted)}>
+            Мы здесь, чтобы помочь. Выберите удобный способ связи или найдите ответ в разделе FAQ.
+          </p>
+          <div className={cn('mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium', a.border, a.bgSoft, a.text)}>
+            <Clock weight={ICON_WEIGHT} className="h-3 w-3" />
+            Отвечаем по мере загруженности
+          </div>
+        </div>
+      </GlowCard>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        <button
+          onClick={onOpenChat}
+          className={cn(
+            'group flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
+            t.border, t.card, t.borderHover
+          )}
+        >
+          <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', a.bgSoft)}>
+            <ChatCircleDots weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+          </div>
+          <div>
+            <div className={cn('text-sm font-medium', t.textStrong)}>Написать в чат</div>
+            <div className={cn('text-[11px]', t.textMuted)}>Быстрый ответ онлайн</div>
+          </div>
+          <ArrowRight weight="bold" className={cn('ml-auto h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100', t.textSubtle)} />
+        </button>
+
+        <a
+          href="https://t.me/wwpro_support"
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn(
+            'group flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
+            t.border, t.card, t.borderHover
+          )}
+        >
+          <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', a.bgSoft)}>
+            <TelegramLogo weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+          </div>
+          <div>
+            <div className={cn('text-sm font-medium', t.textStrong)}>Telegram</div>
+            <div className={cn('text-[11px]', t.textMuted)}>@wwpro_support</div>
+          </div>
+          <ArrowRight weight="bold" className={cn('ml-auto h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100', t.textSubtle)} />
+        </a>
+
+        <a
+          href="mailto:support@ww.pro"
+          className={cn(
+            'group flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
+            t.border, t.card, t.borderHover
+          )}
+        >
+          <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', a.bgSoft)}>
+            <Envelope weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+          </div>
+          <div>
+            <div className={cn('text-sm font-medium', t.textStrong)}>Email</div>
+            <div className={cn('text-[11px]', t.textMuted)}>support@ww.pro</div>
+          </div>
+          <ArrowRight weight="bold" className={cn('ml-auto h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100', t.textSubtle)} />
+        </a>
+      </div>
+
+      {/* FAQ */}
+      <GlowCard>
+        <div className="px-6 pt-5 pb-2">
+          <div className="flex items-center gap-2">
+            <Question weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+            <h3 className={cn('text-sm font-medium', t.textStrong)}>Частые вопросы</h3>
+          </div>
+        </div>
+        <div className={cn('divide-y', t.divide)}>
+          {FAQ_ITEMS.map((item, i) => (
+            <div key={i}>
+              <button
+                onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                className={cn(
+                  'flex w-full items-center justify-between px-6 py-3.5 text-left text-sm transition-colors',
+                  t.cardHover
+                )}
+              >
+                <span className={cn('font-medium', t.text)}>{item.q}</span>
+                <motion.div
+                  animate={{ rotate: openFaq === i ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <CaretDown weight="bold" className={cn('h-3.5 w-3.5 shrink-0', t.textSubtle)} />
+                </motion.div>
+              </button>
+              <AnimatePresence>
+                {openFaq === i ? (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.25, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className={cn('px-6 pb-4 text-sm leading-relaxed', t.textMuted)}>
+                      {item.a}
+                    </div>
+                  </motion.div>
+                ) : null}
+              </AnimatePresence>
+            </div>
+          ))}
+        </div>
+      </GlowCard>
+    </motion.div>
+  );
+};
+
 /* ── Profile Popover ── */
 const CONNECTED_ACCOUNTS = {
   telegram: { connected: true, label: 'Telegram', name: '@vlad_dev' },
@@ -1593,24 +4081,24 @@ const ProfilePopover = () => {
   }, [open]);
 
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref}>
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-3 rounded-xl border px-3 py-2 transition-all',
+          'flex items-center gap-2 rounded-xl border px-2 py-1.5 transition-all',
           t.border, open ? t.card : 'bg-transparent', t.borderHover
         )}
       >
-        <div className="hidden text-right md:block">
-          <div className={cn('text-sm font-medium', t.textStrong)}>Влад</div>
-          <div className={cn('text-xs', hasSubscription ? a.text : t.textSubtle)}>
-            {hasSubscription ? 'Тариф Pro' : 'Без подписки'}
+        <div className={cn('flex h-8 w-8 items-center justify-center rounded-full border', t.border, t.cardSolid)}>
+          <span className={cn('text-xs font-medium', t.textStrong)}>В</span>
+        </div>
+        <div className="hidden text-left md:block">
+          <div className={cn('text-xs font-medium leading-tight', t.textStrong)}>Влад</div>
+          <div className={cn('text-[10px] leading-tight', hasSubscription ? a.text : t.textSubtle)}>
+            {hasSubscription ? 'Pro' : 'Free'}
           </div>
         </div>
-        <div className={cn('flex h-10 w-10 items-center justify-center rounded-full border', t.border, t.cardSolid)}>
-          <span className={cn('text-sm font-medium', t.textStrong)}>В</span>
-        </div>
-        <CaretDown weight="bold" className={cn('hidden h-3 w-3 transition-transform md:block', t.textSubtle, open && 'rotate-180')} />
+        <CaretDown weight="bold" className={cn('hidden h-2.5 w-2.5 transition-transform md:block', t.textSubtle, open && 'rotate-180')} />
       </button>
 
       <AnimatePresence>
@@ -1621,9 +4109,9 @@ const ProfilePopover = () => {
             exit={{ opacity: 0, y: 8, scale: 0.96 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              'absolute right-0 top-full z-50 mt-2 w-72 overflow-hidden rounded-2xl border shadow-2xl',
-              t.border,
-              t.cardSolid,
+              'absolute right-0 top-full z-50 mt-2 w-80 overflow-hidden rounded-2xl border shadow-2xl',
+              a.border,
+              t.panel,
               'backdrop-blur-xl'
             )}
           >
@@ -1713,6 +4201,18 @@ export default function App() {
   const [accent, setAccent] = useState<AccentType>('emerald');
   const [hasSubscription, setHasSubscription] = useState(false);
   const [scrollTarget, setScrollTarget] = useState<string | null>(null);
+  const [isSupportChatOpen, setIsSupportChatOpen] = useState(false);
+  const [supportMessages, setSupportMessages] = useState<SupportMessage[]>(INITIAL_SUPPORT_MESSAGES);
+
+  const handleSendSupportMessage = (text: string) => {
+    const msg: SupportMessage = {
+      id: Date.now().toString(),
+      from: 'user',
+      text,
+      time: formatTime(),
+    };
+    setSupportMessages((prev) => [...prev, msg]);
+  };
 
   const t = THEMES[theme];
   const a = ACCENTS[accent];
@@ -1738,7 +4238,9 @@ export default function App() {
   return (
     <ThemeContext.Provider value={{ theme, accent, t, a, hasSubscription, setTheme, setAccent, setHasSubscription, navigateTab }}>
       <NotificationProvider>
-      <div className={cn('relative flex h-screen overflow-hidden font-sans transition-colors duration-500', t.bg, t.text, a.selection)}>
+      <div
+        className={cn('relative flex h-screen overflow-hidden font-sans transition-colors duration-500', t.bg, t.text, a.selection)}
+      >
         <div
           className={cn(
             'relative z-10 flex w-64 flex-col border-r transition-colors duration-500',
@@ -1757,7 +4259,9 @@ export default function App() {
               <div className="space-y-1">
                 <NavItem icon={Globe} label="Личный кабинет" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
                 <NavItem icon={ShieldCheck} label="Настройка VPN" active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} />
-                <NavItem icon={Laptop} label="Устройства" active={activeTab === 'devices'} onClick={() => setActiveTab('devices')} />
+                <NavItem icon={Gift} label="Бонусы" active={activeTab === 'bonuses'} onClick={() => setActiveTab('bonuses')} />
+                <NavItem icon={PersonArmsSpread} label="Рефералы" active={activeTab === 'referral'} onClick={() => setActiveTab('referral')} />
+                <NavItem icon={Envelope} label="Уведомления" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} />
               </div>
             </div>
 
@@ -1840,9 +4344,21 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="flex items-center gap-4 border-l border-inherit pl-4">
+              <div className="relative flex items-center gap-0.5 border-l border-inherit pl-3">
                 <ProfilePopover />
+                <div data-support-toggle>
+                  <SupportHeaderButton
+                    isOpen={isSupportChatOpen}
+                    onToggle={() => setIsSupportChatOpen(!isSupportChatOpen)}
+                  />
+                </div>
                 <NotificationPanel />
+                <SupportChatPanel
+                  isOpen={isSupportChatOpen}
+                  onClose={() => setIsSupportChatOpen(false)}
+                  messages={supportMessages}
+                  onSend={handleSendSupportMessage}
+                />
               </div>
             </div>
           </header>
@@ -1852,7 +4368,11 @@ export default function App() {
               <AnimatePresence mode="wait">
                 {activeTab === 'overview' ? <OverviewTab key="overview" /> : null}
                 {activeTab === 'billing' ? <VpnSetupTab key="billing" /> : null}
-                {['devices', 'preferences', 'support'].includes(activeTab) ? (
+                {activeTab === 'bonuses' ? <BonusTab key="bonuses" /> : null}
+                {activeTab === 'referral' ? <ReferralTab key="referral" /> : null}
+                {activeTab === 'notifications' ? <NotificationsTab key="notifications" /> : null}
+                {activeTab === 'support' ? <SupportTab key="support" onOpenChat={() => setIsSupportChatOpen(true)} /> : null}
+                {activeTab === 'preferences' ? (
                   <motion.div
                     key={activeTab}
                     initial={{ opacity: 0, y: 10 }}
@@ -1871,6 +4391,7 @@ export default function App() {
             </div>
           </main>
         </div>
+
       </div>
       </NotificationProvider>
     </ThemeContext.Provider>
