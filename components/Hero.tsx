@@ -519,9 +519,10 @@ export default function Hero() {
           >
             <div
               className={cn(
-                'flex flex-1 flex-col rounded-2xl border p-6 transition-colors',
+                'flex flex-1 flex-col rounded-2xl border p-6 backdrop-blur-xl transition-colors',
                 t.card,
                 t.border,
+                theme === 'dark' && 'max-lg:bg-black/30',
               )}
             >
               {/* auth mode tabs */}
@@ -826,8 +827,8 @@ export default function Hero() {
             </div>
           </motion.section>
 
-          {/* ══════ CENTER — globe space ══════ */}
-          <section className="relative hidden min-h-0 lg:block" aria-hidden="true" />
+          {/* ══════ CENTER — globe space (visible on mobile for touch interaction) ══════ */}
+          <section className="relative min-h-[35svh] lg:min-h-0" aria-hidden="true" />
 
           {/* ══════ RIGHT — Active route + server list ══════ */}
           <motion.aside

@@ -2417,6 +2417,55 @@ const ReferralTab = () => {
       transition={{ duration: 0.4 }}
       className="space-y-8"
     >
+      {/* ── Referral Intro ── */}
+      <div className="relative px-1">
+        {/* Subtle accent glow behind intro */}
+        <div className={cn('pointer-events-none absolute -top-10 left-1/2 -translate-x-1/2 h-40 w-80 rounded-full opacity-[0.07] blur-[100px]', a.color)} />
+
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.05 }}
+          className="relative"
+        >
+          <h2 className={cn('text-lg font-medium', t.textStrong)}>
+            Приглашайте друзей — зарабатывайте вместе
+          </h2>
+          <p className={cn('mt-2 max-w-xl text-sm leading-relaxed', t.textMuted)}>
+            Делитесь своей реферальной ссылкой в Telegram-каналах, соцсетях или лично.
+            За каждого приглашённого друга вы получаете{' '}
+            <span className={cn('font-medium', a.text)}>бонусные дни</span>
+            {' '}и{' '}
+            <span className={cn('font-medium', a.text)}>дополнительные гигабайты трафика</span>.
+            Чем больше друзей — тем выше ваш уровень и больше наград.
+          </p>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.15 }}
+          className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2"
+        >
+          {[
+            { Icon: ShareNetwork, text: 'Размещайте ссылку в своих каналах' },
+            { Icon: Gift, text: '+10 дней за каждого друга' },
+            { Icon: Lightning, text: 'Бонусный трафик за активных рефералов' },
+          ].map((item, i) => (
+            <motion.div
+              key={item.text}
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.25 + i * 0.08 }}
+              className="flex items-center gap-2"
+            >
+              <item.Icon weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5 shrink-0', a.textLight)} />
+              <span className={cn('text-xs', t.textSubtle)}>{item.text}</span>
+            </motion.div>
+          ))}
+        </motion.div>
+      </div>
+
       {/* ── Hero Block ── */}
       <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
         <div className={cn('pointer-events-none absolute -right-32 -top-32 h-[400px] w-[400px] rounded-full opacity-20 blur-[140px]', a.blur1)} />
@@ -3977,7 +4026,7 @@ const InstallTab = () => {
     typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches,
   );
   const [installing, setInstalling] = useState(false);
-  const [showSteps, setShowSteps] = useState<string | null>(null);
+  const [expandedPlatform, setExpandedPlatform] = useState<string | null>(null);
 
   useEffect(() => {
     const update = () => {
@@ -4008,6 +4057,8 @@ const InstallTab = () => {
   const isSafari = typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
   const isAndroid = typeof navigator !== 'undefined' && /android/i.test(navigator.userAgent);
 
+  const currentPlatformId = isIos || isSafari ? 'ios' : isAndroid ? 'android' : 'chrome';
+
   const platforms = [
     {
       id: 'chrome',
@@ -4016,12 +4067,11 @@ const InstallTab = () => {
       subtitle: 'Windows, macOS, Linux',
       relevant: !isIos && !isAndroid,
       canAutoInstall: canInstall && !isIos && !isAndroid,
-      buttonLabel: 'Установить на компьютер',
       steps: [
-        'Откройте WW.pro в Chrome, Edge или Brave',
-        'Нажмите кнопку «Установить» выше',
-        'Или найдите иконку ⊕ в правой части адресной строки',
-        'Подтвердите установку — приложение появится на рабочем столе',
+        { title: 'Откройте сайт в браузере', desc: 'Перейдите на WW.pro в браузере Chrome, Edge или Brave. Firefox не поддерживает установку PWA — используйте один из перечисленных.' },
+        { title: 'Найдите кнопку установки', desc: 'В правой части адресной строки появится иконка ⊕ или кнопка «Установить». Если вы видите кнопку «Установить» в нашем интерфейсе — можно нажать её напрямую.' },
+        { title: 'Подтвердите установку', desc: 'Браузер покажет диалоговое окно — нажмите «Установить». Приложение скачается мгновенно (менее 1 МБ).' },
+        { title: 'Запустите приложение', desc: 'Иконка WW.pro появится на рабочем столе и в панели задач. Откройте — приложение работает без адресной строки, как нативное.' },
       ],
       note: 'Firefox не поддерживает установку PWA. Используйте Chrome, Edge или Brave.',
     },
@@ -4032,13 +4082,12 @@ const InstallTab = () => {
       subtitle: 'Chrome, Samsung Internet',
       relevant: isAndroid,
       canAutoInstall: canInstall && isAndroid,
-      buttonLabel: 'Установить на Android',
       steps: [
-        'Откройте WW.pro в Chrome',
-        'Нажмите меню (⋮) в правом верхнем углу',
-        'Выберите «Установить приложение»',
-        'Нажмите «Установить» в диалоге',
-        'Приложение появится среди ваших приложений',
+        { title: 'Откройте WW.pro в Chrome', desc: 'Зайдите на сайт через Chrome или Samsung Internet. Другие браузеры могут не поддерживать установку.' },
+        { title: 'Откройте меню браузера', desc: 'Нажмите на три точки (⋮) в правом верхнем углу экрана. Откроется выпадающее меню Chrome.' },
+        { title: 'Выберите «Установить приложение»', desc: 'В меню найдите пункт «Установить приложение» или «Добавить на главный экран». Нажмите на него.' },
+        { title: 'Подтвердите установку', desc: 'Появится диалог — нажмите «Установить». Приложение загрузится за несколько секунд.' },
+        { title: 'Найдите на домашнем экране', desc: 'Иконка WW.pro появится среди ваших приложений. Запускайте как обычное приложение.' },
       ],
       note: null,
     },
@@ -4049,23 +4098,15 @@ const InstallTab = () => {
       subtitle: 'Только через Safari',
       relevant: isIos || isSafari,
       canAutoInstall: false,
-      buttonLabel: 'Как установить на iOS',
       steps: [
-        'Откройте WW.pro именно в Safari',
-        'Нажмите кнопку «Поделиться» (⬆) внизу экрана',
-        'Нажмите «На экран \u00abДомой\u00bb»',
-        'Нажмите «Добавить»',
-        'Иконка WW.pro появится на домашнем экране',
+        { title: 'Откройте WW.pro в Safari', desc: 'Важно: используйте именно Safari. Chrome, Firefox и другие браузеры на iOS не поддерживают установку PWA.' },
+        { title: 'Нажмите «Поделиться»', desc: 'Найдите кнопку «Поделиться» (⬆) — внизу экрана на iPhone, вверху справа на iPad. Нажмите на неё.' },
+        { title: 'Выберите «На экран Домой»', desc: 'Прокрутите список действий и найдите пункт «На экран \u00abДомой\u00bb». Если не видите — прокрутите горизонтальный ряд иконок вправо.' },
+        { title: 'Нажмите «Добавить»', desc: 'Откроется экран с названием и иконкой. Нажмите «Добавить» в правом верхнем углу. Готово!' },
+        { title: 'Найдите иконку на экране', desc: 'Приложение WW.pro появится на домашнем экране. Работает полноэкранно, без элементов Safari.' },
       ],
       note: 'На iOS установка возможна только через Safari. Chrome и Firefox на iOS не поддерживают PWA.',
     },
-  ];
-
-  const benefits = [
-    { icon: Lightning, title: 'Мгновенный запуск', desc: 'Без адресной строки и вкладок' },
-    { icon: WifiSlash, title: 'Работает оффлайн', desc: 'Базовый интерфейс доступен без сети' },
-    { icon: ShieldCheck, title: 'Безопасно', desc: 'Обновляется автоматически' },
-    { icon: RocketLaunch, title: 'Без магазина', desc: 'Установка за секунды' },
   ];
 
   return (
@@ -4086,7 +4127,8 @@ const InstallTab = () => {
             <div className="min-w-0 flex-1">
               <h2 className={cn('text-lg font-medium', t.textStrong)}>Установить WW.pro</h2>
               <p className={cn('mt-1 text-sm leading-relaxed', t.textMuted)}>
-                Добавьте на своё устройство — работает как нативное приложение, без магазинов.
+                Добавьте приложение на своё устройство вручную за пару шагов.
+                Работает как нативное — без магазинов, без лишнего.
               </p>
             </div>
           </div>
@@ -4105,9 +4147,14 @@ const InstallTab = () => {
             </motion.div>
           )}
 
-          {/* Benefits row */}
+          {/* Benefits */}
           <div className={cn('mt-5 flex flex-wrap gap-x-5 gap-y-2 text-xs', t.textMuted)}>
-            {benefits.map((b) => (
+            {[
+              { icon: Lightning, title: 'Мгновенный запуск', desc: 'Без адресной строки' },
+              { icon: WifiSlash, title: 'Работает оффлайн', desc: 'Базовый UI доступен без сети' },
+              { icon: ShieldCheck, title: 'Безопасно', desc: 'Автообновления' },
+              { icon: RocketLaunch, title: 'Без магазина', desc: 'За секунды' },
+            ].map((b) => (
               <span key={b.title} className="flex items-center gap-1.5">
                 <b.icon weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5', a.text)} />
                 <span className={cn('font-medium', t.text)}>{b.title}</span>
@@ -4118,18 +4165,37 @@ const InstallTab = () => {
         </div>
       </GlowCard>
 
-      {/* Platform Cards with Install Buttons */}
+      {/* ── Detailed Platform Instructions ── */}
+      <div className="px-1">
+        <div className={cn('mb-1 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>
+          <Info weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+          Инструкция по установке
+        </div>
+        <p className={cn('mb-5 text-xs leading-relaxed', t.textMuted)}>
+          Выберите вашу платформу — покажем подробно, куда нажать и что сделать
+        </p>
+      </div>
+
       <div className="space-y-3">
         {platforms.map((platform) => {
-          const isStepsOpen = showSteps === platform.id;
+          const isOpen = expandedPlatform === platform.id;
+          const isCurrentDevice = platform.id === currentPlatformId;
+          /* Auto-expand current device platform on first render */
+          if (expandedPlatform === null && isCurrentDevice) {
+            setTimeout(() => setExpandedPlatform(platform.id), 0);
+          }
 
           return (
             <GlowCard key={platform.id}>
               <div className="p-5">
-                <div className="flex items-center gap-4">
+                {/* Header row */}
+                <button
+                  onClick={() => setExpandedPlatform(isOpen ? null : platform.id)}
+                  className="flex w-full items-center gap-4 text-left"
+                >
                   <div className={cn(
                     'flex h-11 w-11 shrink-0 items-center justify-center rounded-xl',
-                    platform.relevant ? a.bgSoft : cn(t.card, t.border, 'border'),
+                    platform.relevant ? a.bgSoft : cn(theme === 'dark' ? 'bg-white/[0.04]' : 'bg-black/[0.03]', t.border, 'border'),
                   )}>
                     <platform.icon
                       weight={platform.relevant ? 'fill' : ICON_WEIGHT}
@@ -4149,67 +4215,72 @@ const InstallTab = () => {
                     <div className={cn('text-xs', t.textSubtle)}>{platform.subtitle}</div>
                   </div>
 
-                  {/* Install / Info button */}
-                  {isInstalled ? (
-                    <div className={cn('flex items-center gap-1.5 text-xs font-medium', a.text)}>
-                      <CheckCircle weight="fill" className="h-4 w-4" />
-                      <span>Готово</span>
-                    </div>
-                  ) : platform.canAutoInstall ? (
-                    <button
-                      onClick={handleInstall}
-                      disabled={installing}
-                      className={cn(
-                        'flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-medium transition-all min-h-[44px]',
-                        a.button,
-                        installing && 'opacity-70 pointer-events-none',
-                      )}
-                    >
-                      <DownloadSimple weight="bold" className="h-4 w-4" />
-                      {installing ? 'Установка…' : 'Установить'}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => setShowSteps(isStepsOpen ? null : platform.id)}
-                      className={cn(
-                        'flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all min-h-[44px]',
-                        isStepsOpen ? cn(a.bgSoft, a.text, a.border) : cn(a.buttonOutline),
-                      )}
-                    >
-                      <Info weight={ICON_WEIGHT} className="h-4 w-4" />
-                      Как установить
-                    </button>
-                  )}
-                </div>
+                  <div className="flex items-center gap-2">
+                    {isInstalled && platform.relevant && (
+                      <div className={cn('flex items-center gap-1.5 text-xs font-medium', a.text)}>
+                        <CheckCircle weight="fill" className="h-4 w-4" />
+                        <span>Готово</span>
+                      </div>
+                    )}
+                    {platform.canAutoInstall && !isInstalled && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleInstall(); }}
+                        disabled={installing}
+                        className={cn(
+                          'flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-medium transition-all',
+                          a.button,
+                          installing && 'opacity-70 pointer-events-none',
+                        )}
+                      >
+                        <DownloadSimple weight="bold" className="h-4 w-4" />
+                        {installing ? 'Установка…' : 'Установить'}
+                      </button>
+                    )}
+                    <CaretDown
+                      weight="bold"
+                      className={cn('h-4 w-4 transition-transform duration-200', t.textSubtle, isOpen && 'rotate-180')}
+                    />
+                  </div>
+                </button>
 
-                {/* Expandable steps */}
+                {/* Expanded detailed steps */}
                 <AnimatePresence>
-                  {isStepsOpen && (
+                  {isOpen && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
+                      transition={{ duration: 0.25 }}
                       className="overflow-hidden"
                     >
                       <div className={cn('mt-4 h-px w-full', t.divider)} />
-                      <ol className="mt-4 space-y-3">
+                      <div className="mt-5 space-y-4">
                         {platform.steps.map((step, i) => (
-                          <li key={i} className="flex items-start gap-3">
+                          <motion.div
+                            key={i}
+                            initial={{ opacity: 0, x: -8 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.06 }}
+                            className="flex items-start gap-3"
+                          >
                             <span
                               className={cn(
-                                'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
+                                'mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-xs font-bold',
                                 a.bgSoft, a.text,
                               )}
                             >
                               {i + 1}
                             </span>
-                            <span className={cn('text-sm leading-relaxed', t.text)}>{step}</span>
-                          </li>
+                            <div className="min-w-0 flex-1">
+                              <div className={cn('text-sm font-medium', t.textStrong)}>{step.title}</div>
+                              <p className={cn('mt-0.5 text-xs leading-relaxed', t.textMuted)}>{step.desc}</p>
+                            </div>
+                          </motion.div>
                         ))}
-                      </ol>
+                      </div>
+
                       {platform.note && (
-                        <div className={cn('mt-4 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs leading-relaxed', t.border, t.textMuted)}>
+                        <div className={cn('mt-5 flex items-start gap-2 rounded-xl border px-3 py-2.5 text-xs leading-relaxed', t.border, t.textMuted)}>
                           <WarningCircle weight={ICON_WEIGHT} className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', a.text)} />
                           <span>{platform.note}</span>
                         </div>
@@ -4217,56 +4288,6 @@ const InstallTab = () => {
                     </motion.div>
                   )}
                 </AnimatePresence>
-
-                {/* Show steps link for auto-installable platforms */}
-                {platform.canAutoInstall && !isInstalled && (
-                  <div className="mt-3">
-                    <button
-                      onClick={() => setShowSteps(isStepsOpen ? null : platform.id)}
-                      className={cn('flex items-center gap-1 text-xs transition-colors', isStepsOpen ? a.text : t.textSubtle, !isStepsOpen && 'hover:' + t.textMuted)}
-                    >
-                      <CaretDown
-                        weight="bold"
-                        className={cn('h-3 w-3 transition-transform duration-200', isStepsOpen && 'rotate-180')}
-                      />
-                      {isStepsOpen ? 'Скрыть инструкцию' : 'Показать пошаговую инструкцию'}
-                    </button>
-
-                    <AnimatePresence>
-                      {isStepsOpen && (
-                        <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: 'auto', opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="overflow-hidden"
-                        >
-                          <ol className="mt-3 space-y-3">
-                            {platform.steps.map((step, i) => (
-                              <li key={i} className="flex items-start gap-3">
-                                <span
-                                  className={cn(
-                                    'mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold',
-                                    a.bgSoft, a.text,
-                                  )}
-                                >
-                                  {i + 1}
-                                </span>
-                                <span className={cn('text-sm leading-relaxed', t.text)}>{step}</span>
-                              </li>
-                            ))}
-                          </ol>
-                          {platform.note && (
-                            <div className={cn('mt-4 flex items-start gap-2 rounded-lg border px-3 py-2.5 text-xs leading-relaxed', t.border, t.textMuted)}>
-                              <WarningCircle weight={ICON_WEIGHT} className={cn('mt-0.5 h-3.5 w-3.5 shrink-0', a.text)} />
-                              <span>{platform.note}</span>
-                            </div>
-                          )}
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                )}
               </div>
             </GlowCard>
           );

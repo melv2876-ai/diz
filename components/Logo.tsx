@@ -125,14 +125,14 @@ export function Logo({ theme, accent, className, iconOnly = false }: LogoProps) 
 
         {/* WW fill */}
         <linearGradient id={gid('wf')} x1="610.9" y1="110.8" x2="610.9" y2="246.9" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor={isDark ? '#ffffff' : '#0f172a'} />
-          <stop offset="1" stopColor={isDark ? '#D4E4F9' : '#334155'} />
+          <stop offset="0" stopColor={isDark ? '#ffffff' : '#ffffff'} />
+          <stop offset="1" stopColor={isDark ? '#D4E4F9' : '#f1f5f9'} />
         </linearGradient>
 
         {/* WW stroke */}
         <linearGradient id={gid('ws')} x1="610.9" y1="110.8" x2="610.9" y2="246.9" gradientUnits="userSpaceOnUse">
-          <stop offset="0" stopColor={isDark ? tone.iconC : tone.iconB} />
-          <stop offset="1" stopColor={isDark ? tone.iconA : tone.iconA} />
+          <stop offset="0" stopColor={isDark ? tone.iconC : '#18181b'} />
+          <stop offset="1" stopColor={isDark ? tone.iconA : '#0f172a'} />
         </linearGradient>
 
         {/* .pro accent gradient */}
