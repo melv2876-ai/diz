@@ -16,6 +16,7 @@ import {
   CreditCard,
   Crown,
   Desktop,
+  Devices,
   DeviceMobile,
   Diamond,
   DownloadSimple,
@@ -48,6 +49,8 @@ import {
   Trash,
   User,
   UserPlus,
+  PencilSimple,
+  Lock,
   Users,
   Wallet,
   WhatsappLogo,
@@ -84,6 +87,16 @@ import {
   Flower,
   HandPeace,
   List,
+  Paperclip,
+  Smiley,
+  ImageSquare,
+  Check,
+  Checks,
+  Receipt,
+  ClockCounterClockwise,
+  ArrowSquareOut,
+  Headset,
+  CaretLeft,
 } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
@@ -706,8 +719,9 @@ const TAB_LABELS = {
   bonuses: 'Бонусы',
   referral: 'Рефералы',
   notifications: 'Уведомления',
+  history: 'История операций',
   install: 'Установить приложение',
-  preferences: 'Параметры',
+  preferences: 'Настройки',
   support: 'Поддержка',
 } as const;
 
@@ -741,9 +755,9 @@ const NavItem = ({
           transition={{ type: 'spring', bounce: 0.2, duration: 0.6 }}
         />
       ) : null}
-      <div className="relative z-10 flex items-center gap-3">
-        <Icon weight={ICON_WEIGHT} className={cn('h-5 w-5 transition-colors', active ? a.textLight : t.textMuted)} />
-        {label}
+      <div className="relative z-10 flex items-center gap-3 whitespace-nowrap">
+        <Icon weight={ICON_WEIGHT} className={cn('h-5 w-5 shrink-0 transition-colors', active ? a.textLight : t.textMuted)} />
+        <span className="truncate">{label}</span>
       </div>
     </button>
   );
@@ -868,6 +882,12 @@ const DevicesCard = () => {
       <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
         <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
         <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
+
+        {/* Section title */}
+        <div className={cn('relative z-10 flex items-center gap-2.5 px-6 pt-6 pb-1')}>
+          <Devices weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+          <span className={cn('text-sm font-medium', t.textStrong)}>Активные устройства</span>
+        </div>
 
         <div className={cn('relative z-10 flex', isMobile ? 'flex-col' : 'flex-row')}>
           {/* ─ Left: Main VPN devices ─ */}
@@ -999,6 +1019,32 @@ const OverviewTab = () => {
   const accessDate = new Date();
   if (activePlan) accessDate.setDate(accessDate.getDate() + activePlan.months * 30);
   const formatDate = (d: Date) => d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  /* New subscription payment modal animation */
+  const [newSubModalOpen, setNewSubModalOpen] = useState(false);
+  const [newSubActivating, setNewSubActivating] = useState(false);
+  const [newSubActivationStep, setNewSubActivationStep] = useState(0);
+  const [newSubActivationDone, setNewSubActivationDone] = useState(false);
+  const [newSubResultData, setNewSubResultData] = useState<{ planLabel: string; price: string; bonusGb: number; endDate: string } | null>(null);
+
+  const handleNewSubPurchase = (data: { planLabel: string; price: string; bonusGb: number; endDate: string }) => {
+    setNewSubResultData(data);
+    setNewSubModalOpen(true);
+    setNewSubActivating(true);
+    setNewSubActivationStep(0);
+    setNewSubActivationDone(false);
+
+    let stepIdx = 0;
+    const runStep = () => {
+      if (stepIdx >= NEW_SUB_PAYMENT_STEPS.length) {
+        setNewSubActivationDone(true);
+        return;
+      }
+      setNewSubActivationStep(stepIdx);
+      setTimeout(() => { stepIdx++; runStep(); }, NEW_SUB_PAYMENT_STEPS[stepIdx].duration);
+    };
+    runStep();
+  };
 
   if (!hasSubscription) {
     return (
@@ -1253,6 +1299,10 @@ const OverviewTab = () => {
                     <span className={cn('text-sm font-medium', a.text)}>{activePlan.price} ₽</span>
                   </div>
                   <div className="flex items-center justify-between py-3">
+                    <span className={cn('text-xs', t.textMuted)}>В подарок на белые списки</span>
+                    <span className={cn('text-xs font-medium', a.text)}>{activePlan.months * 3} GB</span>
+                  </div>
+                  <div className="flex items-center justify-between py-3">
                     <span className={cn('text-xs', t.textMuted)}>Оплата</span>
                     <span className={cn('text-xs', t.textStrong)}>
                       {selectedPayment === 'yukassa' ? 'Карта / СБП' : 'Криптовалюта'}
@@ -1283,6 +1333,14 @@ const OverviewTab = () => {
                 transition={{ duration: 0.25, delay: 0.1 }}
                 whileHover={{ scale: 1.01 }}
                 whileTap={{ scale: 0.98 }}
+                onClick={() => {
+                  handleNewSubPurchase({
+                    planLabel: activePlan.label,
+                    price: `${activePlan.price} ₽`,
+                    bonusGb: activePlan.months * 3,
+                    endDate: formatDate(accessDate),
+                  });
+                }}
                 className={cn(
                   'group flex w-full items-center justify-between rounded-2xl border px-5 py-4 transition-all duration-300',
                   a.border, a.bgSoft, 'hover:shadow-lg'
@@ -1308,6 +1366,197 @@ const OverviewTab = () => {
             </motion.div>
           ) : null}
         </AnimatePresence>
+
+        {/* ── New Subscription Payment Modal ── */}
+        {createPortal(
+          <AnimatePresence>
+            {newSubModalOpen && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+              >
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.92, y: 16 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.92, y: 16 }}
+                  transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className={cn('mx-4 w-full max-w-md overflow-hidden rounded-2xl border shadow-2xl', t.cardSolid, t.border)}
+                >
+                  {/* Modal header */}
+                  <div className={cn('flex items-center gap-3 border-b px-6 py-4', t.border)}>
+                    <RocketLaunch weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                    <div>
+                      <h3 className={cn('text-sm font-medium', t.textStrong)}>Оформление подписки</h3>
+                      <p className={cn('text-xs', t.textMuted)}>Оплата и активация доступа</p>
+                    </div>
+                  </div>
+
+                  {/* Modal body */}
+                  <div className="px-6 py-5">
+                    <AnimatePresence mode="wait">
+                      {/* ── Processing ── */}
+                      {newSubActivating && !newSubActivationDone && (
+                        <motion.div
+                          key="newsub-progress"
+                          initial={{ opacity: 0, y: 8 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -8 }}
+                          className="space-y-5 py-4"
+                        >
+                          <div className="flex justify-center">
+                            <motion.div
+                              animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
+                              transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                              className={cn('flex h-16 w-16 items-center justify-center rounded-full', a.bgSoft)}
+                            >
+                              <Parachute weight="fill" className={cn('h-8 w-8', a.text)} />
+                            </motion.div>
+                          </div>
+
+                          <div className="space-y-3">
+                            {NEW_SUB_PAYMENT_STEPS.map((step, i) => {
+                              const isActive = i === newSubActivationStep;
+                              const isDone = i < newSubActivationStep;
+                              return (
+                                <motion.div
+                                  key={step.label}
+                                  initial={{ opacity: 0, x: -12 }}
+                                  animate={{ opacity: isDone || isActive ? 1 : 0.3, x: 0 }}
+                                  transition={{ delay: i * 0.1, duration: 0.3 }}
+                                  className="flex items-center gap-3"
+                                >
+                                  <div className={cn(
+                                    'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-300',
+                                    isDone || isActive ? a.bgSoft : theme === 'dark' ? 'bg-white/[0.04]' : 'bg-black/[0.04]'
+                                  )}>
+                                    {isDone ? (
+                                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.4 }}>
+                                        <CheckCircle weight="fill" className={cn('h-4 w-4', a.text)} />
+                                      </motion.div>
+                                    ) : (
+                                      <step.icon weight={ICON_WEIGHT} className={cn('h-4 w-4', isActive ? a.text : t.textSubtle)} />
+                                    )}
+                                  </div>
+                                  <span className={cn(
+                                    'text-sm transition-all duration-300',
+                                    isDone ? cn('font-medium', a.text) : isActive ? cn('font-medium', t.textStrong) : t.textSubtle
+                                  )}>
+                                    {step.label}
+                                  </span>
+                                  {isActive && (
+                                    <motion.div
+                                      animate={{ rotate: 360 }}
+                                      transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                      className={cn('ml-auto h-4 w-4 rounded-full border-2 border-t-transparent', a.border)}
+                                    />
+                                  )}
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+
+                          <div className={cn('h-1 w-full overflow-hidden rounded-full', theme === 'dark' ? 'bg-white/[0.06]' : 'bg-black/[0.05]')}>
+                            <motion.div
+                              initial={{ width: '0%' }}
+                              animate={{ width: `${((newSubActivationStep + 1) / NEW_SUB_PAYMENT_STEPS.length) * 100}%` }}
+                              transition={{ duration: 0.4, ease: 'easeOut' }}
+                              className={cn('h-full rounded-full', a.color)}
+                            />
+                          </div>
+                        </motion.div>
+                      )}
+
+                      {/* ── Success ── */}
+                      {newSubActivationDone && newSubResultData && (
+                        <motion.div
+                          key="newsub-done"
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ type: 'spring', bounce: 0.3 }}
+                          className="space-y-5 py-4"
+                        >
+                          {/* Success icon + confetti */}
+                          <div className="relative flex justify-center">
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: 'spring', bounce: 0.4, delay: 0.1 }}
+                            >
+                              <SealCheck weight="fill" className={cn('h-16 w-16', a.text)} />
+                            </motion.div>
+                            {Array.from({ length: 12 }).map((_, i) => (
+                              <motion.div
+                                key={i}
+                                initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
+                                animate={{
+                                  opacity: [0, 1, 0],
+                                  scale: [0, 1, 0.5],
+                                  x: Math.cos((i * Math.PI) / 6) * 70,
+                                  y: Math.sin((i * Math.PI) / 6) * 70,
+                                }}
+                                transition={{ duration: 0.9, delay: 0.2 + i * 0.04 }}
+                                className={cn('absolute h-2 w-2 rounded-full', i % 3 === 0 ? a.color : i % 3 === 1 ? (theme === 'dark' ? 'bg-white/40' : 'bg-black/20') : 'bg-amber-400/60')}
+                              />
+                            ))}
+                          </div>
+
+                          <div className="text-center">
+                            <h3 className={cn('text-lg font-medium', t.textStrong)}>Подписка оформлена!</h3>
+                            <p className={cn('mt-1 text-xs', t.textMuted)}>Оплата прошла успешно</p>
+                          </div>
+
+                          {/* Details card */}
+                          <div className={cn('space-y-3 rounded-xl border p-4', t.border, theme === 'dark' ? 'bg-white/[0.02]' : 'bg-black/[0.02]')}>
+                            <div className="flex items-center justify-between">
+                              <span className={cn('text-xs', t.textMuted)}>Тариф</span>
+                              <span className={cn('text-sm font-medium', t.textStrong)}>{newSubResultData.planLabel}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className={cn('text-xs', t.textMuted)}>Оплачено</span>
+                              <span className={cn('text-sm font-medium', a.text)}>{newSubResultData.price}</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className={cn('text-xs', t.textMuted)}>Активна до</span>
+                              <span className={cn('text-sm font-medium', a.text)}>{newSubResultData.endDate}</span>
+                            </div>
+                            {newSubResultData.bonusGb > 0 && (
+                              <div className="flex items-center justify-between">
+                                <span className={cn('text-xs', t.textMuted)}>Белые списки</span>
+                                <span className={cn('text-sm font-medium', a.text)}>+ {newSubResultData.bonusGb} GB</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Next step prompt */}
+                          <div className={cn('flex items-start gap-3 rounded-xl border p-4', a.border, a.bgSoft)}>
+                            <Info weight={ICON_WEIGHT} className={cn('mt-0.5 h-4 w-4 shrink-0', a.text)} />
+                            <p className={cn('text-xs leading-relaxed', t.text)}>
+                              Вы просто великолепны, но это ещё не финал. Осталось зайти в настройки, выбрать устройство и подключиться. Минута — и весь интернет ваш.
+                            </p>
+                          </div>
+
+                          <motion.button
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => { setNewSubModalOpen(false); navigateTab('billing'); }}
+                            className={cn('flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3.5 text-sm font-medium transition-all', a.button)}
+                          >
+                            <Compass weight={ICON_WEIGHT} className="h-4 w-4" />
+                            Перейти к настройке VPN
+                          </motion.button>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body
+        )}
       </motion.div>
     );
   }
@@ -1321,7 +1570,75 @@ const OverviewTab = () => {
   const buyGbRef = useRef<HTMLDivElement>(null);
   const gbPaymentRef = useRef<HTMLDivElement>(null);
   const gbReceiptRef = useRef<HTMLDivElement>(null);
+  const renewRef = useRef<HTMLDivElement>(null);
+  const renewPlanRef = useRef<HTMLDivElement>(null);
+  const renewPaymentRef = useRef<HTMLDivElement>(null);
+  const renewReceiptRef = useRef<HTMLDivElement>(null);
+  const [renewMode, setRenewMode] = useState<'renew' | 'new' | null>(null);
+  const [renewPlan, setRenewPlan] = useState<string | null>(null);
+  const [renewPayment, setRenewPayment] = useState<PaymentMethod | null>(null);
+  const [showRenewBlock, setShowRenewBlock] = useState(false);
+  const [showGbBlock, setShowGbBlock] = useState(false);
+  const scrollToRenew = useRef(false);
+  const scrollToGb = useRef(false);
   const { addToast } = useNotifications();
+
+  /* Renewal payment modal animation */
+  const [renewModalOpen, setRenewModalOpen] = useState(false);
+  const [renewActivating, setRenewActivating] = useState(false);
+  const [renewActivationStep, setRenewActivationStep] = useState(0);
+  const [renewActivationDone, setRenewActivationDone] = useState(false);
+  const [renewResultData, setRenewResultData] = useState<{ planLabel: string; price: string; bonusGb: number; startDate: string; endDate: string; txId: string; isRenew: boolean } | null>(null);
+
+  const handleRenewPurchase = (data: { planLabel: string; price: string; bonusGb: number; startDate: string; endDate: string; txId: string; isRenew: boolean }) => {
+    setRenewResultData(data);
+    setRenewModalOpen(true);
+    setRenewActivating(true);
+    setRenewActivationStep(0);
+    setRenewActivationDone(false);
+
+    const steps = data.isRenew ? RENEW_PAYMENT_STEPS : NEW_SUB_PAYMENT_STEPS;
+    let stepIdx = 0;
+    const runStep = () => {
+      if (stepIdx >= steps.length) {
+        setRenewActivationDone(true);
+        return;
+      }
+      setRenewActivationStep(stepIdx);
+      setTimeout(() => { stepIdx++; runStep(); }, steps[stepIdx].duration);
+    };
+    runStep();
+  };
+
+  const handleRenewModalClose = () => {
+    setRenewModalOpen(false);
+    setRenewActivating(false);
+    setRenewActivationStep(0);
+    setRenewActivationDone(false);
+    setRenewResultData(null);
+    setRenewMode(null);
+    setRenewPlan(null);
+    setRenewPayment(null);
+    setShowRenewBlock(false);
+  };
+
+  useEffect(() => {
+    if (showRenewBlock && scrollToRenew.current) {
+      scrollToRenew.current = false;
+      setTimeout(() => {
+        renewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 450);
+    }
+  }, [showRenewBlock]);
+
+  useEffect(() => {
+    if (showGbBlock && scrollToGb.current) {
+      scrollToGb.current = false;
+      setTimeout(() => {
+        buyGbRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 450);
+    }
+  }, [showGbBlock]);
 
   const USER_SUBS = [
     { id: 'main', label: 'Основная', plan: 'Pro', daysLeft: 243, startDate: '22.06.2025', endDate: '18.02.2026', price: '249 ₽', period: '3 мес', devices: 5, usedDevices: 3 },
@@ -1424,13 +1741,20 @@ const OverviewTab = () => {
                 whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                onClick={() => {
+                  const next = !showRenewBlock;
+                  if (next) scrollToRenew.current = true;
+                  setShowRenewBlock(next);
+                }}
                 className={cn(
                   'group flex w-full items-center justify-between rounded-xl px-5 py-3.5 text-sm font-semibold transition-shadow duration-300',
                   a.button
                 )}
               >
                 Продлить подписку
-                <CaretRight weight="bold" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                <motion.div animate={{ rotate: showRenewBlock ? 90 : 0 }} transition={{ duration: 0.25 }}>
+                  <CaretRight weight="bold" className="h-4 w-4" />
+                </motion.div>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02, y: -1 }}
@@ -1533,7 +1857,11 @@ const OverviewTab = () => {
                 whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.97 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                onClick={() => buyGbRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                onClick={() => {
+                  const next = !showGbBlock;
+                  if (next) scrollToGb.current = true;
+                  setShowGbBlock(next);
+                }}
                 className={cn(
                   'group flex w-full items-center justify-between rounded-xl px-5 py-3.5 text-sm font-semibold transition-shadow duration-300',
                   a.button
@@ -1543,7 +1871,9 @@ const OverviewTab = () => {
                   <ShoppingCartSimple weight={ICON_WEIGHT} className="h-4 w-4 transition-transform duration-300 group-hover:scale-110" />
                   Купить гигабайты
                 </div>
-                <CaretRight weight="bold" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />
+                <motion.div animate={{ rotate: showGbBlock ? 90 : 0 }} transition={{ duration: 0.25 }}>
+                  <CaretRight weight="bold" className="h-4 w-4" />
+                </motion.div>
               </motion.button>
               <motion.button
                 whileHover={{ scale: 1.02, y: -1 }}
@@ -1568,7 +1898,17 @@ const OverviewTab = () => {
       <DevicesCard />
 
       {/* ── Buy GB — full purchase flow ── */}
-      <div ref={buyGbRef} className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
+      <div ref={buyGbRef}>
+      <AnimatePresence>
+        {showGbBlock ? (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden"
+          >
+      <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
         <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
         <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
 
@@ -1977,6 +2317,643 @@ const OverviewTab = () => {
           </AnimatePresence>
         </div>
       </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+      </div>
+
+      {/* ── Renew / New subscription flow ── */}
+      <div ref={renewRef}>
+      <AnimatePresence>
+        {showRenewBlock ? (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+            className="overflow-hidden"
+          >
+      <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
+        <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
+        <div className={cn('pointer-events-none absolute -left-20 bottom-0 h-60 w-60 rounded-full opacity-10 blur-[100px]', a.blur1)} />
+
+        <div className="relative z-10 p-6 space-y-6">
+          {/* Header — floating */}
+          <div>
+            <div className={cn('mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>
+              <Crown weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+              Что дальше?
+            </div>
+            <p className={cn('text-sm leading-relaxed', t.text)}>
+              У вас активная подписка — и это прекрасно. Но всё хорошее можно сделать ещё лучше.
+              Выберите один из двух путей:
+            </p>
+          </div>
+
+          {/* Two options — floating descriptions */}
+          <div className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className={cn('mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg', a.bgSoft)}>
+                <Spiral weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5', a.text)} />
+              </div>
+              <div>
+                <div className={cn('text-sm font-medium', t.textStrong)}>Продлить текущую подписку</div>
+                <p className={cn('mt-1 text-xs leading-relaxed', t.textMuted)}>
+                  Самый удобный вариант — особенно если делаете это заранее.
+                  Дата окончания сдвинется вперёд, гигабайты на белые списки начислятся автоматически,
+                  а все ваши конфиги и устройства останутся на месте.
+                  Скорее всего вам даже не придётся ничего менять в приложении — просто продолжайте пользоваться.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <div className={cn('mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg', a.bgSoft)}>
+                <Meteor weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5', a.text)} />
+              </div>
+              <div>
+                <div className={cn('text-sm font-medium', t.textStrong)}>Создать новую подписку</div>
+                <p className={cn('mt-1 text-xs leading-relaxed', t.textMuted)}>
+                  Нужно подключить ещё одно устройство? Хотите сделать VPN в подарок другу, коту или бабушке?
+                  Этот вариант для вас. Создавайте столько подписок, сколько захотите — ограничений нет,
+                  есть только ваши желания и возможности (ну и немного рублей).
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Mode selector */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {[
+              { mode: 'renew' as const, icon: Spiral, title: 'Продлить текущую', desc: 'Все данные сохранятся' },
+              { mode: 'new' as const, icon: Meteor, title: 'Создать новую', desc: 'Отдельная подписка' },
+            ].map((opt) => (
+              <motion.button
+                key={opt.mode}
+                whileHover={{ scale: 1.01 }}
+                whileTap={{ scale: 0.99 }}
+                onClick={() => {
+                  setRenewMode(opt.mode);
+                  setRenewPlan(null);
+                  setRenewPayment(null);
+                  setTimeout(() => renewPlanRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                }}
+                className={cn(
+                  'group relative flex items-center gap-4 overflow-hidden rounded-xl border p-4 text-left transition-all duration-300',
+                  renewMode === opt.mode
+                    ? cn(t.cardSolid, a.border)
+                    : cn(t.card, t.border, t.borderHover)
+                )}
+              >
+                <div className={cn(
+                  'pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-transparent transition-opacity duration-500',
+                  a.glowCard,
+                  renewMode === opt.mode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                )} />
+                <div className="relative z-10 flex w-full items-center gap-3">
+                  <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', a.bgSoft)}>
+                    <opt.icon weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
+                  </div>
+                  <div className="flex-1">
+                    <div className={cn('text-sm font-medium', t.textStrong)}>{opt.title}</div>
+                    <div className={cn('text-[11px]', t.textMuted)}>{opt.desc}</div>
+                  </div>
+                  {renewMode === opt.mode ? (
+                    <div className={cn('h-2.5 w-2.5 rounded-full', a.color)} />
+                  ) : null}
+                </div>
+              </motion.button>
+            ))}
+          </div>
+
+          {/* Step 1: Plan selection */}
+          <AnimatePresence>
+            {renewMode ? (
+              <motion.div
+                ref={renewPlanRef}
+                key="renew-plan"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-4"
+              >
+                <h3 className={cn('text-sm font-medium', t.textMuted)}>Шаг 1 — Выберите тариф</h3>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                  {SUB_PLANS.map((plan) => {
+                    const isSelected = renewPlan === plan.id;
+                    const discount = Math.round((1 - plan.price / plan.oldPrice) * 100);
+                    return (
+                      <motion.button
+                        key={plan.id}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => {
+                          setRenewPlan(plan.id);
+                          setRenewPayment(null);
+                          setTimeout(() => renewPaymentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+                        }}
+                        className={cn(
+                          'group relative flex flex-col items-start overflow-hidden rounded-2xl border p-6 text-left transition-all duration-500',
+                          isSelected
+                            ? cn(t.cardSolid, a.border, 'shadow-[0_0_30px_rgba(0,0,0,0.12)]')
+                            : cn(t.card, t.border, t.borderHover)
+                        )}
+                      >
+                        <div className={cn(
+                          'pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-transparent transition-opacity duration-500',
+                          a.glowCard,
+                          isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                        )} />
+                        <div className="relative z-10 flex w-full flex-1 flex-col">
+                          <span className={cn('mb-3 text-sm font-medium', t.textStrong)}>{plan.label}</span>
+                          <span className={cn('text-xs line-through', t.textSubtle)}>{plan.oldPrice}₽</span>
+                          <span className={cn('text-3xl font-light tracking-tight', t.textStrong)}>{plan.price}₽</span>
+                          <span className={cn('mt-1 text-xs', t.textMuted)}>{plan.perMonth}₽ / мес</span>
+                          <div className={cn('mt-3 w-fit rounded-full border px-2 py-0.5 text-[10px] font-medium', a.bgSoft, a.text, a.border)}>
+                            −{discount}%
+                          </div>
+                        </div>
+                        {plan.badge === 'optimal' ? (
+                          <span className={cn('absolute bottom-2.5 right-2.5 rounded-full px-2 py-0.5 text-[9px] font-medium', a.bgSoft, a.text)}>
+                            Оптимальный
+                          </span>
+                        ) : plan.badge === 'best' ? (
+                          <span className="absolute bottom-2.5 right-2.5 rounded-full bg-amber-500/15 px-2 py-0.5 text-[9px] font-medium text-amber-500">
+                            Лучшее предложение
+                          </span>
+                        ) : null}
+                        <AnimatePresence>
+                          {isSelected ? (
+                            <motion.div
+                              initial={{ scale: 0, opacity: 0 }}
+                              animate={{ scale: 1, opacity: 1 }}
+                              exit={{ scale: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className={cn('absolute right-3 top-3 h-2.5 w-2.5 rounded-full', a.color)}
+                            />
+                          ) : null}
+                        </AnimatePresence>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          {/* Step 2: Payment method */}
+          <AnimatePresence>
+            {renewPlan ? (
+              <motion.div
+                ref={renewPaymentRef}
+                key="renew-payment"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 16 }}
+                transition={{ duration: 0.4 }}
+                className="space-y-4"
+              >
+                <h3 className={cn('text-sm font-medium', t.textMuted)}>Шаг 2 — Способ оплаты</h3>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => { setRenewPayment('yukassa'); setTimeout(() => renewReceiptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }}
+                    className={cn(
+                      'group relative flex items-center gap-4 overflow-hidden rounded-xl border p-4 text-left transition-all duration-300',
+                      renewPayment === 'yukassa'
+                        ? cn(t.cardSolid, a.border)
+                        : cn(t.card, t.border, t.borderHover)
+                    )}
+                  >
+                    <div className={cn(
+                      'pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-transparent transition-opacity duration-500',
+                      a.glowCard,
+                      renewPayment === 'yukassa' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    )} />
+                    <div className="relative z-10 flex w-full items-center gap-3">
+                      <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', a.bgSoft)}>
+                        <CreditCard weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
+                      </div>
+                      <div className="flex-1">
+                        <div className={cn('text-sm font-medium', t.textStrong)}>ЮKassa</div>
+                        <div className={cn('text-[11px]', t.textMuted)}>Карта, СБП, кошельки</div>
+                      </div>
+                      {renewPayment === 'yukassa' ? (
+                        <div className={cn('h-2.5 w-2.5 rounded-full', a.color)} />
+                      ) : null}
+                    </div>
+                  </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.99 }}
+                    onClick={() => { setRenewPayment('cryptobot'); setTimeout(() => renewReceiptRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100); }}
+                    className={cn(
+                      'group relative flex items-center gap-4 overflow-hidden rounded-xl border p-4 text-left transition-all duration-300',
+                      renewPayment === 'cryptobot'
+                        ? cn(t.cardSolid, a.border)
+                        : cn(t.card, t.border, t.borderHover)
+                    )}
+                  >
+                    <div className={cn(
+                      'pointer-events-none absolute inset-0 bg-gradient-to-br from-transparent to-transparent transition-opacity duration-500',
+                      a.glowCard,
+                      renewPayment === 'cryptobot' ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                    )} />
+                    <div className="relative z-10 flex w-full items-center gap-3">
+                      <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-[10px] font-medium', a.bgSoft, a.text)}>BTC</div>
+                      <div className="flex-1">
+                        <div className={cn('text-sm font-medium', t.textStrong)}>Cryptobot</div>
+                        <div className={cn('text-[11px]', t.textMuted)}>Крипто через Telegram</div>
+                      </div>
+                      {renewPayment === 'cryptobot' ? (
+                        <div className={cn('h-2.5 w-2.5 rounded-full', a.color)} />
+                      ) : null}
+                    </div>
+                  </motion.button>
+                </div>
+              </motion.div>
+            ) : null}
+          </AnimatePresence>
+
+          {/* Step 3: Receipt + Pay */}
+          <AnimatePresence>
+            {renewPayment && renewPlan ? (() => {
+              const rPlan = SUB_PLANS.find((p) => p.id === renewPlan)!;
+              const rBonusGb = rPlan.months * 3;
+              const isRenew = renewMode === 'renew';
+              /* For renew: start from current sub end date; for new: start from today */
+              const rStartDate = isRenew
+                ? (() => { const parts = activeSub.endDate.split('.'); return new Date(+parts[2], +parts[1] - 1, +parts[0]); })()
+                : new Date();
+              const rAccessDate = new Date(rStartDate);
+              rAccessDate.setDate(rAccessDate.getDate() + rPlan.months * 30);
+              const rTxId = 'sub-' + mockTxId.slice(4);
+              const today = new Date();
+              const isExpiringSoon = activeSub.daysLeft <= 30;
+              /* Month names for calendar */
+              const MONTHS_SHORT = ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'];
+              const MONTHS_FULL = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+              const newDays = rPlan.months * 30;
+              return (
+                <motion.div
+                  ref={renewReceiptRef}
+                  key="renew-receipt"
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 16 }}
+                  transition={{ duration: 0.4 }}
+                  className="space-y-4"
+                >
+                  <div className={cn('overflow-hidden rounded-2xl border', t.card, a.border)}>
+                    <div className={cn('flex items-center gap-2.5 border-b px-5 py-4', a.border, a.bgSoft)}>
+                      <div className={cn('flex h-5 w-5 items-center justify-center rounded-full', a.color)}>
+                        <ShieldCheck weight="fill" className="h-3 w-3 text-black" />
+                      </div>
+                      <span className={cn('text-sm font-medium', t.textStrong)}>Счёт сформирован</span>
+                    </div>
+                    <div className={cn('divide-y px-5', t.divide)}>
+                      <div className="flex items-center justify-between py-3">
+                        <span className={cn('text-xs', t.textMuted)}>ID пользователя</span>
+                        <span className={cn('font-mono text-xs', a.text)}>{mockUserId}</span>
+                      </div>
+                      <div className="flex items-start justify-between gap-4 py-3">
+                        <span className={cn('shrink-0 text-xs', t.textMuted)}>Транзакция</span>
+                        <span className={cn('break-all text-right font-mono text-[11px]', a.text)}>{rTxId}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className={cn('text-xs', t.textMuted)}>Тип</span>
+                        <span className={cn('text-xs', t.textStrong)}>{renewMode === 'renew' ? 'Продление подписки' : 'Новая подписка'}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className={cn('text-xs', t.textMuted)}>Тариф</span>
+                        <span className={cn('text-xs', t.textStrong)}>{rPlan.label} ({rPlan.months * 30} дн.)</span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className={cn('text-xs', t.textMuted)}>Сумма оплаты</span>
+                        <span className={cn('text-sm font-medium', a.text)}>{rPlan.price} ₽</span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className={cn('text-xs', t.textMuted)}>В подарок на белые списки</span>
+                        <span className={cn('text-xs font-medium', a.text)}>{rBonusGb} GB</span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className={cn('text-xs', t.textMuted)}>Оплата</span>
+                        <span className={cn('text-xs', t.textStrong)}>
+                          {renewPayment === 'yukassa' ? 'Карта / СБП' : 'Криптовалюта'}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className={cn('text-xs', t.textMuted)}>Начало</span>
+                        <span className={cn('text-xs', t.textStrong)}>{formatDate(isRenew ? rStartDate : today)}</span>
+                      </div>
+                      <div className="flex items-center justify-between py-3">
+                        <span className={cn('text-xs', t.textMuted)}>Доступ до</span>
+                        <span className={cn('text-xs font-semibold', a.text)}>{formatDate(rAccessDate)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <motion.p
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.15 }}
+                    className={cn('text-center text-xs leading-relaxed', t.textMuted)}
+                  >
+                    <RocketLaunch weight="fill" className={cn('mb-0.5 mr-1 inline h-3.5 w-3.5', a.text)} />
+                    Подписка активируется мгновенно. Если что-то пойдёт не&nbsp;так&nbsp;— нажмите «Проверить оплату»
+                  </motion.p>
+
+                  <motion.button
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: 0.1 }}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      handleRenewPurchase({
+                        planLabel: rPlan.label,
+                        price: `${rPlan.price} ₽`,
+                        bonusGb: rBonusGb,
+                        startDate: formatDate(isRenew ? rStartDate : today),
+                        endDate: formatDate(rAccessDate),
+                        txId: rTxId,
+                        isRenew,
+                      });
+                    }}
+                    className={cn(
+                      'group flex w-full items-center justify-between rounded-2xl border px-5 py-4 transition-all duration-300',
+                      a.border, a.bgSoft, 'hover:shadow-lg'
+                    )}
+                  >
+                    <span className={cn('text-sm font-semibold', a.text)}>Перейти к оплате</span>
+                    <CaretRight weight="bold" className={cn('h-4 w-4 transition-transform group-hover:translate-x-0.5', a.text)} />
+                  </motion.button>
+
+                  <motion.button
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: 0.2 }}
+                    whileHover={{ scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={cn(
+                      'w-full rounded-2xl border py-3.5 text-center text-xs font-medium transition-all',
+                      a.buttonOutline
+                    )}
+                  >
+                    Проверить оплату
+                  </motion.button>
+                </motion.div>
+              );
+            })() : null}
+          </AnimatePresence>
+        </div>
+      </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+      </div>
+
+      {/* ── Renewal Payment Modal ── */}
+      {createPortal(
+        <AnimatePresence>
+          {renewModalOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm"
+              onClick={() => { if (renewActivationDone && renewResultData?.isRenew) handleRenewModalClose(); }}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.92, y: 16 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.92, y: 16 }}
+                transition={{ type: 'spring', bounce: 0.2, duration: 0.5 }}
+                onClick={(e) => e.stopPropagation()}
+                className={cn('mx-4 w-full max-w-md overflow-hidden rounded-2xl border shadow-2xl', t.cardSolid, t.border)}
+              >
+                {/* Modal header */}
+                <div className={cn('flex items-center justify-between border-b px-6 py-4', t.border)}>
+                  <div className="flex items-center gap-3">
+                    {renewResultData?.isRenew ? (
+                      <Crown weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                    ) : (
+                      <RocketLaunch weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                    )}
+                    <div>
+                      <h3 className={cn('text-sm font-medium', t.textStrong)}>
+                        {renewResultData?.isRenew ? 'Продление подписки' : 'Оформление подписки'}
+                      </h3>
+                      <p className={cn('text-xs', t.textMuted)}>
+                        {renewResultData?.isRenew ? 'Оплата и продление доступа' : 'Оплата и активация доступа'}
+                      </p>
+                    </div>
+                  </div>
+                  {renewResultData?.isRenew ? (
+                    <button
+                      onClick={handleRenewModalClose}
+                      className={cn('rounded-lg p-1.5 transition-colors', t.navHover, !renewActivationDone && 'pointer-events-none opacity-0')}
+                    >
+                      <X weight="bold" className={cn('h-4 w-4', t.textMuted)} />
+                    </button>
+                  ) : null}
+                </div>
+
+                {/* Modal body */}
+                <div className="px-6 py-5">
+                  <AnimatePresence mode="wait">
+                    {/* ── Processing ── */}
+                    {renewActivating && !renewActivationDone && (
+                      <motion.div
+                        key="renew-progress"
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -8 }}
+                        className="space-y-5 py-4"
+                      >
+                        <div className="flex justify-center">
+                          <motion.div
+                            animate={{ scale: [1, 1.15, 1], opacity: [0.7, 1, 0.7] }}
+                            transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
+                            className={cn('flex h-16 w-16 items-center justify-center rounded-full', a.bgSoft)}
+                          >
+                            <CreditCard weight="fill" className={cn('h-8 w-8', a.text)} />
+                          </motion.div>
+                        </div>
+
+                        <div className="space-y-3">
+                          {(renewResultData?.isRenew ? RENEW_PAYMENT_STEPS : NEW_SUB_PAYMENT_STEPS).map((step, i) => {
+                            const isActive = i === renewActivationStep;
+                            const isDone = i < renewActivationStep;
+                            return (
+                              <motion.div
+                                key={step.label}
+                                initial={{ opacity: 0, x: -12 }}
+                                animate={{ opacity: isDone || isActive ? 1 : 0.3, x: 0 }}
+                                transition={{ delay: i * 0.1, duration: 0.3 }}
+                                className="flex items-center gap-3"
+                              >
+                                <div className={cn(
+                                  'flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-300',
+                                  isDone || isActive ? a.bgSoft : theme === 'dark' ? 'bg-white/[0.04]' : 'bg-black/[0.04]'
+                                )}>
+                                  {isDone ? (
+                                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', bounce: 0.4 }}>
+                                      <CheckCircle weight="fill" className={cn('h-4 w-4', a.text)} />
+                                    </motion.div>
+                                  ) : (
+                                    <step.icon weight={ICON_WEIGHT} className={cn('h-4 w-4', isActive ? a.text : t.textSubtle)} />
+                                  )}
+                                </div>
+                                <span className={cn(
+                                  'text-sm transition-all duration-300',
+                                  isDone ? cn('font-medium', a.text) : isActive ? cn('font-medium', t.textStrong) : t.textSubtle
+                                )}>
+                                  {step.label}
+                                </span>
+                                {isActive && (
+                                  <motion.div
+                                    animate={{ rotate: 360 }}
+                                    transition={{ duration: 1, repeat: Infinity, ease: 'linear' }}
+                                    className={cn('ml-auto h-4 w-4 rounded-full border-2 border-t-transparent', a.border)}
+                                  />
+                                )}
+                              </motion.div>
+                            );
+                          })}
+                        </div>
+
+                        <div className={cn('h-1 w-full overflow-hidden rounded-full', theme === 'dark' ? 'bg-white/[0.06]' : 'bg-black/[0.05]')}>
+                          <motion.div
+                            initial={{ width: '0%' }}
+                            animate={{ width: `${((renewActivationStep + 1) / (renewResultData?.isRenew ? RENEW_PAYMENT_STEPS : NEW_SUB_PAYMENT_STEPS).length) * 100}%` }}
+                            transition={{ duration: 0.4, ease: 'easeOut' }}
+                            className={cn('h-full rounded-full', a.color)}
+                          />
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {/* ── Success ── */}
+                    {renewActivationDone && renewResultData && (
+                      <motion.div
+                        key="renew-done"
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ type: 'spring', bounce: 0.3 }}
+                        className="space-y-5 py-4"
+                      >
+                        {/* Success icon + confetti */}
+                        <div className="relative flex justify-center">
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: 'spring', bounce: 0.4, delay: 0.1 }}
+                            {... (renewResultData.isRenew ? { className: cn('flex h-20 w-20 items-center justify-center rounded-full', a.bgSoft) } : {})}
+                          >
+                            <SealCheck weight="fill" className={cn(renewResultData.isRenew ? 'h-10 w-10' : 'h-16 w-16', a.text)} />
+                          </motion.div>
+                          {Array.from({ length: renewResultData.isRenew ? 10 : 12 }).map((_, i) => (
+                            <motion.div
+                              key={i}
+                              initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
+                              animate={{
+                                opacity: [0, 1, 0],
+                                scale: [0, 1, 0.5],
+                                x: Math.cos((i * Math.PI) / (renewResultData.isRenew ? 5 : 6)) * (renewResultData.isRenew ? 65 : 70),
+                                y: Math.sin((i * Math.PI) / (renewResultData.isRenew ? 5 : 6)) * (renewResultData.isRenew ? 65 : 70),
+                              }}
+                              transition={{ duration: renewResultData.isRenew ? 0.8 : 0.9, delay: 0.2 + i * 0.04 }}
+                              className={cn('absolute h-2 w-2 rounded-full', i % 3 === 0 ? a.color : i % 3 === 1 ? (theme === 'dark' ? 'bg-white/40' : 'bg-black/20') : 'bg-amber-400/60')}
+                            />
+                          ))}
+                        </div>
+
+                        <div className="text-center">
+                          <h3 className={cn('text-lg font-medium', t.textStrong)}>
+                            {renewResultData.isRenew ? 'Подписка продлена!' : 'Подписка оформлена!'}
+                          </h3>
+                          <p className={cn('mt-1 text-xs', t.textMuted)}>Оплата прошла успешно</p>
+                        </div>
+
+                        {/* Details card */}
+                        <div className={cn('space-y-3 rounded-xl border p-4', t.border, theme === 'dark' ? 'bg-white/[0.02]' : 'bg-black/[0.02]')}>
+                          <div className="flex items-center justify-between">
+                            <span className={cn('text-xs', t.textMuted)}>Тариф</span>
+                            <span className={cn('text-sm font-medium', t.textStrong)}>{renewResultData.planLabel}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className={cn('text-xs', t.textMuted)}>Оплачено</span>
+                            <span className={cn('text-sm font-medium', a.text)}>{renewResultData.price}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className={cn('text-xs', t.textMuted)}>{renewResultData.isRenew ? 'Новая дата окончания' : 'Активна до'}</span>
+                            <span className={cn('text-sm font-medium', a.text)}>{renewResultData.endDate}</span>
+                          </div>
+                          {renewResultData.bonusGb > 0 && (
+                            <div className="flex items-center justify-between">
+                              <span className={cn('text-xs', t.textMuted)}>Белые списки</span>
+                              <span className={cn('text-sm font-medium', a.text)}>+ {renewResultData.bonusGb} GB</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Help / info note */}
+                        {renewResultData.isRenew ? (
+                          <div className={cn('flex items-start gap-3 rounded-xl border p-4', t.border, theme === 'dark' ? 'bg-white/[0.02]' : 'bg-black/[0.02]')}>
+                            <Info weight={ICON_WEIGHT} className={cn('mt-0.5 h-4 w-4 shrink-0', a.text)} />
+                            <p className={cn('text-xs leading-relaxed', t.textMuted)}>
+                              Если после продления что-то не работает — попробуйте переподключить VPN
+                              или повторно настройте подписку в приложении.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className={cn('flex items-start gap-3 rounded-xl border p-4', a.border, a.bgSoft)}>
+                            <Info weight={ICON_WEIGHT} className={cn('mt-0.5 h-4 w-4 shrink-0', a.text)} />
+                            <p className={cn('text-xs leading-relaxed', t.text)}>
+                              Вы просто великолепны, но это ещё не финал. Осталось зайти в настройки, выбрать устройство и подключиться. Минута — и весь интернет ваш.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Actions */}
+                        <div className="space-y-3">
+                          <motion.button
+                            whileHover={{ scale: 1.01 }}
+                            whileTap={{ scale: 0.97 }}
+                            onClick={() => { handleRenewModalClose(); navigateTab('billing'); }}
+                            className={cn('flex w-full items-center justify-center gap-2 rounded-xl px-5 py-3 text-sm font-medium transition-all', a.button)}
+                          >
+                            <Compass weight={ICON_WEIGHT} className="h-4 w-4" />
+                            Перейти к настройке VPN
+                          </motion.button>
+                          {renewResultData.isRenew && (
+                            <motion.button
+                              whileHover={{ scale: 1.01 }}
+                              whileTap={{ scale: 0.97 }}
+                              onClick={handleRenewModalClose}
+                              className={cn(
+                                'w-full rounded-xl border py-3 text-center text-xs font-medium transition-all',
+                                t.border, t.text, t.borderHover
+                              )}
+                            >
+                              Продолжить
+                            </motion.button>
+                          )}
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </motion.div>
   );
 };
@@ -2857,6 +3834,21 @@ const EXTEND_STEPS = [
   { label: 'Готово!', icon: CheckCircle, duration: 600 },
 ];
 
+const RENEW_PAYMENT_STEPS = [
+  { label: 'Обработка платежа', icon: CreditCard, duration: 1200 },
+  { label: 'Проверка оплаты', icon: ShieldCheck, duration: 1000 },
+  { label: 'Обновляем подписку', icon: Spiral, duration: 900 },
+  { label: 'Готово!', icon: CheckCircle, duration: 600 },
+];
+
+const NEW_SUB_PAYMENT_STEPS = [
+  { label: 'Обработка платежа', icon: CreditCard, duration: 1200 },
+  { label: 'Проверка оплаты', icon: ShieldCheck, duration: 1000 },
+  { label: 'Подготовка серверов', icon: Planet, duration: 1100 },
+  { label: 'Создание подписки', icon: SealCheck, duration: 900 },
+  { label: 'Готово!', icon: CheckCircle, duration: 600 },
+];
+
 const BonusTab = () => {
   const { t, a, hasSubscription, theme, navigateTab } = useContext(ThemeContext);
 
@@ -3402,33 +4394,12 @@ const BonusTab = () => {
 
 /* ── Notifications Tab ── */
 const NotificationsTab = () => {
-  const { t, a, theme } = useContext(ThemeContext);
+  const { t, a, theme, navigateTab } = useContext(ThemeContext);
   const { notifications, unreadCount, dismiss, markAllRead, markRead, toggleStar } = useNotifications();
   const isMobile = useIsMobile();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'unread' | 'starred'>('all');
   const [search, setSearch] = useState('');
-  const [showSettings, setShowSettings] = useState(false);
-  const settingsRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!showSettings) return;
-    const handler = (e: MouseEvent) => {
-      if (settingsRef.current && !settingsRef.current.contains(e.target as Node)) setShowSettings(false);
-    };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, [showSettings]);
-
-  /* notification settings */
-  const [tgNotify, setTgNotify] = useState(true);
-  const [emailNotify, setEmailNotify] = useState(false);
-  const [emailAddr, setEmailAddr] = useState('');
-  const [pushNotify, setPushNotify] = useState(true);
-  const [soundNotify, setSoundNotify] = useState(true);
-  const [promoCategory, setPromoCategory] = useState(true);
-  const [infoCategory, setInfoCategory] = useState(true);
-  const [systemCategory, setSystemCategory] = useState(true);
 
   const filteredNotifications = notifications.filter((n) => {
     if (filter === 'unread' && n.read) return false;
@@ -3460,23 +4431,6 @@ const NotificationsTab = () => {
     system: 'Система',
   };
 
-  const ToggleSwitch = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
-    <button
-      onClick={() => onChange(!checked)}
-      className={cn(
-        'relative h-5 w-9 shrink-0 rounded-full transition-colors duration-300',
-        checked ? a.color : theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
-      )}
-    >
-      <div
-        className={cn(
-          'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-300',
-          checked ? 'translate-x-4' : 'translate-x-0.5'
-        )}
-      />
-    </button>
-  );
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
@@ -3486,185 +4440,6 @@ const NotificationsTab = () => {
     >
       {/* ── Main Inbox ── */}
       <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
-        {/* Settings overlay */}
-        <AnimatePresence>
-          {showSettings && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 z-30 bg-black/40 backdrop-blur-sm"
-              />
-              {/* Panel */}
-              <motion.div
-                ref={settingsRef}
-                initial={{ opacity: 0, y: 24, scale: 0.96 }}
-                animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: 24, scale: 0.96 }}
-                transition={{ type: 'spring', bounce: 0.2, duration: 0.45 }}
-                className={cn(
-                  'absolute inset-x-2 top-14 z-40 max-h-[80vh] overflow-y-auto rounded-2xl border-2 shadow-[0_12px_48px_rgba(0,0,0,0.5)] sm:inset-x-4',
-                  a.border, t.cardSolid, 'backdrop-blur-xl'
-                )}
-              >
-                <div className={cn('pointer-events-none absolute -right-20 -top-20 h-80 w-80 rounded-full opacity-15 blur-[120px]', a.blur1)} />
-
-                <div className={cn('relative z-10 flex items-center justify-between border-b px-6 py-4', t.border)}>
-                  <div className="flex items-center gap-3">
-                    <BellRinging weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
-                    <h3 className={cn('text-sm font-medium', t.textStrong)}>Настройки уведомлений</h3>
-                  </div>
-                  <button
-                    onClick={() => setShowSettings(false)}
-                    className={cn('rounded-full p-1.5 transition-colors', t.textSubtle, t.navHover)}
-                  >
-                    <X weight="bold" className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
-                <div className="relative z-10 p-6">
-                  <div className="grid gap-6 lg:grid-cols-2">
-                    {/* Channels */}
-                    <div>
-                      <div className={cn('mb-4 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Каналы доставки</div>
-                      <div className="space-y-3">
-                        {/* Telegram */}
-                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
-                          <div className="flex items-center gap-3">
-                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', a.bgSoft)}>
-                              <TelegramLogo weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
-                            </div>
-                            <div>
-                              <div className={cn('text-sm font-medium', t.textStrong)}>Telegram</div>
-                              <div className={cn('text-xs', t.textMuted)}>
-                                {tgNotify ? 'Подключён: @vlad_dev' : 'Получайте уведомления в Telegram'}
-                              </div>
-                            </div>
-                          </div>
-                          <ToggleSwitch checked={tgNotify} onChange={setTgNotify} />
-                        </div>
-
-                        {/* Email */}
-                        <div className={cn('rounded-xl border p-4', t.card, t.border)}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', a.bgSoft)}>
-                                <Envelope weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
-                              </div>
-                              <div>
-                                <div className={cn('text-sm font-medium', t.textStrong)}>Email</div>
-                                <div className={cn('text-xs', t.textMuted)}>
-                                  {emailNotify && emailAddr ? `Подключён: ${emailAddr}` : 'Уведомления на почту'}
-                                </div>
-                              </div>
-                            </div>
-                            <ToggleSwitch checked={emailNotify} onChange={setEmailNotify} />
-                          </div>
-                          <AnimatePresence>
-                            {emailNotify && (
-                              <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="overflow-hidden"
-                              >
-                                <div className="mt-3 pl-12">
-                                  <input
-                                    type="email"
-                                    placeholder="name@example.com"
-                                    value={emailAddr}
-                                    onChange={(e) => setEmailAddr(e.target.value)}
-                                    className={cn(
-                                      'w-full rounded-lg border bg-transparent px-3 py-2 text-sm outline-none transition-colors',
-                                      t.border, t.text, 'placeholder:text-zinc-500 focus:ring-1', a.border
-                                    )}
-                                  />
-                                </div>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-
-                        {/* Push */}
-                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
-                          <div className="flex items-center gap-3">
-                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', a.bgSoft)}>
-                              <DeviceMobile weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
-                            </div>
-                            <div>
-                              <div className={cn('text-sm font-medium', t.textStrong)}>Push-уведомления</div>
-                              <div className={cn('text-xs', t.textMuted)}>Браузерные и мобильные push</div>
-                            </div>
-                          </div>
-                          <ToggleSwitch checked={pushNotify} onChange={setPushNotify} />
-                        </div>
-
-                        {/* Sound */}
-                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
-                          <div className="flex items-center gap-3">
-                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg', a.bgSoft)}>
-                              <Bell weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
-                            </div>
-                            <div>
-                              <div className={cn('text-sm font-medium', t.textStrong)}>Звуковые уведомления</div>
-                              <div className={cn('text-xs', t.textMuted)}>Звук при получении уведомлений</div>
-                            </div>
-                          </div>
-                          <ToggleSwitch checked={soundNotify} onChange={setSoundNotify} />
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Categories */}
-                    <div>
-                      <div className={cn('mb-4 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Категории уведомлений</div>
-                      <div className="space-y-3">
-                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
-                          <div className="flex items-center gap-3">
-                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/10')}>
-                              <Gift weight={ICON_WEIGHT} className="h-5 w-5 text-amber-500" />
-                            </div>
-                            <div>
-                              <div className={cn('text-sm font-medium', t.textStrong)}>Акции и бонусы</div>
-                              <div className={cn('text-xs', t.textMuted)}>Скидки, промокоды, подарки</div>
-                            </div>
-                          </div>
-                          <ToggleSwitch checked={promoCategory} onChange={setPromoCategory} />
-                        </div>
-                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
-                          <div className="flex items-center gap-3">
-                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10')}>
-                              <Info weight={ICON_WEIGHT} className="h-5 w-5 text-blue-500" />
-                            </div>
-                            <div>
-                              <div className={cn('text-sm font-medium', t.textStrong)}>Информационные</div>
-                              <div className={cn('text-xs', t.textMuted)}>Обновления, новые серверы</div>
-                            </div>
-                          </div>
-                          <ToggleSwitch checked={infoCategory} onChange={setInfoCategory} />
-                        </div>
-                        <div className={cn('flex items-center justify-between rounded-xl border p-4', t.card, t.border)}>
-                          <div className="flex items-center gap-3">
-                            <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg bg-purple-500/10')}>
-                              <Megaphone weight={ICON_WEIGHT} className="h-5 w-5 text-purple-500" />
-                            </div>
-                            <div>
-                              <div className={cn('text-sm font-medium', t.textStrong)}>Системные</div>
-                              <div className={cn('text-xs', t.textMuted)}>Обслуживание, безопасность</div>
-                            </div>
-                          </div>
-                          <ToggleSwitch checked={systemCategory} onChange={setSystemCategory} />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
         {/* Toolbar */}
         <div className={cn('flex flex-wrap items-center justify-between gap-3 border-b py-3', isMobile ? 'px-3' : 'px-5', t.border)}>
           <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none">
@@ -3715,19 +4490,19 @@ const NotificationsTab = () => {
               </button>
             )}
 
-            {/* Settings toggle */}
+            {/* Navigate to notification settings in Preferences */}
             <button
-              onClick={() => setShowSettings(!showSettings)}
+              onClick={() => navigateTab('preferences', 'notifications-section')}
               className={cn(
-                'rounded-lg border p-1.5 transition-all',
-                showSettings ? cn(a.border, a.bgSoft) : cn(t.border, t.card),
-                'hover:opacity-80'
+                'flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all',
+                t.border, t.card, 'hover:opacity-80', t.borderHover
               )}
             >
               <GearSix
-                weight={showSettings ? 'fill' : ICON_WEIGHT}
-                className={cn('h-4 w-4', showSettings ? a.text : t.textMuted)}
+                weight={ICON_WEIGHT}
+                className={cn('h-3.5 w-3.5', t.textMuted)}
               />
+              <span className={cn(t.textMuted, 'hidden sm:inline')}>Настроить</span>
             </button>
           </div>
         </div>
@@ -3913,15 +4688,68 @@ const NotificationsTab = () => {
 
 /* ── Preferences Tab ── */
 const PreferencesTab = () => {
-  const { t, a, theme, accent, setTheme, setAccent } = useContext(ThemeContext);
-  let deviceControl: { override: 'auto' | 'mobile' | 'desktop'; setOverride: (v: 'auto' | 'mobile' | 'desktop') => void } | null = null;
-  try { deviceControl = useDeviceOverride(); } catch { /* outside provider */ }
+  const { t, a, theme } = useContext(ThemeContext);
 
-  const deviceOptions: { key: 'auto' | 'mobile' | 'desktop'; label: string; icon: any }[] = [
-    { key: 'auto', label: 'Авто', icon: Globe },
-    { key: 'mobile', label: 'Мобильный', icon: DeviceMobile },
-    { key: 'desktop', label: 'Десктоп', icon: Desktop },
+  /* ── profile state ── */
+  const [editingField, setEditingField] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState('Влад');
+  const [tempValue, setTempValue] = useState('');
+
+  /* ── telegram data (read-only from linked account) ── */
+  const tgLinked = true;
+  const tgNickname = '@vlad_dev';
+  const tgId = '829104571';
+
+  /* ── email data ── */
+  const [emailLinked, setEmailLinked] = useState(false);
+  const [emailAddr, setEmailAddr] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [showEmailConnect, setShowEmailConnect] = useState(false);
+
+  /* ── notification settings ── */
+  const [tgNotify, setTgNotify] = useState(true);
+  const [emailNotify, setEmailNotify] = useState(false);
+  const [pushNotify, setPushNotify] = useState(true);
+  const [soundNotify, setSoundNotify] = useState(true);
+  const [promoCategory, setPromoCategory] = useState(true);
+  const [infoCategory, setInfoCategory] = useState(true);
+  const [systemCategory, setSystemCategory] = useState(true);
+
+  /* ── security ── */
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showSessions, setShowSessions] = useState(false);
+
+  const sessions = [
+    { id: 1, device: 'MacBook Pro 16"', os: 'macOS Sequoia', browser: 'Safari 18.2', location: 'Москва, Россия', ip: '185.220.xx.xx', current: true, time: 'Сейчас активна' },
+    { id: 2, device: 'iPhone 14 Pro', os: 'iOS 19.1', browser: 'WW.pro App', location: 'Москва, Россия', ip: '185.220.xx.xx', current: false, time: '2 часа назад' },
+    { id: 3, device: 'Windows Desktop', os: 'Windows 11', browser: 'Chrome 124', location: 'Санкт-Петербург, Россия', ip: '91.108.xx.xx', current: false, time: '3 дня назад' },
   ];
+
+  /* ── copy feedback ── */
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const startEdit = (field: string, value: string) => { setEditingField(field); setTempValue(value); };
+  const cancelEdit = () => { setEditingField(null); setTempValue(''); };
+  const saveEdit = (setter: (v: string) => void) => { setter(tempValue); setEditingField(null); setTempValue(''); };
+
+  /* ── inline toggle ── */
+  const Toggle = ({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) => (
+    <button
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative h-5 w-9 shrink-0 rounded-full transition-colors duration-300',
+        checked ? a.color : theme === 'dark' ? 'bg-white/10' : 'bg-black/10'
+      )}
+    >
+      <div className={cn(
+        'absolute top-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-300',
+        checked ? 'translate-x-4' : 'translate-x-0.5'
+      )} />
+    </button>
+  );
 
   return (
     <motion.div
@@ -3929,92 +4757,912 @@ const PreferencesTab = () => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="space-y-6"
+      className="space-y-8"
     >
-      {/* Theme & Accent */}
-      <GlowCard>
-        <div className="p-6">
-          <div className={cn('mb-5 flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
-            <GearSix weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
-            <span>Внешний вид</span>
-          </div>
-
-          {/* Theme */}
-          <div className="mb-5">
-            <div className={cn('mb-2 text-sm font-medium', t.textStrong)}>Тема</div>
-            <div className="flex gap-2">
-              {([{ key: 'dark', label: 'Тёмная', icon: Moon }, { key: 'milky', label: 'Светлая', icon: Sun }] as const).map((item) => (
-                <button
-                  key={item.key}
-                  onClick={() => setTheme(item.key)}
-                  className={cn(
-                    'flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all min-h-[44px]',
-                    theme === item.key ? cn(a.bgSoft, a.text, a.border) : cn(t.card, t.border, t.textMuted, t.borderHover)
-                  )}
-                >
-                  <item.icon weight={theme === item.key ? 'fill' : ICON_WEIGHT} className="h-4 w-4" />
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Accent */}
-          <div>
-            <div className={cn('mb-2 text-sm font-medium', t.textStrong)}>Акцентный цвет</div>
-            <div className="flex gap-2">
-              {(Object.keys(ACCENTS) as AccentType[]).map((key) => (
-                <button
-                  key={key}
-                  onClick={() => setAccent(key)}
-                  className={cn(
-                    'flex h-10 w-10 items-center justify-center rounded-xl border transition-all',
-                    accent === key ? cn(a.border, 'ring-2 ring-offset-2', theme === 'dark' ? 'ring-offset-[#0a0a0a]' : 'ring-offset-white') : cn(t.border, t.borderHover),
-                  )}
-                >
-                  <div className={cn('h-5 w-5 rounded-full', ACCENTS[key].color)} />
-                </button>
-              ))}
-            </div>
-          </div>
+      {/* ═══════════ PROFILE ═══════════ */}
+      <section>
+        <div className={cn('mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
+          <User weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+          <span>Профиль</span>
         </div>
-      </GlowCard>
 
-      {/* Device Preview */}
-      {deviceControl ? (
         <GlowCard>
           <div className="p-6">
-            <div className={cn('mb-5 flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
-              <Binoculars weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
-              <span>Режим просмотра</span>
+            {/* Avatar row */}
+            <div className="flex items-center gap-4 mb-6">
+              <div className={cn('flex h-14 w-14 shrink-0 items-center justify-center rounded-full', a.bgSoft)}>
+                <User weight={ICON_WEIGHT} className={cn('h-6 w-6', a.text)} />
+              </div>
+              <div className="min-w-0">
+                <div className={cn('text-lg font-medium leading-tight', t.textStrong)}>{displayName}</div>
+                <div className={cn('text-xs mt-0.5', t.textMuted)}>Так к вам будет обращаться служба поддержки</div>
+              </div>
             </div>
-            <div className={cn('mb-2 text-sm font-medium', t.textStrong)}>Переключатель устройства</div>
-            <p className={cn('mb-4 text-xs leading-relaxed', t.textMuted)}>
-              Позволяет протестировать интерфейс в мобильном или десктопном режиме вне зависимости от размера экрана.
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {deviceOptions.map((opt) => (
-                <button
-                  key={opt.key}
-                  onClick={() => deviceControl!.setOverride(opt.key)}
-                  className={cn(
-                    'flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-medium transition-all min-h-[44px]',
-                    deviceControl!.override === opt.key
-                      ? cn(a.bgSoft, a.text, a.border)
-                      : cn(t.card, t.border, t.textMuted, t.borderHover)
+
+            {/* profile fields */}
+            <div className={cn('divide-y', t.divide)}>
+              {/* Display name */}
+              <div className="py-3.5 first:pt-0">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="min-w-0 flex-1">
+                    <div className={cn('text-xs mb-0.5', t.textMuted)}>Отображаемое имя</div>
+                    {editingField === 'name' ? (
+                      <div className="flex items-center gap-2 mt-1">
+                        <input
+                          value={tempValue}
+                          onChange={(e) => setTempValue(e.target.value)}
+                          autoFocus
+                          className={cn(
+                            'flex-1 rounded-xl border bg-transparent px-3 py-1.5 text-sm outline-none transition-colors',
+                            t.border, t.textStrong
+                          )}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') saveEdit(setDisplayName);
+                            if (e.key === 'Escape') cancelEdit();
+                          }}
+                        />
+                        <button onClick={() => saveEdit(setDisplayName)} className={cn('rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors', a.bgSoft, a.text)}>Ок</button>
+                        <button onClick={cancelEdit} className={cn('rounded-lg px-2.5 py-1.5 text-xs transition-colors', t.textMuted, t.cardHover)}>Отмена</button>
+                      </div>
+                    ) : (
+                      <div className={cn('text-sm font-medium', t.textStrong)}>{displayName}</div>
+                    )}
+                  </div>
+                  {editingField !== 'name' && (
+                    <button onClick={() => startEdit('name', displayName)} className={cn('rounded-lg p-1.5 transition-colors', t.cardHover)}>
+                      <PencilSimple weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5', t.textSubtle)} />
+                    </button>
                   )}
-                >
-                  <opt.icon weight={deviceControl!.override === opt.key ? 'fill' : ICON_WEIGHT} className="h-4 w-4" />
-                  {opt.label}
-                </button>
-              ))}
+                </div>
+              </div>
+
+              {/* Telegram info */}
+              {tgLinked && (
+                <>
+                  <div className="py-3.5">
+                    <div className={cn('text-xs mb-0.5', t.textMuted)}>Telegram никнейм</div>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(tgNickname); setCopiedField('tg-nick'); setTimeout(() => setCopiedField(null), 1500); }}
+                      className={cn('group flex items-center gap-2 rounded-lg -mx-1.5 px-1.5 py-0.5 transition-colors', t.cardHover)}
+                    >
+                      <TelegramLogo weight="fill" className="h-3.5 w-3.5 text-[#2AABEE]" />
+                      <span className={cn('text-sm font-medium', t.textStrong)}>{tgNickname}</span>
+                      {copiedField === 'tg-nick'
+                        ? <CheckCircle weight="fill" className="h-3.5 w-3.5 text-emerald-400" />
+                        : <Copy weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100', t.textSubtle)} />}
+                    </button>
+                  </div>
+                  <div className="py-3.5">
+                    <div className={cn('text-xs mb-0.5', t.textMuted)}>Telegram ID</div>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(tgId); setCopiedField('tg-id'); setTimeout(() => setCopiedField(null), 1500); }}
+                      className={cn('group flex items-center gap-2 rounded-lg -mx-1.5 px-1.5 py-0.5 transition-colors', t.cardHover)}
+                    >
+                      <TelegramLogo weight="fill" className="h-3.5 w-3.5 text-[#2AABEE]" />
+                      <span className={cn('font-mono text-sm', t.textStrong)}>{tgId}</span>
+                      {copiedField === 'tg-id'
+                        ? <CheckCircle weight="fill" className="h-3.5 w-3.5 text-emerald-400" />
+                        : <Copy weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-100', t.textSubtle)} />}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Email */}
+              <div className="py-3.5">
+                <div className={cn('text-xs mb-0.5', t.textMuted)}>Электронная почта</div>
+                {emailLinked ? (
+                  <div className={cn('text-sm font-medium', t.textStrong)}>{emailAddr}</div>
+                ) : (
+                  <div className={cn('text-sm', t.textSubtle)}>Не указана</div>
+                )}
+              </div>
+
+              {/* Member since */}
+              <div className="py-3.5 last:pb-0">
+                <div className={cn('text-xs mb-0.5', t.textMuted)}>Дата регистрации</div>
+                <span className={cn('text-sm', t.textStrong)}>14 марта 2026</span>
+              </div>
             </div>
           </div>
         </GlowCard>
-      ) : null}
+      </section>
+
+      {/* ═══════════ CONNECTED ACCOUNTS ═══════════ */}
+      <section>
+        <div className={cn('mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
+          <Plugs weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+          <span>Привязанные аккаунты</span>
+        </div>
+
+        <div className="space-y-3">
+          {/* Telegram */}
+          <GlowCard>
+            <div className="p-5">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2AABEE]/10">
+                  <TelegramLogo weight="fill" className="h-5 w-5 text-[#2AABEE]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={cn('text-sm font-medium', t.textStrong)}>Telegram</span>
+                    {tgLinked && (
+                      <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', a.bgSoft, a.text)}>
+                        Подключено
+                      </span>
+                    )}
+                  </div>
+                  {tgLinked ? (
+                    <div className={cn('text-xs mt-0.5', t.textMuted)}>{tgNickname} · ID {tgId}</div>
+                  ) : (
+                    <div className={cn('text-xs mt-0.5', t.textSubtle)}>Привяжите для быстрого входа и уведомлений</div>
+                  )}
+                </div>
+                {tgLinked ? (
+                  <button className={cn('rounded-xl px-3 py-1.5 text-xs font-medium transition-colors', t.textMuted, t.cardHover)}>
+                    Отвязать
+                  </button>
+                ) : (
+                  <button className={cn('rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors', a.bgSoft, a.text, a.border)}>
+                    Привязать
+                  </button>
+                )}
+              </div>
+            </div>
+          </GlowCard>
+
+          {/* Email */}
+          <GlowCard>
+            <div className="p-5">
+              <div className="flex items-center gap-3">
+                <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full', emailLinked ? a.bgSoft : (theme === 'dark' ? 'bg-white/[0.04]' : 'bg-black/[0.04]'))}>
+                  <Envelope weight={emailLinked ? 'fill' : ICON_WEIGHT} className={cn('h-5 w-5', emailLinked ? a.text : t.textSubtle)} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className={cn('text-sm font-medium', t.textStrong)}>Электронная почта</span>
+                    {emailLinked && (
+                      <span className={cn('rounded-full px-2 py-0.5 text-[10px] font-medium', a.bgSoft, a.text)}>
+                        Подключено
+                      </span>
+                    )}
+                  </div>
+                  {emailLinked ? (
+                    <div className={cn('text-xs mt-0.5', t.textMuted)}>{emailAddr}</div>
+                  ) : (
+                    <div className={cn('text-xs mt-0.5', t.textSubtle)}>Для восстановления доступа и уведомлений</div>
+                  )}
+                </div>
+                {emailLinked ? (
+                  <button onClick={() => { setEmailLinked(false); setEmailAddr(''); }} className={cn('rounded-xl px-3 py-1.5 text-xs font-medium transition-colors', t.textMuted, t.cardHover)}>
+                    Отвязать
+                  </button>
+                ) : (
+                  <button onClick={() => setShowEmailConnect(!showEmailConnect)} className={cn('rounded-xl border px-3 py-1.5 text-xs font-medium transition-colors', a.bgSoft, a.text, a.border)}>
+                    Привязать
+                  </button>
+                )}
+              </div>
+
+              {/* Email connect form */}
+              <AnimatePresence>
+                {showEmailConnect && !emailLinked && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className={cn('mt-4 flex items-center gap-2 border-t pt-4', t.border)}>
+                      <input
+                        type="email"
+                        placeholder="name@example.com"
+                        value={emailInput}
+                        onChange={(e) => setEmailInput(e.target.value)}
+                        autoFocus
+                        className={cn(
+                          'flex-1 rounded-xl border bg-transparent px-3 py-2 text-sm outline-none transition-colors',
+                          t.border, t.textStrong, 'placeholder:' + t.textSubtle
+                        )}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && emailInput.includes('@')) {
+                            setEmailAddr(emailInput);
+                            setEmailLinked(true);
+                            setShowEmailConnect(false);
+                            setEmailInput('');
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={() => {
+                          if (emailInput.includes('@')) {
+                            setEmailAddr(emailInput);
+                            setEmailLinked(true);
+                            setShowEmailConnect(false);
+                            setEmailInput('');
+                          }
+                        }}
+                        className={cn('rounded-xl px-3.5 py-2 text-xs font-medium transition-colors', a.button)}
+                      >
+                        Подтвердить
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </GlowCard>
+        </div>
+      </section>
+
+      {/* ═══════════ NOTIFICATIONS ═══════════ */}
+      <section id="notifications-section">
+        <div className={cn('mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
+          <Bell weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+          <span>Уведомления</span>
+        </div>
+
+        <GlowCard>
+          <div className="p-6">
+            {/* Channels */}
+            <div className={cn('mb-2 text-xs font-medium', t.textMuted)}>Каналы доставки</div>
+            <div className={cn('divide-y mb-6', t.divide)}>
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <TelegramLogo weight={ICON_WEIGHT} className={cn('h-4 w-4', tgNotify ? 'text-[#2AABEE]' : t.textSubtle)} />
+                  <div>
+                    <div className={cn('text-sm', t.textStrong)}>Telegram</div>
+                    <div className={cn('text-xs', t.textMuted)}>{tgNotify ? 'Уведомления через бота' : 'Отключены'}</div>
+                  </div>
+                </div>
+                <Toggle checked={tgNotify} onChange={setTgNotify} />
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <Envelope weight={ICON_WEIGHT} className={cn('h-4 w-4', emailNotify ? a.text : t.textSubtle)} />
+                  <div>
+                    <div className={cn('text-sm', t.textStrong)}>Email</div>
+                    <div className={cn('text-xs', t.textMuted)}>{emailNotify ? (emailAddr || 'Укажите почту выше') : 'Отключены'}</div>
+                  </div>
+                </div>
+                <Toggle checked={emailNotify} onChange={setEmailNotify} />
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <DeviceMobile weight={ICON_WEIGHT} className={cn('h-4 w-4', pushNotify ? a.text : t.textSubtle)} />
+                  <div>
+                    <div className={cn('text-sm', t.textStrong)}>Push</div>
+                    <div className={cn('text-xs', t.textMuted)}>{pushNotify ? 'Браузерные push-уведомления' : 'Отключены'}</div>
+                  </div>
+                </div>
+                <Toggle checked={pushNotify} onChange={setPushNotify} />
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <Bell weight={ICON_WEIGHT} className={cn('h-4 w-4', soundNotify ? a.text : t.textSubtle)} />
+                  <div>
+                    <div className={cn('text-sm', t.textStrong)}>Звук</div>
+                    <div className={cn('text-xs', t.textMuted)}>{soundNotify ? 'Звуковое оповещение' : 'Без звука'}</div>
+                  </div>
+                </div>
+                <Toggle checked={soundNotify} onChange={setSoundNotify} />
+              </div>
+            </div>
+
+            {/* Categories */}
+            <div className={cn('mb-2 text-xs font-medium', t.textMuted)}>Категории</div>
+            <div className={cn('divide-y', t.divide)}>
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <Gift weight={ICON_WEIGHT} className="h-4 w-4 text-amber-500" />
+                  <div>
+                    <div className={cn('text-sm', t.textStrong)}>Акции и бонусы</div>
+                    <div className={cn('text-xs', t.textMuted)}>Скидки, промокоды, подарки</div>
+                  </div>
+                </div>
+                <Toggle checked={promoCategory} onChange={setPromoCategory} />
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <Info weight={ICON_WEIGHT} className="h-4 w-4 text-blue-500" />
+                  <div>
+                    <div className={cn('text-sm', t.textStrong)}>Информационные</div>
+                    <div className={cn('text-xs', t.textMuted)}>Обновления, новые серверы</div>
+                  </div>
+                </div>
+                <Toggle checked={infoCategory} onChange={setInfoCategory} />
+              </div>
+              <div className="flex items-center justify-between py-3">
+                <div className="flex items-center gap-3">
+                  <ShieldCheck weight={ICON_WEIGHT} className="h-4 w-4 text-rose-500" />
+                  <div>
+                    <div className={cn('text-sm', t.textStrong)}>Системные</div>
+                    <div className={cn('text-xs', t.textMuted)}>Безопасность, обслуживание</div>
+                  </div>
+                </div>
+                <Toggle checked={systemCategory} onChange={setSystemCategory} />
+              </div>
+            </div>
+          </div>
+        </GlowCard>
+      </section>
+
+      {/* ═══════════ SECURITY ═══════════ */}
+      <section>
+        <div className={cn('mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
+          <ShieldCheck weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+          <span>Безопасность</span>
+        </div>
+
+        <div className="space-y-3">
+          {/* Change password */}
+          <GlowCard>
+            <div className="p-5">
+              <button onClick={() => setShowChangePassword(!showChangePassword)} className="flex w-full items-center gap-3 text-left">
+                <Lock weight={ICON_WEIGHT} className={cn('h-4.5 w-4.5 shrink-0', t.textMuted)} />
+                <div className="min-w-0 flex-1">
+                  <div className={cn('text-sm font-medium', t.textStrong)}>Сменить пароль</div>
+                  <div className={cn('text-xs mt-0.5', t.textMuted)}>Последнее изменение: не задан</div>
+                </div>
+                <CaretRight weight="bold" className={cn('h-3.5 w-3.5 shrink-0 transition-transform', t.textSubtle, showChangePassword && 'rotate-90')} />
+              </button>
+
+              <AnimatePresence>
+                {showChangePassword && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className={cn('mt-4 space-y-3 border-t pt-4', t.border)}>
+                      <div>
+                        <label className={cn('mb-1 block text-xs', t.textMuted)}>Текущий пароль</label>
+                        <input
+                          type="password"
+                          value={oldPassword}
+                          onChange={(e) => setOldPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className={cn(
+                            'w-full rounded-xl border bg-transparent px-3 py-2 text-sm outline-none transition-colors',
+                            t.border, t.textStrong, 'placeholder:' + t.textSubtle
+                          )}
+                        />
+                      </div>
+                      <div>
+                        <label className={cn('mb-1 block text-xs', t.textMuted)}>Новый пароль</label>
+                        <input
+                          type="password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Минимум 8 символов"
+                          className={cn(
+                            'w-full rounded-xl border bg-transparent px-3 py-2 text-sm outline-none transition-colors',
+                            t.border, t.textStrong, 'placeholder:' + t.textSubtle
+                          )}
+                        />
+                      </div>
+                      <div>
+                        <label className={cn('mb-1 block text-xs', t.textMuted)}>Подтвердите пароль</label>
+                        <input
+                          type="password"
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Повторите новый пароль"
+                          className={cn(
+                            'w-full rounded-xl border bg-transparent px-3 py-2 text-sm outline-none transition-colors',
+                            t.border, t.textStrong, 'placeholder:' + t.textSubtle
+                          )}
+                        />
+                      </div>
+                      <button className={cn('mt-1 rounded-xl px-4 py-2 text-sm font-medium transition-colors', a.button)}>
+                        Обновить пароль
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </GlowCard>
+
+          {/* Active sessions */}
+          <GlowCard>
+            <div className="p-5">
+              <button onClick={() => setShowSessions(!showSessions)} className="flex w-full items-center gap-3 text-left">
+                <Fingerprint weight={ICON_WEIGHT} className={cn('h-4.5 w-4.5 shrink-0', t.textMuted)} />
+                <div className="min-w-0 flex-1">
+                  <div className={cn('text-sm font-medium', t.textStrong)}>Активные сессии</div>
+                  <div className={cn('text-xs mt-0.5', t.textMuted)}>{sessions.length} устройств</div>
+                </div>
+                <CaretRight weight="bold" className={cn('h-3.5 w-3.5 shrink-0 transition-transform', t.textSubtle, showSessions && 'rotate-90')} />
+              </button>
+
+              <AnimatePresence>
+                {showSessions && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className={cn('mt-4 space-y-2 border-t pt-4', t.border)}>
+                      {sessions.map((s) => (
+                        <div key={s.id} className={cn('flex items-center gap-3 rounded-xl p-3 transition-colors', s.current ? a.bgSoft : '', t.cardHover.replace('hover:', ''))}>
+                          <div className={cn('flex h-9 w-9 shrink-0 items-center justify-center rounded-lg', s.current ? a.bgSoft : (theme === 'dark' ? 'bg-white/[0.04]' : 'bg-black/[0.04]'))}>
+                            {s.os.includes('macOS') ? <Laptop weight={ICON_WEIGHT} className={cn('h-4 w-4', s.current ? a.text : t.textMuted)} /> :
+                             s.os.includes('iOS') ? <DeviceMobile weight={ICON_WEIGHT} className={cn('h-4 w-4', s.current ? a.text : t.textMuted)} /> :
+                             <Desktop weight={ICON_WEIGHT} className={cn('h-4 w-4', s.current ? a.text : t.textMuted)} />}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className={cn('text-sm font-medium', t.textStrong)}>{s.device}</span>
+                              {s.current && <span className={cn('rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase', a.bgSoft, a.text)}>Текущая</span>}
+                            </div>
+                            <div className={cn('text-xs mt-0.5', t.textMuted)}>
+                              {s.browser} · {s.location}
+                            </div>
+                            <div className={cn('text-[11px]', t.textSubtle)}>
+                              {s.time} · <span className="font-mono">{s.ip}</span>
+                            </div>
+                          </div>
+                          {!s.current && (
+                            <button className={cn('rounded-lg p-1.5 transition-colors text-red-400 hover:bg-red-500/10')}>
+                              <X weight="bold" className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      <button className={cn('mt-1 w-full rounded-xl py-2 text-center text-xs font-medium transition-colors text-red-400 hover:bg-red-500/10')}>
+                        Завершить все сессии кроме текущей
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </GlowCard>
+        </div>
+      </section>
+
+      {/* ═══════════ ACCOUNT ═══════════ */}
+      <section>
+        <div className={cn('mb-4 flex items-center gap-2 text-xs font-medium uppercase tracking-wider', t.textSubtle)}>
+          <GearSix weight={ICON_WEIGHT} className="h-3.5 w-3.5" />
+          <span>Аккаунт</span>
+        </div>
+
+        <button className={cn(
+          'flex w-full items-center gap-3 rounded-2xl border p-5 text-left transition-all',
+          t.card, t.border, t.borderHover
+        )}>
+          <SignOut weight={ICON_WEIGHT} className={cn('h-4.5 w-4.5 shrink-0', t.textMuted)} />
+          <div className="min-w-0 flex-1">
+            <div className={cn('text-sm font-medium', t.textStrong)}>Выйти из аккаунта</div>
+            <div className={cn('text-xs mt-0.5', t.textMuted)}>Завершить текущую сессию на этом устройстве</div>
+          </div>
+          <CaretRight weight="bold" className={cn('h-3.5 w-3.5 shrink-0', t.textSubtle)} />
+        </button>
+      </section>
+
+      {/* bottom spacer */}
+      <div className="h-4" />
     </motion.div>
   );
 };
+
+/* ── Operations History Tab ── */
+type OperationType = 'purchase' | 'bonus' | 'refund' | 'renewal' | 'promo';
+
+type Operation = {
+  id: string;
+  txId: string;
+  type: OperationType;
+  title: string;
+  description: string;
+  amount: string;
+  date: string;
+  time: string;
+  status: 'success' | 'pending' | 'failed';
+  userId: string;
+  userName: string;
+  method?: string;
+  plan?: string;
+  period?: string;
+  bonusAmount?: string;
+};
+
+const OPERATION_TYPE_META: Record<OperationType, { label: string; icon: React.ElementType; color: string }> = {
+  purchase: { label: 'Покупка', icon: ShoppingCartSimple, color: 'text-blue-400' },
+  bonus: { label: 'Бонус', icon: Gift, color: 'text-amber-400' },
+  refund: { label: 'Возврат', icon: ClockCounterClockwise, color: 'text-rose-400' },
+  renewal: { label: 'Продление', icon: RocketLaunch, color: 'text-emerald-400' },
+  promo: { label: 'Промокод', icon: Confetti, color: 'text-violet-400' },
+};
+
+const OPERATIONS_HISTORY: Operation[] = [
+  {
+    id: 'op-1',
+    txId: 'TXN-20260310-7A3F',
+    type: 'purchase',
+    title: 'Подписка Pro — 3 месяца',
+    description: 'Оплата подписки Pro на 3 месяца через ЮKassa',
+    amount: '249 ₽',
+    date: '10 мар 2026',
+    time: '14:32',
+    status: 'success',
+    userId: '829104571',
+    userName: '@vlad_dev',
+    method: 'ЮKassa (Visa ··4832)',
+    plan: 'Pro',
+    period: '10 мар — 10 июн 2026',
+  },
+  {
+    id: 'op-2',
+    txId: 'TXN-20260308-1B92',
+    type: 'bonus',
+    title: 'Реферальный бонус +7 дней',
+    description: 'Начисление бонусных дней за приглашённого пользователя @anna_k',
+    amount: '+7 дней',
+    date: '8 мар 2026',
+    time: '09:15',
+    status: 'success',
+    userId: '829104571',
+    userName: '@vlad_dev',
+    bonusAmount: '7 дней VPN',
+  },
+  {
+    id: 'op-3',
+    txId: 'TXN-20260301-4E7D',
+    type: 'promo',
+    title: 'Промокод SPRING2026',
+    description: 'Активация промокода — скидка 30% на годовой тариф',
+    amount: '-30%',
+    date: '1 мар 2026',
+    time: '18:44',
+    status: 'success',
+    userId: '829104571',
+    userName: '@vlad_dev',
+  },
+  {
+    id: 'op-4',
+    txId: 'TXN-20260215-9C1A',
+    type: 'renewal',
+    title: 'Автопродление Pro — 1 месяц',
+    description: 'Автоматическое продление подписки Pro',
+    amount: '99 ₽',
+    date: '15 фев 2026',
+    time: '00:01',
+    status: 'success',
+    userId: '829104571',
+    userName: '@vlad_dev',
+    method: 'ЮKassa (Visa ··4832)',
+    plan: 'Pro',
+    period: '15 фев — 15 мар 2026',
+  },
+  {
+    id: 'op-5',
+    txId: 'TXN-20260210-3F8B',
+    type: 'purchase',
+    title: 'Подписка Pro — 1 месяц',
+    description: 'Первая оплата подписки через CryptoBot',
+    amount: '99 ₽',
+    date: '10 фев 2026',
+    time: '11:20',
+    status: 'failed',
+    userId: '829104571',
+    userName: '@vlad_dev',
+    method: 'CryptoBot (USDT)',
+    plan: 'Pro',
+  },
+  {
+    id: 'op-6',
+    txId: 'TXN-20260205-6D4E',
+    type: 'bonus',
+    title: 'Бонус привязка Telegram',
+    description: 'Начисление 5 бесплатных дней за привязку Telegram-аккаунта',
+    amount: '+5 дней',
+    date: '5 фев 2026',
+    time: '16:03',
+    status: 'success',
+    userId: '829104571',
+    userName: '@vlad_dev',
+    bonusAmount: '5 дней VPN',
+  },
+  {
+    id: 'op-7',
+    txId: 'TXN-20260120-2A9F',
+    type: 'refund',
+    title: 'Возврат за подписку',
+    description: 'Возврат средств за неиспользованный период подписки',
+    amount: '149 ₽',
+    date: '20 янв 2026',
+    time: '13:47',
+    status: 'success',
+    userId: '829104571',
+    userName: '@vlad_dev',
+    method: 'ЮKassa → Visa ··4832',
+  },
+];
+
+type HistoryFilter = 'all' | 'purchase' | 'bonus' | 'refund';
+
+const HistoryTab = ({ onSendToSupport }: { onSendToSupport: (text: string, receipt?: ChatReceipt) => void }) => {
+  const { t, a, theme, navigateTab } = useContext(ThemeContext);
+  const [filter, setFilter] = useState<HistoryFilter>('all');
+  const [expandedOp, setExpandedOp] = useState<string | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleCopy = (value: string, field: string) => {
+    navigator.clipboard.writeText(value);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 1500);
+  };
+
+  const filters: { key: HistoryFilter; label: string }[] = [
+    { key: 'all', label: 'Все' },
+    { key: 'purchase', label: 'Покупки' },
+    { key: 'bonus', label: 'Бонусы' },
+    { key: 'refund', label: 'Возвраты' },
+  ];
+
+  const filtered = OPERATIONS_HISTORY.filter((op) => {
+    if (filter === 'all') return true;
+    if (filter === 'purchase') return op.type === 'purchase' || op.type === 'renewal';
+    if (filter === 'bonus') return op.type === 'bonus' || op.type === 'promo';
+    return op.type === filter;
+  });
+
+  const statusMeta: Record<string, { label: string; cls: string }> = {
+    success: { label: 'Успешно', cls: 'text-emerald-400 bg-emerald-400/10' },
+    pending: { label: 'В обработке', cls: 'text-amber-400 bg-amber-400/10' },
+    failed: { label: 'Ошибка', cls: 'text-rose-400 bg-rose-400/10' },
+  };
+
+  const buildReceiptText = (op: Operation) => {
+    const lines = [
+      `\u2501\u2501\u2501 \u0427\u0435\u043a \u043e\u043f\u0435\u0440\u0430\u0446\u0438\u0438 \u2501\u2501\u2501`,
+      `ID: ${op.txId}`,
+      `\u0422\u0438\u043f: ${OPERATION_TYPE_META[op.type].label}`,
+      `${op.title}`,
+      `\u0421\u0443\u043c\u043c\u0430: ${op.amount}`,
+      `\u0414\u0430\u0442\u0430: ${op.date}, ${op.time}`,
+      `\u0421\u0442\u0430\u0442\u0443\u0441: ${statusMeta[op.status].label}`,
+      `\u041f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u0442\u0435\u043b\u044c: ${op.userName} (${op.userId})`,
+    ];
+    if (op.method) lines.push(`\u041c\u0435\u0442\u043e\u0434: ${op.method}`);
+    if (op.plan) lines.push(`\u0422\u0430\u0440\u0438\u0444: ${op.plan}`);
+    if (op.period) lines.push(`\u041f\u0435\u0440\u0438\u043e\u0434: ${op.period}`);
+    lines.push(`\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501`);
+    return lines.join('\n');
+  };
+
+  const handleReportProblem = (op: Operation) => {
+    const receipt: ChatReceipt = {
+      txId: op.txId,
+      type: op.type,
+      title: op.title,
+      amount: op.amount,
+      date: op.date,
+      time: op.time,
+      status: op.status,
+      userName: op.userName,
+      userId: op.userId,
+      method: op.method,
+      plan: op.plan,
+    };
+    onSendToSupport('Проблема с оплатой', receipt);
+    navigateTab('support');
+  };
+
+  return (
+    <motion.div
+      key="history"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      className="space-y-6"
+    >
+      {/* Header */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className={cn('text-lg font-medium', t.textStrong)}>История операций</h1>
+          <p className={cn('mt-1 text-sm', t.textMuted)}>Все транзакции, начисления и чеки</p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className={cn('flex items-center gap-1.5 rounded-xl border p-1', t.card, t.border)}>
+        {filters.map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            className={cn(
+              'rounded-lg px-3 py-1.5 text-xs font-medium transition-all duration-300',
+              filter === f.key
+                ? cn(a.bgSoft, a.text)
+                : cn(t.textMuted, 'hover:' + t.textStrong)
+            )}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Operations list */}
+      <div className="space-y-3">
+        {filtered.length === 0 ? (
+          <GlowCard>
+            <div className="flex flex-col items-center justify-center p-12 text-center">
+              <ClockCounterClockwise weight={ICON_WEIGHT} className={cn('mb-3 h-10 w-10', t.textSubtle)} />
+              <p className={cn('text-sm font-medium', t.textMuted)}>Нет операций</p>
+              <p className={cn('mt-1 text-xs', t.textSubtle)}>По выбранному фильтру операции не найдены</p>
+            </div>
+          </GlowCard>
+        ) : (
+          filtered.map((op) => {
+            const meta = OPERATION_TYPE_META[op.type];
+            const status = statusMeta[op.status];
+            const isExpanded = expandedOp === op.id;
+            const IconComp = meta.icon;
+
+            return (
+              <GlowCard key={op.id}>
+                {/* Main row */}
+                <button
+                  onClick={() => setExpandedOp(isExpanded ? null : op.id)}
+                  className="flex w-full items-center gap-3 p-4 text-left sm:p-5"
+                >
+                  <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-full', a.bgSoft)}>
+                    <IconComp weight={ICON_WEIGHT} className={cn('h-5 w-5', meta.color)} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className={cn('truncate text-sm font-medium', t.textStrong)}>{op.title}</h3>
+                      <span className={cn('shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold', status.cls)}>
+                        {status.label}
+                      </span>
+                    </div>
+                    <div className={cn('mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs', t.textSubtle)}>
+                      <span>{op.date}</span>
+                      <span className="hidden sm:inline">•</span>
+                      <span className="hidden sm:inline">{op.time}</span>
+                      <span>•</span>
+                      <span className={cn('font-mono text-[11px]', t.textMuted)}>{op.txId}</span>
+                    </div>
+                  </div>
+                  <div className="flex shrink-0 items-center gap-3">
+                    <span className={cn(
+                      'text-sm font-medium tabular-nums',
+                      op.type === 'refund' ? 'text-rose-400' : op.type === 'bonus' || op.type === 'promo' ? 'text-emerald-400' : t.textStrong
+                    )}>
+                      {op.type === 'refund' ? '+' : op.type === 'purchase' || op.type === 'renewal' ? '-' : ''}{op.amount}
+                    </span>
+                    <motion.div
+                      animate={{ rotate: isExpanded ? 90 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <CaretRight weight="bold" className={cn('h-3.5 w-3.5', t.textSubtle)} />
+                    </motion.div>
+                  </div>
+                </button>
+
+                {/* Expanded receipt */}
+                <AnimatePresence>
+                  {isExpanded ? (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                      className="overflow-hidden"
+                    >
+                      <div className={cn('mx-4 mb-4 rounded-xl border p-4 sm:mx-5 sm:mb-5 sm:p-5', t.cardSolid, t.border)}>
+                        {/* Receipt header */}
+                        <div className="mb-4 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Receipt weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
+                            <span className={cn('text-xs font-medium uppercase tracking-wider', t.textSubtle)}>Чек операции</span>
+                          </div>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleCopy(buildReceiptText(op), op.id + '-receipt'); }}
+                            className={cn('flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors', t.textMuted, t.borderHover, 'border', t.border)}
+                          >
+                            {copiedField === op.id + '-receipt' ? (
+                              <><Check weight="bold" className="h-3 w-3" /> Скопировано</>
+                            ) : (
+                              <><Copy weight={ICON_WEIGHT} className="h-3 w-3" /> Скопировать</>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Receipt fields */}
+                        <div className="space-y-2.5">
+                          <ReceiptRow label="ID транзакции" value={op.txId} mono onCopy={() => handleCopy(op.txId, op.id + '-txid')} copied={copiedField === op.id + '-txid'} t={t} />
+                          <ReceiptRow label="Тип операции" value={meta.label} t={t} />
+                          <ReceiptRow label="Описание" value={op.description} t={t} />
+                          <ReceiptRow label="Сумма" value={op.amount} t={t} />
+                          <ReceiptRow label="Дата и время" value={`${op.date}, ${op.time}`} t={t} />
+                          <ReceiptRow label="Статус" value={status.label} statusCls={status.cls} t={t} />
+                          <ReceiptRow label="Пользователь" value={`${op.userName}`} t={t} />
+                          <ReceiptRow label="ID пользователя" value={op.userId} mono onCopy={() => handleCopy(op.userId, op.id + '-uid')} copied={copiedField === op.id + '-uid'} t={t} />
+                          {op.method ? <ReceiptRow label="Метод оплаты" value={op.method} t={t} /> : null}
+                          {op.plan ? <ReceiptRow label="Тариф" value={op.plan} t={t} /> : null}
+                          {op.period ? <ReceiptRow label="Период" value={op.period} t={t} /> : null}
+                          {op.bonusAmount ? <ReceiptRow label="Начислено" value={op.bonusAmount} t={t} /> : null}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className={cn('mt-4 flex flex-col gap-2 border-t pt-4 sm:flex-row', t.border)}>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleReportProblem(op); }}
+                            className={cn(
+                              'flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-medium transition-all duration-300',
+                              'text-rose-400 border-rose-400/20 bg-rose-400/5 hover:bg-rose-400/10'
+                            )}
+                          >
+                            <WarningCircle weight={ICON_WEIGHT} className="h-4 w-4" />
+                            Проблема с оплатой
+                          </button>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleCopy(buildReceiptText(op), op.id + '-receipt'); }}
+                            className={cn(
+                              'flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-xs font-medium transition-all duration-300',
+                              t.border, t.textMuted, t.borderHover, 'hover:' + t.textStrong
+                            )}
+                          >
+                            <Copy weight={ICON_WEIGHT} className="h-4 w-4" />
+                            Скопировать чек
+                          </button>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </GlowCard>
+            );
+          })
+        )}
+      </div>
+
+      {/* bottom spacer */}
+      <div className="h-4" />
+    </motion.div>
+  );
+};
+
+const ReceiptRow = ({
+  label,
+  value,
+  mono,
+  onCopy,
+  copied,
+  statusCls,
+  t,
+}: {
+  label: string;
+  value: string;
+  mono?: boolean;
+  onCopy?: () => void;
+  copied?: boolean;
+  statusCls?: string;
+  t: (typeof THEMES)[ThemeType];
+}) => (
+  <div className="flex items-start justify-between gap-3">
+    <span className={cn('shrink-0 text-xs', t.textSubtle)}>{label}</span>
+    <div className="flex items-center gap-1.5 text-right">
+      {statusCls ? (
+        <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold', statusCls)}>{value}</span>
+      ) : (
+        <span className={cn('text-xs font-medium', mono ? 'font-mono text-[11px]' : '', t.textStrong)}>{value}</span>
+      )}
+      {onCopy ? (
+        <button onClick={(e) => { e.stopPropagation(); onCopy(); }} className={cn('rounded p-0.5 transition-colors', t.textSubtle)}>
+          {copied ? <Check weight="bold" className="h-3 w-3 text-emerald-400" /> : <Copy weight={ICON_WEIGHT} className="h-3 w-3" />}
+        </button>
+      ) : null}
+    </div>
+  </div>
+);
 
 /* ── PWA Install Section ── */
 /* ── Install App Tab ── */
@@ -4330,11 +5978,26 @@ const InstallTab = () => {
 };
 
 /* ── Support Chat ── */
+type ChatReceipt = {
+  txId: string;
+  type: OperationType;
+  title: string;
+  amount: string;
+  date: string;
+  time: string;
+  status: 'success' | 'pending' | 'failed';
+  userName: string;
+  userId: string;
+  method?: string;
+  plan?: string;
+};
+
 type SupportMessage = {
   id: string;
   from: 'user' | 'support';
   text: string;
   time: string;
+  receipt?: ChatReceipt;
 };
 
 const INITIAL_SUPPORT_MESSAGES: SupportMessage[] = [
@@ -4350,6 +6013,119 @@ function formatTime() {
   const d = new Date();
   return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
+
+/* ── Chat Receipt Card (compact mini-receipt for chat bubbles) ── */
+const ChatReceiptCard = ({ receipt, label, compact }: { receipt: ChatReceipt; label: string; compact?: boolean }) => {
+  const { t, a, theme } = useContext(ThemeContext);
+  const meta = OPERATION_TYPE_META[receipt.type];
+  const IconComp = meta.icon;
+
+  const STATUS_DISPLAY: Record<string, { label: string; dot: string }> = {
+    success: { label: 'Успешно', dot: 'bg-emerald-400' },
+    pending: { label: 'Обработка', dot: 'bg-amber-400' },
+    failed: { label: 'Ошибка', dot: 'bg-rose-400' },
+  };
+
+  const s = STATUS_DISPLAY[receipt.status];
+  const subtleBg = theme === 'dark' ? 'bg-white/[0.04]' : 'bg-black/[0.03]';
+
+  return (
+    <div className={cn(
+      'overflow-hidden rounded-2xl rounded-br-md border',
+      theme === 'dark' ? 'bg-white/[0.06] border-white/[0.08]' : 'bg-black/[0.03] border-black/[0.06]',
+    )}>
+      {/* Header strip */}
+      <div className="flex items-center gap-2 bg-rose-500/10 px-3 py-1.5">
+        <WarningCircle weight="fill" className="h-3 w-3 text-rose-400" />
+        <span className="text-[10px] font-semibold text-rose-400">{label}</span>
+      </div>
+
+      <div className="px-3 py-2 space-y-1.5">
+        {/* Operation title + icon */}
+        <div className="flex items-center gap-2">
+          <div className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-md', a.bgSoft)}>
+            <IconComp weight={ICON_WEIGHT} className={cn('h-3 w-3', meta.color)} />
+          </div>
+          <span className={cn('text-[11px] font-medium leading-tight truncate', t.textStrong)}>{receipt.title}</span>
+        </div>
+
+        {compact ? (
+          <>
+            {/* Compact: 2×2 grid */}
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+              <MiniField label="Сумма" value={receipt.amount} t={t} />
+              <MiniField label="Статус" t={t}>
+                <span className="flex items-center gap-1">
+                  <span className={cn('h-1.5 w-1.5 rounded-full', s.dot)} />
+                  <span className={cn('text-[10px] font-medium', t.textStrong)}>{s.label}</span>
+                </span>
+              </MiniField>
+              <MiniField label="Дата" value={`${receipt.date}, ${receipt.time}`} t={t} />
+              {receipt.method ? <MiniField label="Метод" value={receipt.method} t={t} /> : receipt.plan ? <MiniField label="Тариф" value={receipt.plan} t={t} /> : null}
+            </div>
+
+            {/* User + TX combined */}
+            <div className={cn('rounded-md px-2 py-1', subtleBg)}>
+              <div className="flex items-center gap-1.5">
+                <User weight={ICON_WEIGHT} className={cn('h-2.5 w-2.5 shrink-0', t.textSubtle)} />
+                <span className={cn('text-[10px] font-medium truncate', t.textStrong)}>{receipt.userName}</span>
+                <span className={cn('font-mono text-[9px] shrink-0', t.textMuted)}>{receipt.userId}</span>
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <Receipt weight={ICON_WEIGHT} className={cn('h-2.5 w-2.5 shrink-0', t.textSubtle)} />
+                <span className={cn('font-mono text-[9px] truncate', t.textMuted)}>{receipt.txId}</span>
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Full: 3×3 grid */}
+            <div className="grid grid-cols-3 gap-x-3 gap-y-1.5">
+              <MiniField label="Сумма" value={receipt.amount} t={t} />
+              <MiniField label="Статус" t={t}>
+                <span className="flex items-center gap-1">
+                  <span className={cn('h-1.5 w-1.5 rounded-full', s.dot)} />
+                  <span className={cn('text-[11px] font-medium', t.textStrong)}>{s.label}</span>
+                </span>
+              </MiniField>
+              <MiniField label="Дата" value={receipt.date} t={t} />
+              <MiniField label="Время" value={receipt.time} t={t} />
+              {receipt.method ? <MiniField label="Метод" value={receipt.method} t={t} /> : null}
+              {receipt.plan ? <MiniField label="Тариф" value={receipt.plan} t={t} /> : null}
+            </div>
+
+            {/* User section */}
+            <div className={cn('rounded-lg px-2 py-1.5', subtleBg)}>
+              <div className={cn('mb-0.5 text-[9px] font-medium uppercase tracking-wider', t.textSubtle)}>Пользователь</div>
+              <div className="flex items-center gap-2">
+                <div className={cn('flex h-5 w-5 shrink-0 items-center justify-center rounded-full', a.bgSoft)}>
+                  <User weight={ICON_WEIGHT} className={cn('h-3 w-3', a.text)} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <span className={cn('text-[11px] font-medium', t.textStrong)}>{receipt.userName}</span>
+                  <span className={cn('ml-1.5 font-mono text-[10px]', t.textMuted)}>ID {receipt.userId}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* TX ID */}
+            <div className={cn('flex items-center gap-1.5 rounded-lg px-2 py-1', subtleBg)}>
+              <Receipt weight={ICON_WEIGHT} className={cn('h-3 w-3 shrink-0', t.textSubtle)} />
+              <span className={cn('font-mono text-[10px]', t.textMuted)}>{receipt.txId}</span>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const MiniField = ({ label, value, children, t }: { label: string; value?: string; children?: React.ReactNode; t: (typeof THEMES)[ThemeType] }) => (
+  <div className="min-w-0">
+    <div className={cn('text-[9px] uppercase tracking-wider', t.textSubtle)}>{label}</div>
+    {children ?? <div className={cn('text-[11px] font-medium truncate', t.textStrong)}>{value}</div>}
+  </div>
+);
 
 const SupportHeaderButton = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) => {
   const { t, a } = useContext(ThemeContext);
@@ -4406,10 +6182,20 @@ const SupportChatPanel = ({
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
+  const miniChatMounted = useRef(false);
 
+  /* Scroll to last message: instant on first open, smooth on new messages */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+    if (!isOpen) { miniChatMounted.current = false; return; }
+    const el = messagesEndRef.current;
+    if (!el) return;
+    if (!miniChatMounted.current) {
+      miniChatMounted.current = true;
+      const t = setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 80);
+      return () => clearTimeout(t);
+    }
+    el.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isOpen]);
 
   /* Close on outside click/tap — handle both mouse and touch */
   useEffect(() => {
@@ -4512,16 +6298,22 @@ const SupportChatPanel = ({
                     key={msg.id}
                     className={cn('flex flex-col', msg.from === 'user' ? 'items-end' : 'items-start')}
                   >
-                    <div
-                      className={cn(
-                        'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
-                        msg.from === 'support'
-                          ? cn(a.bgSoft, t.text, 'rounded-bl-md')
-                          : cn(a.color, 'text-black rounded-br-md')
-                      )}
-                    >
-                      {msg.text}
-                    </div>
+                    {msg.receipt && msg.from === 'user' ? (
+                      <div className="max-w-[85%]">
+                        <ChatReceiptCard receipt={msg.receipt} label={msg.text} compact />
+                      </div>
+                    ) : (
+                      <div
+                        className={cn(
+                          'max-w-[85%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed',
+                          msg.from === 'support'
+                            ? cn(a.bgSoft, t.text, 'rounded-bl-md')
+                            : cn(a.color, 'text-black rounded-br-md')
+                        )}
+                      >
+                        {msg.text}
+                      </div>
+                    )}
                     <span className={cn('mt-1 px-1 text-[10px]', t.textSubtle)}>{msg.time}</span>
                   </div>
                 ))}
@@ -4531,7 +6323,7 @@ const SupportChatPanel = ({
 
             {/* Input */}
             <div className={cn('shrink-0 border-t px-3 py-3', t.border)}>
-              <div className={cn('flex items-end gap-2 rounded-xl border px-3 py-2 transition-colors', t.border, t.card)}>
+              <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2 transition-colors', t.border, t.card)}>
                 <textarea
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
@@ -4569,32 +6361,566 @@ const SupportChatPanel = ({
 };
 
 /* ── Support Tab (page) ── */
-const FAQ_ITEMS = [
-  {
-    q: 'Как подключиться к VPN?',
-    a: 'Скачайте приложение Hub из раздела «Настройка VPN», установите конфигурационный файл и нажмите «Подключиться». Подробная инструкция находится там же.',
-  },
-  {
-    q: 'Как добавить устройство?',
-    a: 'Перейдите в «Настройка VPN» → «Устройства» и нажмите «Добавить устройство». Максимальное количество устройств зависит от вашего тарифа.',
-  },
-  {
-    q: 'Как работают белые списки?',
-    a: 'Белые списки позволяют направлять трафик определённых приложений напрямую, минуя VPN-туннель. Это полезно для банковских приложений и локальных сервисов.',
-  },
-  {
-    q: 'Как продлить подписку?',
-    a: 'Перейдите в «Личный кабинет» и нажмите «Продлить подписку». Мы поддерживаем оплату через ЮКасса и CryptoBot.',
-  },
-  {
-    q: 'Что делать, если VPN не подключается?',
-    a: 'Попробуйте переключить сервер, проверьте интернет-соединение и убедитесь, что конфигурация актуальна. Если проблема сохраняется — напишите нам в чат.',
-  },
+
+type SupportTopicId = 'connection' | 'payment' | 'device' | 'security' | 'other';
+
+type SupportAction =
+  | { type: 'tab'; label: string; tab: TabType; scrollTo?: string }
+  | { type: 'chat'; label: string };
+
+type SupportSolution = {
+  text: string;
+  actions?: SupportAction[];
+};
+
+type SupportNode = {
+  id: string;
+  text: string;
+  description?: string;
+  options: {
+    label: string;
+    next?: SupportNode;
+    solution?: SupportSolution;
+  }[];
+};
+
+const SOLVED_NODE: SupportSolution = { text: 'Отлично! Рады, что помогли. Если возникнут другие вопросы — мы всегда на связи.' };
+
+/* ─── Tree: Не подключается VPN ─── */
+const CONNECTION_TREE: SupportNode = {
+  id: 'conn-1',
+  text: 'У вас есть активная подписка?',
+  description: 'Проверьте в личном кабинете — подписка должна быть оплачена и не истекшей.',
+  options: [
+    {
+      label: 'Да, есть',
+      next: {
+        id: 'conn-2',
+        text: 'Какая подписка не работает?',
+        options: [
+          {
+            label: 'Основная (безлимитная)',
+            next: {
+              id: 'conn-3a',
+              text: 'Проверьте дату окончания подписки. Подписка ещё активна?',
+              description: 'Дату можно посмотреть в личном кабинете на карточке подписки.',
+              options: [
+                {
+                  label: 'Да, активна',
+                  next: {
+                    id: 'conn-4a',
+                    text: 'Приложение Happ установлено на вашем устройстве?',
+                    options: [
+                      {
+                        label: 'Да, установлено',
+                        next: {
+                          id: 'conn-5a',
+                          text: 'Конфигурация VPN добавлена в приложение?',
+                          description: 'Если вы не добавляли подписку в Happ — VPN не будет работать.',
+                          options: [
+                            {
+                              label: 'Да, добавлена',
+                              next: {
+                                id: 'conn-6a',
+                                text: 'Попробуйте сменить сервер в приложении Happ. Помогло?',
+                                description: 'Иногда ближайший сервер бывает перегружен. Выберите другую страну.',
+                                options: [
+                                  { label: 'Да, помогло', solution: SOLVED_NODE },
+                                  {
+                                    label: 'Нет, не помогло',
+                                    next: {
+                                      id: 'conn-7a',
+                                      text: 'Интернет работает без VPN?',
+                                      description: 'Отключите VPN и проверьте, открываются ли сайты.',
+                                      options: [
+                                        {
+                                          label: 'Нет, интернет не работает',
+                                          solution: {
+                                            text: 'Проблема в вашем интернет-соединении, а не в VPN. Проверьте Wi-Fi или мобильную сеть, перезагрузите роутер.',
+                                          },
+                                        },
+                                        {
+                                          label: 'Да, интернет работает',
+                                          next: {
+                                            id: 'conn-8a',
+                                            text: 'Попробуйте полностью отключить VPN, подождать 10 секунд и включить заново. Помогло?',
+                                            options: [
+                                              { label: 'Да, помогло', solution: SOLVED_NODE },
+                                              {
+                                                label: 'Нет',
+                                                solution: {
+                                                  text: 'Вероятно, ваш провайдер блокирует VPN-протоколы. Попробуйте подключиться через мобильную сеть (LTE). Если проблема сохраняется — напишите нам, мы разберёмся.',
+                                                  actions: [{ type: 'chat', label: 'Написать в чат' }],
+                                                },
+                                              },
+                                            ],
+                                          },
+                                        },
+                                      ],
+                                    },
+                                  },
+                                ],
+                              },
+                            },
+                            {
+                              label: 'Нет, не добавлена',
+                              solution: {
+                                text: 'Перейдите в раздел «Настройка VPN», выберите ваше устройство и нажмите «Добавить подписку». Ссылка автоматически настроит VPN в приложении.',
+                                actions: [{ type: 'tab', label: 'Перейти к настройке VPN', tab: 'billing' }],
+                              },
+                            },
+                          ],
+                        },
+                      },
+                      {
+                        label: 'Нет, не установлено',
+                        solution: {
+                          text: 'Для работы VPN необходимо установить приложение Happ. Перейдите в раздел «Настройка VPN» — там есть инструкция и ссылки для скачивания под ваше устройство.',
+                          actions: [{ type: 'tab', label: 'Перейти к установке', tab: 'billing' }],
+                        },
+                      },
+                    ],
+                  },
+                },
+                {
+                  label: 'Нет, истекла',
+                  solution: {
+                    text: 'Ваша подписка истекла. Продлите её в личном кабинете, чтобы VPN снова заработал.',
+                    actions: [{ type: 'tab', label: 'Продлить подписку', tab: 'overview' }],
+                  },
+                },
+              ],
+            },
+          },
+          {
+            label: 'Белые списки',
+            next: {
+              id: 'conn-3b',
+              text: 'Вы подключены через LTE / мобильную сеть?',
+              description: 'Важно: белые списки работают ТОЛЬКО через мобильный интернет (LTE/5G). Через Wi-Fi они не работают.',
+              options: [
+                {
+                  label: 'Да, через LTE',
+                  next: {
+                    id: 'conn-4b',
+                    text: 'Проверьте остаток гигабайт. У вас есть доступные GB?',
+                    description: 'Без гигабайт белые списки работать не будут. Баланс GB отображается в личном кабинете.',
+                    options: [
+                      {
+                        label: 'Да, GB есть',
+                        next: {
+                          id: 'conn-5b',
+                          text: 'Конфигурация белых списков добавлена в приложение Happ?',
+                          options: [
+                            {
+                              label: 'Да, добавлена',
+                              next: {
+                                id: 'conn-6b',
+                                text: 'Попробуйте отключить VPN, подождать 10 секунд и подключиться заново. Помогло?',
+                                options: [
+                                  { label: 'Да, помогло', solution: SOLVED_NODE },
+                                  {
+                                    label: 'Нет',
+                                    solution: {
+                                      text: 'Опишите вашу проблему в чате — мы разберёмся и поможем.',
+                                      actions: [{ type: 'chat', label: 'Написать в чат' }],
+                                    },
+                                  },
+                                ],
+                              },
+                            },
+                            {
+                              label: 'Нет, не добавлена',
+                              solution: {
+                                text: 'Перейдите в «Настройка VPN» → раздел «Белые списки» и добавьте конфигурацию в приложение. Помните: используйте только LTE, не Wi-Fi.',
+                                actions: [{ type: 'tab', label: 'Настроить белые списки', tab: 'billing', scrollTo: 'whitelist-section' }],
+                              },
+                            },
+                          ],
+                        },
+                      },
+                      {
+                        label: 'Нет, GB закончились',
+                        solution: {
+                          text: 'Для работы белых списков нужны гигабайты. Купите нужный объём в личном кабинете — GB зачислятся мгновенно.',
+                          actions: [{ type: 'tab', label: 'Купить гигабайты', tab: 'overview' }],
+                        },
+                      },
+                    ],
+                  },
+                },
+                {
+                  label: 'Нет, через Wi-Fi',
+                  solution: {
+                    text: 'Белые списки работают ТОЛЬКО через мобильный интернет (LTE/5G). Отключите Wi-Fi и используйте мобильные данные. Это техническое ограничение — через Wi-Fi белые списки не функционируют.',
+                  },
+                },
+              ],
+            },
+          },
+        ],
+      },
+    },
+    {
+      label: 'Нет подписки',
+      solution: {
+        text: 'Для работы VPN необходима активная подписка. Оформите её в личном кабинете — доступны тарифы от 1 до 12 месяцев.',
+        actions: [{ type: 'tab', label: 'Оформить подписку', tab: 'overview' }],
+      },
+    },
+    {
+      label: 'Не знаю',
+      solution: {
+        text: 'Проверьте наличие подписки в личном кабинете. Если подписка активна — на карточке будет отображаться статус и дата окончания.',
+        actions: [{ type: 'tab', label: 'Проверить подписку', tab: 'overview' }],
+      },
+    },
+  ],
+};
+
+/* ─── Tree: Вопрос по оплате ─── */
+const PAYMENT_TREE: SupportNode = {
+  id: 'pay-1',
+  text: 'Выберите вашу ситуацию:',
+  options: [
+    {
+      label: 'Оплата не проходит',
+      next: {
+        id: 'pay-2a',
+        text: 'Каким способом вы пытаетесь оплатить?',
+        options: [
+          {
+            label: 'ЮKassa (карта / СБП)',
+            solution: {
+              text: 'Проверьте, достаточно ли средств на карте. Попробуйте другую карту или способ оплаты СБП. Как альтернативу — используйте CryptoBot (криптовалюта через Telegram). Если ни один способ не работает — напишите нам.',
+              actions: [{ type: 'chat', label: 'Написать в чат' }],
+            },
+          },
+          {
+            label: 'CryptoBot (криптовалюта)',
+            solution: {
+              text: 'Проверьте баланс криптовалютного кошелька и доступность Telegram-бота @CryptoBot. Убедитесь, что вы подтвердили транзакцию в боте. Как альтернативу — попробуйте оплату через ЮKassa. Если проблема сохраняется — напишите нам.',
+              actions: [{ type: 'chat', label: 'Написать в чат' }],
+            },
+          },
+        ],
+      },
+    },
+    {
+      label: 'Хочу продлить подписку',
+      solution: {
+        text: 'Перейдите в личный кабинет и нажмите «Продлить подписку». Вы сможете выбрать тариф и способ оплаты. Дни добавятся к текущему сроку.',
+        actions: [{ type: 'tab', label: 'Продлить подписку', tab: 'overview' }],
+      },
+    },
+    {
+      label: 'Хочу сменить тариф',
+      solution: {
+        text: 'При продлении подписки вы можете выбрать другой тариф. Текущая подписка будет действовать до конца оплаченного периода, после чего активируется новый план.',
+        actions: [{ type: 'tab', label: 'Перейти к продлению', tab: 'overview' }],
+      },
+    },
+    {
+      label: 'Хочу купить гигабайты',
+      solution: {
+        text: 'Гигабайты нужны для работы белых списков. Перейдите в личный кабинет → раздел «Белые списки» → «Купить GB». Доступны пакеты 5, 10, 20, 50 GB по 19 ₽/GB. GB зачисляются мгновенно.',
+        actions: [{ type: 'tab', label: 'Купить гигабайты', tab: 'overview' }],
+      },
+    },
+    {
+      label: 'Возврат средств',
+      solution: {
+        text: 'Для оформления возврата напишите в чат поддержки с указанием ID транзакции. ID транзакции можно найти в истории операций.',
+        actions: [
+          { type: 'tab', label: 'История операций', tab: 'history' },
+          { type: 'chat', label: 'Написать в чат' },
+        ],
+      },
+    },
+  ],
+};
+
+/* ─── Tree: Настройка устройства ─── */
+const DEVICE_TREE: SupportNode = {
+  id: 'dev-1',
+  text: 'Что вам нужно настроить?',
+  options: [
+    {
+      label: 'Установить приложение',
+      next: {
+        id: 'dev-2a',
+        text: 'На каком устройстве?',
+        options: [
+          {
+            label: 'iOS (iPhone / iPad)',
+            solution: {
+              text: 'Скачайте приложение Happ из App Store. После установки откройте его и разрешите добавление VPN-конфигурации. Подробная инструкция — в разделе «Настройка VPN».',
+              actions: [{ type: 'tab', label: 'Инструкция для iOS', tab: 'billing' }],
+            },
+          },
+          {
+            label: 'Android',
+            solution: {
+              text: 'Скачайте Happ из Google Play или APK-файл по ссылке. Если устанавливаете APK — разрешите установку из неизвестных источников в настройках устройства.',
+              actions: [{ type: 'tab', label: 'Инструкция для Android', tab: 'billing' }],
+            },
+          },
+          {
+            label: 'macOS',
+            solution: {
+              text: 'Скачайте Happ из App Store или по прямой ссылке. После установки разрешите добавление VPN-конфигурации.',
+              actions: [{ type: 'tab', label: 'Инструкция для macOS', tab: 'billing' }],
+            },
+          },
+          {
+            label: 'Windows',
+            solution: {
+              text: 'Скачайте установщик Happ и запустите setup. VPN-конфигурация добавится автоматически после активации подписки.',
+              actions: [{ type: 'tab', label: 'Инструкция для Windows', tab: 'billing' }],
+            },
+          },
+          {
+            label: 'TV',
+            solution: {
+              text: 'Установите Happ из магазина приложений вашего телевизора. При первом запуске введите код авторизации, который отобразится на экране.',
+              actions: [{ type: 'tab', label: 'Инструкция для TV', tab: 'billing' }],
+            },
+          },
+        ],
+      },
+    },
+    {
+      label: 'Добавить подписку в приложение',
+      solution: {
+        text: 'Перейдите в раздел «Настройка VPN», выберите ваше устройство и нажмите «Добавить подписку». Ссылка автоматически настроит VPN в приложении Happ.',
+        actions: [{ type: 'tab', label: 'Настроить VPN', tab: 'billing' }],
+      },
+    },
+    {
+      label: 'Добавить / удалить устройство',
+      solution: {
+        text: 'Лимит подключённых устройств — 5 штук. Если лимит исчерпан, отвяжите ненужное устройство в настройках VPN и подключите новое.',
+        actions: [{ type: 'tab', label: 'Управление устройствами', tab: 'billing' }],
+      },
+    },
+    {
+      label: 'Настроить белые списки',
+      solution: {
+        text: 'Выберите устройство в разделе «Настройка VPN», затем нажмите «Добавить белые списки». Помните: белые списки работают только через LTE/мобильную сеть, не через Wi-Fi.',
+        actions: [{ type: 'tab', label: 'Настроить белые списки', tab: 'billing', scrollTo: 'whitelist-section' }],
+      },
+    },
+    {
+      label: 'Сменить сервер',
+      solution: {
+        text: 'Откройте приложение Happ → перейдите в список серверов → выберите другую страну и переподключитесь. Более близкий сервер обычно даёт лучшую скорость.',
+      },
+    },
+  ],
+};
+
+/* ─── Tree: Безопасность ─── */
+const SECURITY_TREE: SupportNode = {
+  id: 'sec-1',
+  text: 'Что вас беспокоит?',
+  options: [
+    {
+      label: 'Приватность данных',
+      solution: {
+        text: 'Мы не храним логи вашей активности. Весь трафик шифруется, а DNS-запросы идут через защищённый туннель. Ваши данные остаются приватными и не передаются третьим лицам.',
+      },
+    },
+    {
+      label: 'Подозрительная активность в аккаунте',
+      next: {
+        id: 'sec-2a',
+        text: 'Рекомендуем немедленно выполнить следующее:',
+        description: '1. Смените пароль аккаунта\n2. Отвяжите все неизвестные устройства\n3. Если проблема сохраняется — свяжитесь с нами',
+        options: [
+          {
+            label: 'Перейти к управлению устройствами',
+            solution: {
+              text: 'Откройте раздел «Настройка VPN» → «Устройства» и отвяжите все устройства, которые вы не узнаёте. После этого смените пароль.',
+              actions: [{ type: 'tab', label: 'Управление устройствами', tab: 'billing' }],
+            },
+          },
+          {
+            label: 'Написать в поддержку',
+            solution: {
+              text: 'Опишите ситуацию в чате — мы проверим вашу учётную запись и поможем обезопасить аккаунт.',
+              actions: [{ type: 'chat', label: 'Написать в чат' }],
+            },
+          },
+        ],
+      },
+    },
+    {
+      label: 'Утечка данных / DNS leak',
+      solution: {
+        text: 'Убедитесь, что VPN-соединение активно и весь трафик идёт через туннель. Если вы подозреваете утечку DNS — напишите нам, мы поможем провести диагностику.',
+        actions: [{ type: 'chat', label: 'Написать в чат' }],
+      },
+    },
+  ],
+};
+
+const SUPPORT_TOPICS: {
+  id: SupportTopicId;
+  icon: React.ElementType;
+  label: string;
+  tree: SupportNode | null;
+}[] = [
+  { id: 'connection', icon: WifiSlash, label: 'Не подключается VPN', tree: CONNECTION_TREE },
+  { id: 'payment', icon: CreditCard, label: 'Вопрос по оплате', tree: PAYMENT_TREE },
+  { id: 'device', icon: DeviceMobile, label: 'Вопрос по настройке', tree: DEVICE_TREE },
+  { id: 'security', icon: ShieldCheck, label: 'Безопасность', tree: SECURITY_TREE },
+  { id: 'other', icon: Question, label: 'Другое', tree: null },
 ];
 
-const SupportTab = ({ onOpenChat }: { onOpenChat: () => void }) => {
-  const { t, a, theme } = useContext(ThemeContext);
-  const [openFaq, setOpenFaq] = useState<number | null>(null);
+const SupportTab = ({ onOpenChat, messages, onSend }: { onOpenChat: () => void; messages: SupportMessage[]; onSend: (text: string) => void }) => {
+  const { t, a, navigateTab } = useContext(ThemeContext);
+  const [activeTopic, setActiveTopic] = useState<SupportTopicId | null>(null);
+  const [currentNode, setCurrentNode] = useState<SupportNode | null>(null);
+  const [nodeHistory, setNodeHistory] = useState<SupportNode[]>([]);
+  const [resolvedSolution, setResolvedSolution] = useState<SupportSolution | null>(null);
+  const [chatInput, setChatInput] = useState('');
+  const [attachments, setAttachments] = useState<{ name: string; size: string }[]>([]);
+  const chatRef = useRef<HTMLDivElement>(null);
+  const messagesAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const chatAutoScrolled = useRef(false);
+
+  /* When user scrolls main and chat becomes visible — auto-scroll chat to last msg */
+  useEffect(() => {
+    chatAutoScrolled.current = false;
+    let scrollCount = 0;
+    const main = document.querySelector('main');
+    if (!main) return;
+
+    const check = () => {
+      if (chatAutoScrolled.current) return;
+      scrollCount++;
+      if (scrollCount <= 2) return;
+      const chat = chatRef.current;
+      if (!chat) return;
+      const mainRect = main.getBoundingClientRect();
+      const chatRect = chat.getBoundingClientRect();
+      if (chatRect.top < mainRect.bottom && chatRect.bottom > mainRect.top) {
+        chatAutoScrolled.current = true;
+        const area = messagesAreaRef.current;
+        if (area) area.scrollTo({ top: area.scrollHeight, behavior: 'smooth' });
+      }
+    };
+
+    main.addEventListener('scroll', check, { passive: true });
+    return () => main.removeEventListener('scroll', check);
+  }, []);
+
+  /* On new message — scroll chat area to bottom */
+  const prevMsgCount = useRef(messages.length);
+  useEffect(() => {
+    if (messages.length > prevMsgCount.current) {
+      const area = messagesAreaRef.current;
+      if (area) area.scrollTo({ top: area.scrollHeight, behavior: 'smooth' });
+    }
+    prevMsgCount.current = messages.length;
+  }, [messages]);
+
+  const totalDepth = nodeHistory.length + (currentNode ? 1 : 0);
+
+  const handleTopicClick = (topic: SupportTopicId) => {
+    if (topic === 'other') {
+      setActiveTopic('other');
+      setCurrentNode(null);
+      setNodeHistory([]);
+      setResolvedSolution(null);
+      setTimeout(() => chatRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+      return;
+    }
+    const found = SUPPORT_TOPICS.find((t) => t.id === topic);
+    setActiveTopic(topic);
+    setCurrentNode(found?.tree ?? null);
+    setNodeHistory([]);
+    setResolvedSolution(null);
+  };
+
+  const handleOptionSelect = (option: { next?: SupportNode; solution?: SupportSolution }) => {
+    if (option.solution) {
+      setResolvedSolution(option.solution);
+    } else if (option.next) {
+      if (currentNode) setNodeHistory((h) => [...h, currentNode]);
+      setCurrentNode(option.next);
+      setResolvedSolution(null);
+    }
+  };
+
+  const handleBack = () => {
+    if (resolvedSolution) {
+      setResolvedSolution(null);
+      return;
+    }
+    if (nodeHistory.length > 0) {
+      const prev = nodeHistory[nodeHistory.length - 1];
+      setNodeHistory((h) => h.slice(0, -1));
+      setCurrentNode(prev);
+      setResolvedSolution(null);
+    } else {
+      setActiveTopic(null);
+      setCurrentNode(null);
+      setResolvedSolution(null);
+    }
+  };
+
+  const handleReset = () => {
+    setActiveTopic(null);
+    setCurrentNode(null);
+    setNodeHistory([]);
+    setResolvedSolution(null);
+  };
+
+  const handleAction = (action: SupportAction) => {
+    if (action.type === 'tab') {
+      navigateTab(action.tab as TabType, action.scrollTo);
+    } else {
+      const topicLabel = SUPPORT_TOPICS.find((tp) => tp.id === activeTopic)?.label ?? '';
+      setChatInput(topicLabel ? `${topicLabel}: ` : '');
+      setTimeout(() => chatRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+    }
+  };
+
+  const handleSend = () => {
+    const trimmed = chatInput.trim();
+    if (!trimmed && attachments.length === 0) return;
+    const text = attachments.length > 0
+      ? `${trimmed}\n📎 ${attachments.map((f) => f.name).join(', ')}`
+      : trimmed;
+    onSend(text);
+    setChatInput('');
+    setAttachments([]);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+    const newFiles = Array.from(files).map((f) => ({
+      name: f.name,
+      size: f.size < 1024 * 1024 ? `${(f.size / 1024).toFixed(0)} KB` : `${(f.size / (1024 * 1024)).toFixed(1)} MB`,
+    }));
+    setAttachments((prev) => [...prev, ...newFiles]);
+    e.target.value = '';
+  };
+
+  const removeAttachment = (idx: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
+  };
 
   return (
     <motion.div
@@ -4602,126 +6928,359 @@ const SupportTab = ({ onOpenChat }: { onOpenChat: () => void }) => {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="space-y-6"
+      className="space-y-5"
     >
-      {/* Hero */}
-      <GlowCard>
-        <div className="flex flex-col items-center p-8 text-center">
-          <div className={cn('mb-4 flex h-16 w-16 items-center justify-center rounded-2xl', a.bgSoft)}>
-            <Lifebuoy weight={ICON_WEIGHT} className={cn('h-8 w-8', a.text)} />
-          </div>
-          <h2 className={cn('text-xl font-medium', t.textStrong)}>Поддержка</h2>
-          <p className={cn('mt-2 max-w-md text-sm', t.textMuted)}>
-            Мы здесь, чтобы помочь. Выберите удобный способ связи или найдите ответ в разделе FAQ.
-          </p>
-          <div className={cn('mt-3 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-medium', a.border, a.bgSoft, a.text)}>
-            <Clock weight={ICON_WEIGHT} className="h-3 w-3" />
-            Отвечаем по мере загруженности
+      {/* ── Guided problem solver ── */}
+      <div className={cn('overflow-hidden rounded-2xl border', t.border)}>
+        {/* Header */}
+        <div className={cn('px-6 pt-6 pb-4', t.cardSolid)}>
+          <div className="flex items-start gap-3">
+            <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', a.bgSoft)}>
+              <Headset weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+            </div>
+            <div className="min-w-0 flex-1">
+              <h2 className={cn('text-sm font-medium', t.textStrong)}>Чем можем помочь?</h2>
+              <p className={cn('mt-1 text-xs leading-relaxed', t.textMuted)}>
+                Пройдите наш опросник — в 95% случаев мы выявим точную причину, и вы сможете устранить проблему без ожидания ответа поддержки. Отвечайте конкретно на вопросы, и мы проведём вас по решению шаг за шагом.
+              </p>
+            </div>
           </div>
         </div>
-      </GlowCard>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <button
-          onClick={onOpenChat}
-          className={cn(
-            'group flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
-            t.border, t.card, t.borderHover
-          )}
-        >
-          <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', a.bgSoft)}>
-            <ChatCircleDots weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
-          </div>
-          <div>
-            <div className={cn('text-sm font-medium', t.textStrong)}>Написать в чат</div>
-            <div className={cn('text-[11px]', t.textMuted)}>Быстрый ответ онлайн</div>
-          </div>
-          <ArrowRight weight="bold" className={cn('ml-auto h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100', t.textSubtle)} />
-        </button>
+        {/* Topic pills */}
+        <div className={cn('flex flex-wrap gap-2 border-t px-6 py-4', t.border, t.cardSolid)}>
+          {SUPPORT_TOPICS.map((topic) => {
+            const isActive = activeTopic === topic.id;
+            return (
+              <button
+                key={topic.id}
+                onClick={() => handleTopicClick(topic.id)}
+                className={cn(
+                  'flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-medium transition-all',
+                  isActive
+                    ? cn(a.bgSoft, a.text, a.border, 'border')
+                    : cn('border', t.border, t.text, t.borderHover, 'hover:bg-white/[0.03]')
+                )}
+              >
+                <topic.icon weight={ICON_WEIGHT} className="h-4 w-4" />
+                {topic.label}
+              </button>
+            );
+          })}
+        </div>
 
+        {/* Guided flow area */}
+        <AnimatePresence mode="wait">
+          {activeTopic && activeTopic !== 'other' && (currentNode || resolvedSolution) ? (
+            <motion.div
+              key={`${activeTopic}-${currentNode?.id ?? 'solved'}-${resolvedSolution ? 'r' : 'q'}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              className={cn('border-t px-6 py-5', t.border, t.cardSolid)}
+            >
+              {/* Progress dots + back button */}
+              <div className="mb-4 flex items-center gap-3">
+                <button
+                  onClick={handleBack}
+                  className={cn('flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-all', t.text, t.navHover)}
+                >
+                  <CaretLeft weight="bold" className="h-3 w-3" />
+                  Назад
+                </button>
+                <div className="flex items-center gap-1.5">
+                  {Array.from({ length: totalDepth + (resolvedSolution ? 1 : 0) }).map((_, i) => (
+                    <div
+                      key={i}
+                      className={cn(
+                        'h-1.5 rounded-full transition-all',
+                        i <= nodeHistory.length
+                          ? cn('w-3', a.color)
+                          : cn('w-1.5', t.textSubtle, 'opacity-30'),
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {!resolvedSolution && currentNode ? (
+                /* ── Question step ── */
+                <div className="space-y-3">
+                  <p className={cn('text-sm font-medium', t.textStrong)}>{currentNode.text}</p>
+                  {currentNode.description ? (
+                    <p className={cn('text-xs leading-relaxed', t.textMuted)}>
+                      {currentNode.description.split('\n').map((line, i) => (
+                        <span key={i}>{line}{i < currentNode.description!.split('\n').length - 1 ? <br /> : null}</span>
+                      ))}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {currentNode.options.map((opt, i) => (
+                      <button
+                        key={i}
+                        onClick={() => handleOptionSelect(opt)}
+                        className={cn(
+                          'min-h-[36px] rounded-xl border px-3.5 py-2 text-xs font-medium transition-all',
+                          t.border, t.text, t.borderHover, 'hover:bg-white/[0.03]'
+                        )}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : resolvedSolution ? (
+                /* ── Solution step ── */
+                <div className="space-y-3">
+                  <div className={cn('flex items-start gap-2.5 rounded-xl p-3', a.bgSoft)}>
+                    <CheckCircle weight={ICON_WEIGHT} className={cn('mt-0.5 h-4 w-4 shrink-0', a.text)} />
+                    <p className={cn('text-sm leading-relaxed', t.text)}>{resolvedSolution.text}</p>
+                  </div>
+
+                  {/* Action buttons */}
+                  {resolvedSolution.actions && resolvedSolution.actions.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {resolvedSolution.actions.map((action, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleAction(action)}
+                          className={cn(
+                            'rounded-xl px-4 py-2 text-xs font-medium transition-all',
+                            i === 0 ? a.button : cn('border', t.border, t.text, t.borderHover, 'hover:bg-white/[0.03]'),
+                          )}
+                        >
+                          {action.label}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  {/* Reset / chat fallback */}
+                  <div className="flex items-center gap-3 pt-1">
+                    <span className={cn('text-xs', t.textMuted)}>Помогло?</span>
+                    <button
+                      onClick={handleReset}
+                      className={cn('rounded-xl px-3 py-1.5 text-xs font-medium transition-all', a.button)}
+                    >
+                      Да, спасибо
+                    </button>
+                    <button
+                      onClick={() => {
+                        const topicLabel = SUPPORT_TOPICS.find((tp) => tp.id === activeTopic)?.label ?? '';
+                        setChatInput(topicLabel ? `${topicLabel}: ` : '');
+                        setTimeout(() => chatRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 150);
+                      }}
+                      className={cn(
+                        'rounded-xl border px-3 py-1.5 text-xs font-medium transition-all',
+                        t.border, t.text, t.borderHover, 'hover:bg-white/[0.03]'
+                      )}
+                    >
+                      Нет, написать в чат
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+      </div>
+
+      {/* ── Full Chat ── */}
+      <div ref={chatRef} className={cn('overflow-hidden rounded-2xl border', t.border)}>
+        {/* Chat header */}
+        <div className={cn('flex items-center gap-3 px-6 py-4', t.cardSolid)}>
+          <div className="relative">
+            <div className={cn('flex h-10 w-10 items-center justify-center rounded-full', a.bgSoft)}>
+              <ChatCircleDots weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+            </div>
+            {/* online dot */}
+            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-[#0a0a0a] bg-emerald-500" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className={cn('text-sm font-medium', t.textStrong)}>Поддержка WW</div>
+            <div className={cn('text-[11px]', t.textMuted)}>Обычно отвечаем в течение часа</div>
+          </div>
+          <div className={cn('flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium', a.border, a.bgSoft, a.text)}>
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            Онлайн
+          </div>
+        </div>
+
+        {/* Messages area */}
+        <div className={cn('border-t', t.border)}>
+          <div
+            ref={messagesAreaRef}
+            className={cn('overflow-y-auto px-5 py-5', t.cardSolid)}
+            style={{ minHeight: 320, maxHeight: 480 }}
+          >
+            {/* Date separator */}
+            <div className="mb-5 flex items-center justify-center">
+              <span className={cn('rounded-full px-3 py-1 text-[10px] font-medium', t.card, t.textSubtle, 'border', t.border)}>Сегодня</span>
+            </div>
+
+            <div className="flex flex-col gap-4">
+              {messages.map((msg) => (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className={cn('flex', msg.from === 'user' ? 'justify-end' : 'justify-start')}
+                >
+                  {msg.from === 'support' ? (
+                    <div className="flex max-w-[80%] gap-2.5">
+                      <div className={cn('mt-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full', a.bgSoft)}>
+                        <Lifebuoy weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5', a.text)} />
+                      </div>
+                      <div>
+                        <div className={cn('rounded-2xl rounded-bl-md px-4 py-3 text-sm leading-relaxed', t.card, 'border', t.border, t.text)}>
+                          {msg.text}
+                        </div>
+                        <div className={cn('mt-1 pl-1 text-[10px]', t.textSubtle)}>{msg.time}</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex max-w-[80%] flex-col items-end">
+                      {msg.receipt ? (
+                        <ChatReceiptCard receipt={msg.receipt} label={msg.text} />
+                      ) : (
+                        <div className={cn('rounded-2xl rounded-br-md px-4 py-3 text-sm leading-relaxed', a.color, 'text-black')}>
+                          {msg.text}
+                        </div>
+                      )}
+                      <div className={cn('mt-1 flex items-center gap-1 pr-1 text-[10px]', t.textSubtle)}>
+                        {msg.time}
+                        <Checks weight="bold" className="h-3 w-3" />
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+          </div>
+        </div>
+
+        {/* Attachments preview */}
+        <AnimatePresence>
+          {attachments.length > 0 ? (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className={cn('overflow-hidden border-t', t.border, t.cardSolid)}
+            >
+              <div className="flex flex-wrap gap-2 px-5 py-3">
+                {attachments.map((file, idx) => (
+                  <div
+                    key={idx}
+                    className={cn('flex items-center gap-2 rounded-lg border px-2.5 py-1.5', t.border, t.card)}
+                  >
+                    <Paperclip weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5', t.textSubtle)} />
+                    <span className={cn('max-w-[120px] truncate text-[11px] font-medium', t.text)}>{file.name}</span>
+                    <span className={cn('text-[10px]', t.textSubtle)}>{file.size}</span>
+                    <button onClick={() => removeAttachment(idx)} className={cn('ml-0.5 rounded-full p-0.5 transition-colors', t.textSubtle, t.navHover)}>
+                      <X weight="bold" className="h-2.5 w-2.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          ) : null}
+        </AnimatePresence>
+
+        {/* Input area */}
+        <div className={cn('border-t px-4 py-3', t.border, t.cardSolid)}>
+          <div className={cn('flex items-center gap-2 rounded-xl border px-3 py-2.5 transition-colors focus-within:border-white/[0.1]', t.border, t.card)}>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              className="hidden"
+              onChange={handleFileSelect}
+              accept="image/*,.pdf,.doc,.docx,.txt,.log,.zip"
+            />
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors', t.textSubtle, t.navHover)}
+              title="Прикрепить файл"
+            >
+              <Paperclip weight={ICON_WEIGHT} className="h-4.5 w-4.5" />
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors', t.textSubtle, t.navHover)}
+              title="Отправить изображение"
+            >
+              <ImageSquare weight={ICON_WEIGHT} className="h-4.5 w-4.5" />
+            </button>
+            <textarea
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Напишите сообщение..."
+              rows={1}
+              className={cn(
+                'max-h-28 flex-1 resize-none bg-transparent text-sm leading-relaxed outline-none',
+                t.text,
+                'placeholder:' + t.textSubtle,
+              )}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!chatInput.trim() && attachments.length === 0}
+              className={cn(
+                'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-all',
+                chatInput.trim() || attachments.length > 0
+                  ? cn(a.color, 'text-black')
+                  : cn(t.card, t.textSubtle)
+              )}
+            >
+              <PaperPlaneTilt weight="fill" className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Contact fallback — bottom ── */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <a
           href="https://t.me/wwpro_support"
           target="_blank"
           rel="noopener noreferrer"
           className={cn(
-            'group flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
+            'group flex items-center gap-3 rounded-2xl border p-4 transition-all',
             t.border, t.card, t.borderHover
           )}
         >
           <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', a.bgSoft)}>
             <TelegramLogo weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className={cn('text-sm font-medium', t.textStrong)}>Telegram</div>
             <div className={cn('text-[11px]', t.textMuted)}>@wwpro_support</div>
           </div>
-          <ArrowRight weight="bold" className={cn('ml-auto h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100', t.textSubtle)} />
+          <ArrowRight weight="bold" className={cn('h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100', t.textSubtle)} />
         </a>
 
         <a
           href="mailto:support@ww.pro"
           className={cn(
-            'group flex items-center gap-3 rounded-2xl border p-4 text-left transition-all',
+            'group flex items-center gap-3 rounded-2xl border p-4 transition-all',
             t.border, t.card, t.borderHover
           )}
         >
           <div className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-xl', a.bgSoft)}>
             <Envelope weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <div className={cn('text-sm font-medium', t.textStrong)}>Email</div>
             <div className={cn('text-[11px]', t.textMuted)}>support@ww.pro</div>
           </div>
-          <ArrowRight weight="bold" className={cn('ml-auto h-4 w-4 opacity-0 transition-opacity group-hover:opacity-100', t.textSubtle)} />
+          <ArrowRight weight="bold" className={cn('h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100', t.textSubtle)} />
         </a>
       </div>
-
-      {/* FAQ */}
-      <GlowCard>
-        <div className="px-6 pt-5 pb-2">
-          <div className="flex items-center gap-2">
-            <Question weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
-            <h3 className={cn('text-sm font-medium', t.textStrong)}>Частые вопросы</h3>
-          </div>
-        </div>
-        <div className={cn('divide-y', t.divide)}>
-          {FAQ_ITEMS.map((item, i) => (
-            <div key={i}>
-              <button
-                onClick={() => setOpenFaq(openFaq === i ? null : i)}
-                className={cn(
-                  'flex w-full items-center justify-between px-6 py-3.5 text-left text-sm transition-colors',
-                  t.cardHover
-                )}
-              >
-                <span className={cn('font-medium', t.text)}>{item.q}</span>
-                <motion.div
-                  animate={{ rotate: openFaq === i ? 180 : 0 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <CaretDown weight="bold" className={cn('h-3.5 w-3.5 shrink-0', t.textSubtle)} />
-                </motion.div>
-              </button>
-              <AnimatePresence>
-                {openFaq === i ? (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.25, ease: 'easeInOut' }}
-                    className="overflow-hidden"
-                  >
-                    <div className={cn('px-6 pb-4 text-sm leading-relaxed', t.textMuted)}>
-                      {item.a}
-                    </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </div>
-          ))}
-        </div>
-      </GlowCard>
     </motion.div>
   );
 };
@@ -4733,7 +7292,7 @@ const CONNECTED_ACCOUNTS = {
 };
 
 const ProfilePopover = () => {
-  const { t, a, hasSubscription } = useContext(ThemeContext);
+  const { t, a, hasSubscription, navigateTab } = useContext(ThemeContext);
   const isMobile = useIsMobile();
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -4843,6 +7402,7 @@ const ProfilePopover = () => {
             {/* Actions */}
             <div className={cn('border-b px-2 py-2', t.border)}>
               <button
+                onClick={() => { setOpen(false); navigateTab('preferences'); }}
                 className={cn(
                   'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
                   t.cardHover
@@ -4908,12 +7468,13 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
 
-  const handleSendSupportMessage = (text: string) => {
+  const handleSendSupportMessage = (text: string, receipt?: ChatReceipt) => {
     const msg: SupportMessage = {
       id: Date.now().toString(),
       from: 'user',
       text,
       time: formatTime(),
+      receipt,
     };
     setSupportMessages((prev) => [...prev, msg]);
   };
@@ -4921,22 +7482,46 @@ export default function App() {
   const t = THEMES[theme];
   const a = ACCENTS[accent];
 
+  const mainRef = useRef<HTMLElement>(null);
+  const scrollTargetRef = useRef<string | null>(null);
+
   const navigateTab = (tab: TabType, scrollTo?: string) => {
-    setActiveTab(tab);
     if (scrollTo) {
+      scrollTargetRef.current = scrollTo;
       setScrollTarget(scrollTo);
     }
+    setActiveTab(tab);
   };
 
-  /* Scroll to target after tab switch */
+  /* Scroll main content to top on every tab switch (skip if scrollTarget pending) */
+  useEffect(() => {
+    if (scrollTargetRef.current) return;
+    mainRef.current?.scrollTo({ top: 0 });
+  }, [activeTab]);
+
+  /* Scroll to target after tab switch — poll until element appears in DOM */
   useEffect(() => {
     if (!scrollTarget) return;
-    const timer = setTimeout(() => {
+    let attempts = 0;
+    const maxAttempts = 30;
+    const poll = setInterval(() => {
+      attempts++;
       const el = document.getElementById(scrollTarget);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setScrollTarget(null);
-    }, 350);
-    return () => clearTimeout(timer);
+      if (el && mainRef.current) {
+        clearInterval(poll);
+        const containerRect = mainRef.current.getBoundingClientRect();
+        const elRect = el.getBoundingClientRect();
+        const offset = elRect.top - containerRect.top + mainRef.current.scrollTop;
+        mainRef.current.scrollTo({ top: offset, behavior: 'smooth' });
+        scrollTargetRef.current = null;
+        setScrollTarget(null);
+      } else if (attempts >= maxAttempts) {
+        clearInterval(poll);
+        scrollTargetRef.current = null;
+        setScrollTarget(null);
+      }
+    }, 50);
+    return () => clearInterval(poll);
   }, [scrollTarget, activeTab]);
 
   return (
@@ -4985,13 +7570,14 @@ export default function App() {
                       <NavItem icon={Gift} label="Бонусы" active={activeTab === 'bonuses'} onClick={() => { setActiveTab('bonuses'); setSidebarOpen(false); }} />
                       <NavItem icon={PersonArmsSpread} label="Рефералы" active={activeTab === 'referral'} onClick={() => { setActiveTab('referral'); setSidebarOpen(false); }} />
                       <NavItem icon={Envelope} label="Уведомления" active={activeTab === 'notifications'} onClick={() => { setActiveTab('notifications'); setSidebarOpen(false); }} />
+                      <NavItem icon={Receipt} label="История операций" active={activeTab === 'history'} onClick={() => { setActiveTab('history'); setSidebarOpen(false); }} />
                     </div>
                   </div>
                   <div>
                     <div className={cn('mb-3 px-4 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Настройки</div>
                     <div className="space-y-1">
                       <NavItem icon={DownloadSimple} label="Установить приложение" active={activeTab === 'install'} onClick={() => { setActiveTab('install'); setSidebarOpen(false); }} />
-                      <NavItem icon={GearSix} label="Параметры" active={activeTab === 'preferences'} onClick={() => { setActiveTab('preferences'); setSidebarOpen(false); }} />
+                      <NavItem icon={GearSix} label="Настройки" active={activeTab === 'preferences'} onClick={() => { setActiveTab('preferences'); setSidebarOpen(false); }} />
                       <NavItem icon={Lifebuoy} label="Поддержка" active={activeTab === 'support'} onClick={() => { setActiveTab('support'); setSidebarOpen(false); }} />
                     </div>
                   </div>
@@ -5066,6 +7652,7 @@ export default function App() {
                 <NavItem icon={Gift} label="Бонусы" active={activeTab === 'bonuses'} onClick={() => setActiveTab('bonuses')} />
                 <NavItem icon={PersonArmsSpread} label="Рефералы" active={activeTab === 'referral'} onClick={() => setActiveTab('referral')} />
                 <NavItem icon={Envelope} label="Уведомления" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} />
+                <NavItem icon={Receipt} label="История операций" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
               </div>
             </div>
 
@@ -5073,7 +7660,7 @@ export default function App() {
               <div className={cn('mb-3 px-4 text-[10px] font-bold uppercase tracking-wider', t.textSubtle)}>Настройки</div>
               <div className="space-y-1">
                 <NavItem icon={DownloadSimple} label="Установить приложение" active={activeTab === 'install'} onClick={() => setActiveTab('install')} />
-                <NavItem icon={GearSix} label="Параметры" active={activeTab === 'preferences'} onClick={() => setActiveTab('preferences')} />
+                <NavItem icon={GearSix} label="Настройки" active={activeTab === 'preferences'} onClick={() => setActiveTab('preferences')} />
                 <NavItem icon={Lifebuoy} label="Поддержка" active={activeTab === 'support'} onClick={() => setActiveTab('support')} />
               </div>
             </div>
@@ -5178,6 +7765,7 @@ export default function App() {
           </header>
 
           <main
+            ref={mainRef}
             className={cn('relative z-10 flex-1 overflow-y-auto', isMobile ? 'p-4' : 'p-8')}
             style={isMobile ? { paddingBottom: 'calc(16px + var(--safe-bottom, 0px))' } : undefined}
           >
@@ -5188,7 +7776,8 @@ export default function App() {
                 {activeTab === 'bonuses' ? <BonusTab key="bonuses" /> : null}
                 {activeTab === 'referral' ? <ReferralTab key="referral" /> : null}
                 {activeTab === 'notifications' ? <NotificationsTab key="notifications" /> : null}
-                {activeTab === 'support' ? <SupportTab key="support" onOpenChat={() => setIsSupportChatOpen(true)} /> : null}
+                {activeTab === 'history' ? <HistoryTab key="history" onSendToSupport={handleSendSupportMessage} /> : null}
+                {activeTab === 'support' ? <SupportTab key="support" onOpenChat={() => setIsSupportChatOpen(true)} messages={supportMessages} onSend={handleSendSupportMessage} /> : null}
                 {activeTab === 'install' ? <InstallTab key="install" /> : null}
                 {activeTab === 'preferences' ? (
                   <PreferencesTab key="preferences" />
