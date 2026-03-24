@@ -72,15 +72,11 @@ import {
   Timer,
   Coins,
   ShieldStar,
-  PersonArmsSpread,
-  MagicWand,
   Parachute,
-  Meteor,
   Compass,
   Seal,
   SealCheck,
   Feather,
-  Spiral,
   Planet,
   Atom,
   Hexagon,
@@ -97,6 +93,8 @@ import {
   ArrowSquareOut,
   Headset,
   CaretLeft,
+  ArrowsClockwise,
+  PlusCircle,
 } from '@phosphor-icons/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { clsx, type ClassValue } from 'clsx';
@@ -716,8 +714,7 @@ const SERVERS = [
 const TAB_LABELS = {
   overview: 'Личный кабинет',
   billing: 'Настройка VPN',
-  bonuses: 'Бонусы',
-  referral: 'Рефералы',
+  bonuses: 'Бонусная программа',
   notifications: 'Уведомления',
   history: 'История операций',
   install: 'Установить приложение',
@@ -997,6 +994,7 @@ const OverviewTab = () => {
   const isMobile = useIsMobile();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
+  const [showPlans, setShowPlans] = useState(false);
   const paymentRef = useRef<HTMLDivElement>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
   const planSectionRef = useRef<HTMLDivElement>(null);
@@ -1289,7 +1287,7 @@ const OverviewTab = () => {
                 whileHover={{ scale: 1.015, y: -1 }}
                 whileTap={{ scale: 0.975 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
-                onClick={() => planSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                onClick={() => { setShowPlans(true); requestAnimationFrame(() => planSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })); }}
                 className={cn(
                   'group flex w-full items-center justify-center gap-2.5 rounded-xl px-5 py-3.5 text-sm font-semibold transition-shadow duration-300',
                   a.button
@@ -1348,13 +1346,19 @@ const OverviewTab = () => {
           )}
         </AnimatePresence>
 
+        <AnimatePresence>
+          {showPlans && (
+            <motion.div
+              key="plans"
+              ref={planSectionRef}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 16 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
         {/* ── Step 2: Pick a plan ── */}
-        <motion.div
-          ref={planSectionRef}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 1.2 }}
-        >
+        <div>
           <h3 className={cn('mb-4 text-sm font-medium', t.textMuted)}>Шаг 1 — Выберите тариф</h3>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {SUB_PLANS.map((plan, i) => {
@@ -1367,7 +1371,7 @@ const OverviewTab = () => {
                   key={plan.id}
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.4, delay: 1.3 + i * 0.08 }}
+                  transition={{ duration: 0.3, delay: i * 0.05 }}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => handleSelectPlan(plan.id)}
@@ -1424,7 +1428,7 @@ const OverviewTab = () => {
               );
             })}
           </div>
-        </motion.div>
+        </div>
 
         {/* ── Step 5: Payment method ── */}
         <AnimatePresence>
@@ -1800,6 +1804,11 @@ const OverviewTab = () => {
           </AnimatePresence>,
           document.body
         )}
+
+            </motion.div>
+          )}
+        </AnimatePresence>
+
       </motion.div>
     );
   }
@@ -1811,9 +1820,11 @@ const OverviewTab = () => {
   const [gbPayment, setGbPayment] = useState<PaymentMethod | null>(null);
   const [gbPurchaseState, setGbPurchaseState] = useState<'idle' | 'processing' | 'success'>('idle');
   const buyGbRef = useRef<HTMLDivElement>(null);
+  const buyGbEndRef = useRef<HTMLDivElement>(null);
   const gbPaymentRef = useRef<HTMLDivElement>(null);
   const gbReceiptRef = useRef<HTMLDivElement>(null);
   const renewRef = useRef<HTMLDivElement>(null);
+  const renewEndRef = useRef<HTMLDivElement>(null);
   const renewPlanRef = useRef<HTMLDivElement>(null);
   const renewPaymentRef = useRef<HTMLDivElement>(null);
   const renewReceiptRef = useRef<HTMLDivElement>(null);
@@ -1869,8 +1880,8 @@ const OverviewTab = () => {
     if (showRenewBlock && scrollToRenew.current) {
       scrollToRenew.current = false;
       setTimeout(() => {
-        renewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 450);
+        renewEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 30);
     }
   }, [showRenewBlock]);
 
@@ -1878,8 +1889,8 @@ const OverviewTab = () => {
     if (showGbBlock && scrollToGb.current) {
       scrollToGb.current = false;
       setTimeout(() => {
-        buyGbRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 450);
+        buyGbEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      }, 30);
     }
   }, [showGbBlock]);
 
@@ -1986,7 +1997,7 @@ const OverviewTab = () => {
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 onClick={() => {
                   const next = !showRenewBlock;
-                  if (next) scrollToRenew.current = true;
+                  if (next) { scrollToRenew.current = true; setShowGbBlock(false); }
                   setShowRenewBlock(next);
                 }}
                 className={cn(
@@ -2102,7 +2113,7 @@ const OverviewTab = () => {
                 transition={{ type: 'spring', stiffness: 400, damping: 20 }}
                 onClick={() => {
                   const next = !showGbBlock;
-                  if (next) scrollToGb.current = true;
+                  if (next) { scrollToGb.current = true; setShowRenewBlock(false); }
                   setShowGbBlock(next);
                 }}
                 className={cn(
@@ -2148,7 +2159,7 @@ const OverviewTab = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.01, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
       <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
@@ -2560,6 +2571,7 @@ const OverviewTab = () => {
           </AnimatePresence>
         </div>
       </div>
+      <div ref={buyGbEndRef} />
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -2573,7 +2585,7 @@ const OverviewTab = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+            transition={{ duration: 0.01, ease: [0.4, 0, 0.2, 1] }}
             className="overflow-hidden"
           >
       <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
@@ -2596,9 +2608,7 @@ const OverviewTab = () => {
           {/* Two options — floating descriptions */}
           <div className="space-y-4">
             <div className="flex items-start gap-3">
-              <div className={cn('mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg', a.bgSoft)}>
-                <Spiral weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5', a.text)} />
-              </div>
+              <ArrowsClockwise weight="regular" className={cn('mt-0.5 h-4 w-4 shrink-0', a.text)} />
               <div>
                 <div className={cn('text-sm font-medium', t.textStrong)}>Продлить текущую подписку</div>
                 <p className={cn('mt-1 text-xs leading-relaxed', t.textMuted)}>
@@ -2611,9 +2621,7 @@ const OverviewTab = () => {
             </div>
 
             <div className="flex items-start gap-3">
-              <div className={cn('mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-lg', a.bgSoft)}>
-                <Meteor weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5', a.text)} />
-              </div>
+              <PlusCircle weight={ICON_WEIGHT} className={cn('mt-0.5 h-4 w-4 shrink-0', a.text)} />
               <div>
                 <div className={cn('text-sm font-medium', t.textStrong)}>Создать новую подписку</div>
                 <p className={cn('mt-1 text-xs leading-relaxed', t.textMuted)}>
@@ -2628,8 +2636,8 @@ const OverviewTab = () => {
           {/* Mode selector */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {[
-              { mode: 'renew' as const, icon: Spiral, title: 'Продлить текущую', desc: 'Все данные сохранятся' },
-              { mode: 'new' as const, icon: Meteor, title: 'Создать новую', desc: 'Отдельная подписка' },
+              { mode: 'renew' as const, icon: ArrowsClockwise, iconWeight: 'regular' as const, title: 'Продлить текущую', desc: 'Все данные сохранятся' },
+              { mode: 'new' as const, icon: PlusCircle, iconWeight: 'duotone' as const, title: 'Создать новую', desc: 'Отдельная подписка' },
             ].map((opt) => (
               <motion.button
                 key={opt.mode}
@@ -2654,9 +2662,7 @@ const OverviewTab = () => {
                   renewMode === opt.mode ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
                 )} />
                 <div className="relative z-10 flex w-full items-center gap-3">
-                  <div className={cn('flex h-8 w-8 shrink-0 items-center justify-center rounded-lg', a.bgSoft)}>
-                    <opt.icon weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
-                  </div>
+                  <opt.icon weight={opt.iconWeight} className={cn('h-5 w-5 shrink-0', a.text)} />
                   <div className="flex-1">
                     <div className={cn('text-sm font-medium', t.textStrong)}>{opt.title}</div>
                     <div className={cn('text-[11px]', t.textMuted)}>{opt.desc}</div>
@@ -2954,6 +2960,7 @@ const OverviewTab = () => {
           </AnimatePresence>
         </div>
       </div>
+      <div ref={renewEndRef} />
           </motion.div>
         ) : null}
       </AnimatePresence>
@@ -3515,13 +3522,12 @@ const LevelIcon = ({ Icon, size = 'md' }: { Icon: any; size?: 'md' | 'sm' }) => 
 };
 
 const ReferralTab = () => {
-  const { t, a, theme } = useContext(ThemeContext);
+  const { t, a, theme, navigateTab } = useContext(ThemeContext);
   const [copied, setCopied] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
   const [promoInput, setPromoInput] = useState('');
   const [promoApplied, setPromoApplied] = useState(false);
   const [showShare, setShowShare] = useState(false);
-  const [bonusActivated, setBonusActivated] = useState(false);
   const shareRef = useRef<HTMLDivElement>(null);
 
   const referralCode = 'VLAD-WW2026';
@@ -3532,7 +3538,7 @@ const ReferralTab = () => {
   const bonusDays = 15;
   const currentLevel = [...REFERRAL_LEVELS].reverse().find((l) => totalReferrals >= l.min) || REFERRAL_LEVELS[0];
   const nextLevel = REFERRAL_LEVELS.find((l) => l.min > totalReferrals);
-  const progressToNext = nextLevel ? ((totalReferrals - currentLevel.min) / (nextLevel.min - currentLevel.min)) * 100 : 100;
+  const progressToNext = nextLevel ? (totalReferrals / nextLevel.min) * 100 : 100;
 
   useEffect(() => {
     if (!showShare) return;
@@ -3630,13 +3636,7 @@ const ReferralTab = () => {
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-8"
-    >
+    <div className="space-y-8">
       {/* ── Referral Intro ── */}
       <div className="relative px-1">
         {/* Subtle accent glow behind intro */}
@@ -3781,24 +3781,16 @@ const ReferralTab = () => {
         {/* Activate bonus button */}
         <div className={cn('border-t px-6 py-4', t.border)}>
           <button
-            onClick={() => setBonusActivated(true)}
+            onClick={() => navigateTab('bonuses')}
             className={cn(
               'group flex w-full items-center justify-between rounded-xl px-5 py-3 text-sm font-medium transition-all duration-300',
-              bonusActivated
-                ? cn('border', a.border, a.bgSoft, a.text)
-                : a.button
+              a.button
             )}
           >
             <span className="flex items-center gap-2">
-              {bonusActivated ? (
-                <><CheckCircle weight="fill" className="h-4 w-4" /> Бонусы активированы</>
-              ) : (
-                <><RocketLaunch weight={ICON_WEIGHT} className="h-4 w-4" /> Активировать {bonusDays} бонусных дней</>
-              )}
+              <RocketLaunch weight={ICON_WEIGHT} className="h-4 w-4" /> Активировать {bonusDays} бонусных дней
             </span>
-            {!bonusActivated && (
-              <CaretRight weight="bold" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-            )}
+            <CaretRight weight="bold" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
           </button>
         </div>
       </div>
@@ -4059,7 +4051,7 @@ const ReferralTab = () => {
           ))}
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 };
 
@@ -4072,15 +4064,15 @@ const ACTIVATION_STEPS = [
 ];
 
 const EXTEND_STEPS = [
-  { label: 'Применяем бонусы', icon: Feather, duration: 1000 },
-  { label: 'Обновляем подписку', icon: Spiral, duration: 800 },
+  { label: 'Применяем бонусы', icon: Gift, duration: 1000 },
+  { label: 'Обновляем подписку', icon: ArrowsClockwise, duration: 800 },
   { label: 'Готово!', icon: CheckCircle, duration: 600 },
 ];
 
 const RENEW_PAYMENT_STEPS = [
   { label: 'Обработка платежа', icon: CreditCard, duration: 1200 },
   { label: 'Проверка оплаты', icon: ShieldCheck, duration: 1000 },
-  { label: 'Обновляем подписку', icon: Spiral, duration: 900 },
+  { label: 'Обновляем подписку', icon: ArrowsClockwise, duration: 900 },
   { label: 'Готово!', icon: CheckCircle, duration: 600 },
 ];
 
@@ -4165,13 +4157,7 @@ const BonusTab = () => {
   if (bonusDays <= 0) return null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      transition={{ duration: 0.4 }}
-      className="space-y-6"
-    >
+    <div className="space-y-6">
       {/* ── Hero card ── */}
       <div className={cn('relative overflow-hidden rounded-3xl border', t.cardSolid, t.border)}>
         <div className={cn('pointer-events-none absolute -right-32 -top-32 h-[400px] w-[400px] rounded-full opacity-20 blur-[140px]', a.blur1)} />
@@ -4229,7 +4215,7 @@ const BonusTab = () => {
             {bonusGb > 0 && (
               <div className={cn('rounded-xl border p-3', t.border, theme === 'dark' ? 'bg-white/[0.02]' : 'bg-black/[0.02]')}>
                 <div className="flex items-start gap-3">
-                  <Hexagon weight={ICON_WEIGHT} className={cn('mt-0.5 h-4 w-4 shrink-0', a.textLight)} />
+                  <Globe weight={ICON_WEIGHT} className={cn('mt-0.5 h-4 w-4 shrink-0', a.textLight)} />
                   <div className={cn('text-sm leading-relaxed', t.text)}>
                     За каждые 10 бонусных дней начисляется <span className={cn('font-medium', a.text)}>1 ГБ</span> трафика
                     на белые списки. Ваши <span className={cn('font-medium', a.text)}>{bonusDays} дней</span> дадут{' '}
@@ -4251,9 +4237,9 @@ const BonusTab = () => {
           {/* Stats row */}
           <div className={cn('mt-5 flex items-end justify-between border-t pt-5', t.border)}>
             {[
-              { value: `${bonusDays}`, label: 'Бонус-дней', Icon: Feather },
-              { value: bonusGb > 0 ? `${bonusGb} ГБ` : '—', label: 'Трафик', Icon: Hexagon },
-              { value: hasSubscription ? 'Продление' : 'Новая', label: 'Тип активации', Icon: hasSubscription ? Spiral : Meteor },
+              { value: `${bonusDays}`, label: 'Бонус-дней', Icon: CalendarBlank },
+              { value: bonusGb > 0 ? `${bonusGb} ГБ` : '—', label: 'Трафик', Icon: Globe },
+              { value: hasSubscription ? 'Продление' : 'Новая', label: 'Тип активации', Icon: hasSubscription ? ArrowsClockwise : PlusCircle },
             ].map((stat, i) => (
               <motion.div
                 key={stat.label}
@@ -4279,7 +4265,7 @@ const BonusTab = () => {
             className={cn('group flex w-full items-center justify-between rounded-xl px-5 py-3 text-sm font-medium transition-all duration-300', a.button)}
           >
             <span className="flex items-center gap-2">
-              <MagicWand weight={ICON_WEIGHT} className="h-4 w-4" />
+              <RocketLaunch weight={ICON_WEIGHT} className="h-4 w-4" />
               {hasSubscription ? `Применить ${bonusDays} бонусных дней` : `Активировать ${bonusDays} бонусных дней`}
             </span>
             <CaretRight weight="bold" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
@@ -4309,12 +4295,10 @@ const BonusTab = () => {
               {/* Modal header */}
               <div className={cn('flex items-center justify-between border-b px-6 py-4', t.border)}>
                 <div className="flex items-center gap-3">
-                  <div className={cn('flex h-9 w-9 items-center justify-center rounded-xl', a.bgSoft)}>
                     {hasSubscription
-                      ? <Spiral weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
-                      : <Meteor weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
+                      ? <ArrowsClockwise weight="regular" className={cn('h-5 w-5', a.text)} />
+                      : <PlusCircle weight={ICON_WEIGHT} className={cn('h-5 w-5', a.text)} />
                     }
-                  </div>
                   <div>
                     <h3 className={cn('text-sm font-medium', t.textStrong)}>
                       {hasSubscription ? 'Продление подписки' : 'Бонусная подписка'}
@@ -4445,7 +4429,7 @@ const BonusTab = () => {
                           a.button
                         )}
                       >
-                        <MagicWand weight={ICON_WEIGHT} className="h-4 w-4" />
+                        <RocketLaunch weight={ICON_WEIGHT} className="h-4 w-4" />
                         {hasSubscription ? 'Применить бонусы' : 'Создать подписку'}
                       </motion.button>
                     </motion.div>
@@ -4467,7 +4451,7 @@ const BonusTab = () => {
                           className={cn('flex h-16 w-16 items-center justify-center rounded-full', a.bgSoft)}
                         >
                           {hasSubscription
-                            ? <Spiral weight="fill" className={cn('h-8 w-8', a.text)} />
+                            ? <ArrowsClockwise weight="regular" className={cn('h-8 w-8', a.text)} />
                             : <Parachute weight="fill" className={cn('h-8 w-8', a.text)} />
                           }
                         </motion.div>
@@ -4631,6 +4615,24 @@ const BonusTab = () => {
       </AnimatePresence>,
       document.body
       )}
+    </div>
+  );
+};
+
+/* ── Bonus Program Tab (combined) ── */
+const BonusProgramTab = () => {
+  const { t } = useContext(ThemeContext);
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-10"
+    >
+      <BonusTab />
+      <div className={cn('h-px w-full', t.divider)} />
+      <ReferralTab />
     </motion.div>
   );
 };
@@ -7810,8 +7812,7 @@ export default function App() {
                     <div className="space-y-1">
                       <NavItem icon={Globe} label="Личный кабинет" active={activeTab === 'overview'} onClick={() => { setActiveTab('overview'); setSidebarOpen(false); }} />
                       <NavItem icon={ShieldCheck} label="Настройка VPN" active={activeTab === 'billing'} onClick={() => { setActiveTab('billing'); setSidebarOpen(false); }} />
-                      <NavItem icon={Gift} label="Бонусы" active={activeTab === 'bonuses'} onClick={() => { setActiveTab('bonuses'); setSidebarOpen(false); }} />
-                      <NavItem icon={PersonArmsSpread} label="Рефералы" active={activeTab === 'referral'} onClick={() => { setActiveTab('referral'); setSidebarOpen(false); }} />
+                      <NavItem icon={Gift} label="Бонусная программа" active={activeTab === 'bonuses'} onClick={() => { setActiveTab('bonuses'); setSidebarOpen(false); }} />
                       <NavItem icon={Envelope} label="Уведомления" active={activeTab === 'notifications'} onClick={() => { setActiveTab('notifications'); setSidebarOpen(false); }} />
                       <NavItem icon={Receipt} label="История операций" active={activeTab === 'history'} onClick={() => { setActiveTab('history'); setSidebarOpen(false); }} />
                     </div>
@@ -7892,8 +7893,7 @@ export default function App() {
               <div className="space-y-1">
                 <NavItem icon={Globe} label="Личный кабинет" active={activeTab === 'overview'} onClick={() => setActiveTab('overview')} />
                 <NavItem icon={ShieldCheck} label="Настройка VPN" active={activeTab === 'billing'} onClick={() => setActiveTab('billing')} />
-                <NavItem icon={Gift} label="Бонусы" active={activeTab === 'bonuses'} onClick={() => setActiveTab('bonuses')} />
-                <NavItem icon={PersonArmsSpread} label="Рефералы" active={activeTab === 'referral'} onClick={() => setActiveTab('referral')} />
+                <NavItem icon={Gift} label="Бонусная программа" active={activeTab === 'bonuses'} onClick={() => setActiveTab('bonuses')} />
                 <NavItem icon={Envelope} label="Уведомления" active={activeTab === 'notifications'} onClick={() => setActiveTab('notifications')} />
                 <NavItem icon={Receipt} label="История операций" active={activeTab === 'history'} onClick={() => setActiveTab('history')} />
               </div>
@@ -8016,8 +8016,7 @@ export default function App() {
               <AnimatePresence mode="wait">
                 {activeTab === 'overview' ? <OverviewTab key="overview" /> : null}
                 {activeTab === 'billing' ? <VpnSetupTab key="billing" /> : null}
-                {activeTab === 'bonuses' ? <BonusTab key="bonuses" /> : null}
-                {activeTab === 'referral' ? <ReferralTab key="referral" /> : null}
+                {activeTab === 'bonuses' ? <BonusProgramTab key="bonuses" /> : null}
                 {activeTab === 'notifications' ? <NotificationsTab key="notifications" /> : null}
                 {activeTab === 'history' ? <HistoryTab key="history" onSendToSupport={handleSendSupportMessage} /> : null}
                 {activeTab === 'support' ? <SupportTab key="support" onOpenChat={() => setIsSupportChatOpen(true)} messages={supportMessages} onSend={handleSendSupportMessage} /> : null}
