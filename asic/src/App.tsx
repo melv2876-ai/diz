@@ -999,6 +999,7 @@ const OverviewTab = () => {
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
   const paymentRef = useRef<HTMLDivElement>(null);
   const receiptRef = useRef<HTMLDivElement>(null);
+  const planSectionRef = useRef<HTMLDivElement>(null);
 
   const handleSelectPlan = (planId: string) => {
     setSelectedPlan(planId);
@@ -1046,6 +1047,20 @@ const OverviewTab = () => {
     runStep();
   };
 
+  const [wlInfoOpen, setWlInfoOpen] = useState(false);
+  const wlInfoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!wlInfoOpen) return;
+    const handler = (e: MouseEvent | TouchEvent) => {
+      if (wlInfoRef.current?.contains(e.target as Node)) return;
+      setWlInfoOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    document.addEventListener('touchstart', handler);
+    return () => { document.removeEventListener('mousedown', handler); document.removeEventListener('touchstart', handler); };
+  }, [wlInfoOpen]);
+
   if (!hasSubscription) {
     return (
       <motion.div
@@ -1054,60 +1069,288 @@ const OverviewTab = () => {
         exit={{ opacity: 0 }}
         className="space-y-6"
       >
-        {/* ── Step 1: Welcome ── */}
+        {/* ── Welcome ── */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
-          className={cn('relative overflow-hidden rounded-2xl border p-6', t.card, a.border)}
+          className={cn('relative overflow-hidden rounded-2xl border', t.card, a.border)}
         >
-          <div className={cn('pointer-events-none absolute right-0 top-0 h-56 w-56 rounded-full opacity-15 blur-[100px]', a.blur1)} />
-          <div className="relative z-10">
+          <div className={cn('pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full opacity-15 blur-[100px]', a.blur1)} />
+          <div className={cn('pointer-events-none absolute -left-16 bottom-0 h-40 w-40 rounded-full opacity-10 blur-[80px]', a.blur1)} />
+
+          <div className="relative z-10 p-6 sm:p-8">
+            {/* Title */}
             <motion.h2
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-              className={cn('mb-3 text-2xl font-light tracking-tight', t.textStrong)}
+              transition={{ duration: 0.5, delay: 0.25 }}
+              className={cn('text-2xl font-light tracking-tight', t.textStrong)}
             >
-              Рады видеть вас, <span className={a.text}>Влад</span>
+              Добро пожаловать в <span className={a.text}>WW.pro</span>
             </motion.h2>
             <motion.p
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.5 }}
-              className={cn('mb-1.5 text-sm leading-relaxed', t.text)}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              className={cn('mt-2 max-w-lg text-sm leading-relaxed', t.text)}
             >
-              Подключение к быстрому VPN — три простых шага.
-              Всё займёт не больше минуты.
+              Ваш интернет — без ограничений, без слежки, без рекламы.
+              Протокол Xray, различные типы транспорта, двойная маскировка
+              и отсутствие логов — всё это от <span className={cn('font-medium', a.text)}>99 ₽/мес</span>.
             </motion.p>
-            <div className="mt-5 space-y-3">
-              {[
-                { step: '1', icon: Wallet, title: 'Оплатите тариф', desc: 'Выберите подходящий план ниже и оплатите удобным способом' },
-                { step: '2', icon: DownloadSimple, title: 'Скачайте приложение', desc: 'Установите WireGuard на нужное устройство — ПК, телефон или роутер' },
-                { step: '3', icon: ShieldCheck, title: 'Активируйте подписку', desc: 'Вернитесь в кабинет, скачайте конфиг и импортируйте его в приложение' },
-              ].map((item, i) => (
-                <motion.div
-                  key={item.step}
-                  initial={{ opacity: 0, x: -12 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ duration: 0.4, delay: 0.7 + i * 0.15 }}
-                  className="flex items-start gap-3"
-                >
-                  <div className={cn('flex h-7 w-7 shrink-0 items-center justify-center rounded-lg', a.bgSoft)}>
-                    <item.icon weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5', a.text)} />
-                  </div>
-                  <div className="min-w-0">
-                    <div className={cn('text-sm font-medium', t.textStrong)}>{item.title}</div>
-                    <div className={cn('text-xs leading-relaxed', t.textMuted)}>{item.desc}</div>
-                  </div>
-                </motion.div>
-              ))}
+
+            {/* ── Separator ── */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.55 }}
+              className={cn('my-6 mx-auto h-px rounded-full', theme === 'dark' ? 'bg-gradient-to-r from-transparent via-white/20 to-transparent' : 'bg-gradient-to-r from-transparent via-black/15 to-transparent')}
+            />
+
+            {/* ── Intro ── */}
+            <motion.p
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 0.58 }}
+              className={cn('mb-4 text-sm', t.text)}
+            >
+              Одна подписка — <span className={cn('font-medium', t.textStrong)}>две услуги</span>
+            </motion.p>
+
+            {/* ── Two services ── */}
+            <div className={cn('grid gap-6', isMobile ? 'grid-cols-1' : 'grid-cols-2')}>
+              {/* VPN */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.65 }}
+                className="space-y-3"
+              >
+                <div className="flex items-center gap-2">
+                  <ShieldCheck weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
+                  <span className={cn('text-sm font-medium', t.textStrong)}>VPN-подписка</span>
+                </div>
+                <p className={cn('text-xs leading-relaxed', t.textMuted)}>
+                  Все заблокированные сервисы работают — Instagram, ChatGPT, Spotify и остальное.
+                  Протокол <span className={cn('font-medium', t.text)}>Xray</span> с продвинутой маскировкой. Доступ к 4 серверам:
+                </p>
+                <div className="space-y-1.5">
+                  {[
+                    { flag: '🇩🇪', name: 'Германия', desc: 'самый быстрый сервер' },
+                    { flag: '🇦🇲', name: 'Армения', desc: 'YouTube без рекламы' },
+                    { flag: '🇫🇮', name: 'Финляндия', desc: 'стабильность + YouTube без рекламы' },
+                    { flag: '🇺🇸', name: 'США', desc: 'любой сервис доступен' },
+                  ].map((s) => (
+                    <div key={s.name} className="flex items-center gap-2">
+                      <span className="text-sm leading-none">{s.flag}</span>
+                      <span className={cn('text-xs', t.textStrong)}>{s.name}</span>
+                      <span className={cn('text-[11px]', t.textSubtle)}>— {s.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+
+              {/* White Lists */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.45, delay: 0.75 }}
+                className="space-y-2.5"
+              >
+                <div className="relative flex items-center gap-2">
+                  <Globe weight={ICON_WEIGHT} className={cn('h-4 w-4', a.text)} />
+                  <span className={cn('text-sm font-medium', t.textStrong)}>Белые списки</span>
+                  <button
+                    onClick={() => setWlInfoOpen((v) => !v)}
+                    className={cn(
+                      'inline-flex h-4 w-4 items-center justify-center rounded-full transition-colors',
+                      wlInfoOpen ? cn(a.color, 'text-black') : cn(theme === 'dark' ? 'bg-white/10 text-white/50 hover:bg-white/15' : 'bg-black/8 text-black/40 hover:bg-black/12')
+                    )}
+                  >
+                    <Info weight="bold" className="h-2.5 w-2.5" />
+                  </button>
+
+                  {/* Desktop popup */}
+                  <AnimatePresence>
+                    {wlInfoOpen && !isMobile && (
+                      <motion.div
+                        ref={wlInfoRef}
+                        initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 6, scale: 0.97 }}
+                        transition={{ duration: 0.18 }}
+                        className={cn('absolute left-0 top-full z-50 mt-2 w-80 rounded-xl border p-4 shadow-xl', t.cardSolid, t.border)}
+                      >
+                        <div className="flex items-center justify-between mb-2.5">
+                          <span className={cn('text-xs font-medium', t.textStrong)}>Как работают белые списки?</span>
+                          <button onClick={() => setWlInfoOpen(false)} className={cn('rounded-full p-0.5', t.textSubtle, 'hover:bg-white/5')}>
+                            <X weight="bold" className="h-3 w-3" />
+                          </button>
+                        </div>
+                        <p className={cn('text-xs leading-relaxed', t.textMuted)}>
+                          <span className={cn('font-medium', t.text)}>Обычный VPN</span> обходит блокировки отдельных сайтов — когда интернет работает, но часть ресурсов недоступна.
+                        </p>
+                        <p className={cn('mt-2 text-xs leading-relaxed', t.textMuted)}>
+                          <span className={cn('font-medium', t.text)}>Белые списки</span> — на случай полного отключения интернета в стране. Доступ к нужным ресурсам через мобильную сеть (LTE) по зашифрованному каналу, даже когда всё остальное недоступно.
+                        </p>
+                        <div className={cn('mt-3 rounded-lg border p-2.5', a.border, a.bgSoft)}>
+                          <p className={cn('text-[11px] leading-relaxed', t.text)}>
+                            <span className={cn('font-medium', a.text)}>3 ГБ бесплатно</span> в каждой подписке для теста. Дополнительный трафик — всего <span className={cn('font-medium', a.text)}>4 ₽/ГБ</span>.
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+                <p className={cn('text-xs leading-relaxed', t.textMuted)}>
+                  Отдельная услуга на случай полного отключения интернета в стране.
+                  Доступ к нужным ресурсам через мобильную сеть (LTE) по зашифрованному каналу — работает даже в шатдаун.
+                </p>
+                <p className={cn('text-xs leading-relaxed', t.text)}>
+                  <span className={cn('font-medium', a.text)}>3 ГБ входят в каждую подписку бесплатно</span> — протестируйте прямо сейчас.
+                  Нужно больше? Дополнительный трафик — всего <span className={cn('font-medium', a.text)}>4 ₽/ГБ</span>.
+                </p>
+              </motion.div>
             </div>
+
+            {/* ── Separator ── */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 0.9 }}
+              className={cn('my-6 mx-auto h-px rounded-full', theme === 'dark' ? 'bg-gradient-to-r from-transparent via-white/20 to-transparent' : 'bg-gradient-to-r from-transparent via-black/15 to-transparent')}
+            />
+
+            {/* ── Value block ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.45, delay: 1.0 }}
+              className="space-y-4"
+            >
+              <div className="flex items-baseline gap-2">
+                <span className={cn('text-3xl font-light tracking-tight', a.text)}>99 ₽</span>
+                <span className={cn('text-sm', t.textMuted)}>/ мес</span>
+              </div>
+              <div className={cn('space-y-2 text-xs', t.textMuted)}>
+                <div className="flex items-center gap-2">
+                  <Lightning weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5 shrink-0', a.text)} />
+                  <span>Безлимитный VPN — трафик и скорость без ограничений</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Devices weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5 shrink-0', a.text)} />
+                  <span>До <span className={cn('font-medium', t.text)}>5 устройств</span> одновременно</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Globe weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5 shrink-0', a.text)} />
+                  <span>4 страны, YouTube без рекламы, все сервисы работают</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Gift weight={ICON_WEIGHT} className={cn('h-3.5 w-3.5 shrink-0', a.text)} />
+                  <span>Белые списки — <span className={cn('font-medium', t.text)}>3 ГБ в подарок</span>, дополнительный трафик 4 ₽/ГБ</span>
+                </div>
+              </div>
+            </motion.div>
+
+            {/* ── Separator ── */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.5, delay: 1.15 }}
+              className={cn('my-6 mx-auto h-px rounded-full', theme === 'dark' ? 'bg-gradient-to-r from-transparent via-white/20 to-transparent' : 'bg-gradient-to-r from-transparent via-black/15 to-transparent')}
+            />
+
+            {/* ── Quick start + CTA ── */}
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: 1.25 }}
+              className="space-y-4"
+            >
+              <div className={cn('flex items-center gap-3 text-xs', t.textMuted, isMobile ? 'flex-col items-start gap-2' : '')}>
+                <span className="flex items-center gap-1.5">
+                  <span className={cn('flex h-4.5 w-4.5 items-center justify-center rounded-full text-[9px] font-semibold', a.bgSoft, a.text)}>1</span>
+                  <span>Выберите тариф</span>
+                </span>
+                {!isMobile && <span className={cn('text-[8px]', t.textSubtle)}>→</span>}
+                <span className="flex items-center gap-1.5">
+                  <span className={cn('flex h-4.5 w-4.5 items-center justify-center rounded-full text-[9px] font-semibold', a.bgSoft, a.text)}>2</span>
+                  <span>Установите приложение</span>
+                </span>
+                {!isMobile && <span className={cn('text-[8px]', t.textSubtle)}>→</span>}
+                <span className="flex items-center gap-1.5">
+                  <span className={cn('flex h-4.5 w-4.5 items-center justify-center rounded-full text-[9px] font-semibold', a.bgSoft, a.text)}>3</span>
+                  <span>Подключитесь из кабинета</span>
+                </span>
+              </div>
+
+              <motion.button
+                whileHover={{ scale: 1.015, y: -1 }}
+                whileTap={{ scale: 0.975 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 20 }}
+                onClick={() => planSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className={cn(
+                  'group flex w-full items-center justify-center gap-2.5 rounded-xl px-5 py-3.5 text-sm font-semibold transition-shadow duration-300',
+                  a.button
+                )}
+              >
+                <HandPeace weight="fill" className="h-4 w-4" />
+                Всё нравится, давайте приступим
+                <ArrowRight weight="bold" className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-0.5" />
+              </motion.button>
+            </motion.div>
           </div>
         </motion.div>
 
+        {/* Mobile white-list info bottom sheet */}
+        <AnimatePresence>
+          {wlInfoOpen && isMobile && createPortal(
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[9999] flex items-end justify-center"
+            >
+              <motion.div className="fixed inset-0 bg-black/60" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setWlInfoOpen(false)} />
+              <motion.div
+                ref={wlInfoRef}
+                initial={{ opacity: 0, y: '100%' }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: '100%' }}
+                transition={{ type: 'spring', bounce: 0.15, duration: 0.4 }}
+                className={cn('relative z-10 w-full max-w-lg rounded-t-2xl border-t p-6', t.cardSolid, t.border)}
+                style={{ paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom, 0px))' }}
+              >
+                <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-white/20" />
+                <div className="flex items-center justify-between mb-3">
+                  <span className={cn('text-sm font-medium', t.textStrong)}>Как работают белые списки?</span>
+                  <button onClick={() => setWlInfoOpen(false)} className={cn('rounded-full p-1.5', t.textMuted, 'hover:bg-white/5')}>
+                    <X weight="bold" className="h-4 w-4" />
+                  </button>
+                </div>
+                <div className="space-y-3">
+                  <p className={cn('text-sm leading-relaxed', t.text)}>
+                    <span className={cn('font-medium', t.textStrong)}>Обычный VPN</span> обходит блокировки отдельных сайтов — когда интернет работает, но часть ресурсов недоступна.
+                  </p>
+                  <p className={cn('text-sm leading-relaxed', t.text)}>
+                    <span className={cn('font-medium', t.textStrong)}>Белые списки</span> — на случай полного отключения интернета в стране. Доступ к нужным ресурсам через мобильную сеть (LTE) по зашифрованному каналу, даже когда всё остальное недоступно.
+                  </p>
+                  <div className={cn('rounded-xl border p-3', a.border, a.bgSoft)}>
+                    <p className={cn('text-sm leading-relaxed', t.text)}>
+                      <span className={cn('font-medium', a.text)}>3 ГБ бесплатно</span> в каждой подписке. Дополнительный трафик — всего <span className={cn('font-medium', a.text)}>4 ₽/ГБ</span>.
+                    </p>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>,
+            document.body
+          )}
+        </AnimatePresence>
+
         {/* ── Step 2: Pick a plan ── */}
         <motion.div
+          ref={planSectionRef}
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 1.2 }}
